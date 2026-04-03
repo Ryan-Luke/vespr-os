@@ -71,7 +71,7 @@ const entries = [
   },
   {
     title: "Monthly Financial Overview",
-    content: `## Status\n\n⚠️ **Q1 P&L blocked** — need March bank statement\n\n## AI Agent Costs (Monthly)\n\n| Agent | Cost |\n|-------|------|\n| Jordan (Lead Research) | $45.00 |\n| Maya (Content) | $28.50 |\n| Riley (Outreach) | $22.30 |\n| Casey (Support) | $18.90 |\n| Alex (SEO) | $15.20 |\n| Automation Expert | $12.00 |\n| Quinn (Process) | $9.80 |\n| Zara (Social) | $8.90 |\n| Finley (Bookkeeper) | $5.20 |\n| Morgan (P&L) | $4.50 |\n| Sam (CRM) | $3.50 |\n| Drew (Order Tracking) | $1.20 |\n| **Total** | **$174.90** |\n\n## Action Required\n\n🔴 Upload March bank statement to unblock P&L report`,
+    content: `## Status\n\n⚠️ **Q1 P&L blocked** — need March bank statement\n\n## AI Agent Costs (Monthly)\n\n| Agent | Cost |\n|-------|------|\n| Jordan (Lead Research) | $45.00 |\n| Maya (Content) | $28.50 |\n| Riley (Outreach) | $22.30 |\n| Casey (Support) | $18.90 |\n| Alex (SEO) | $15.20 |\n| Nyx | $12.00 |\n| Quinn (Process) | $9.80 |\n| Zara (Social) | $8.90 |\n| Finley (Bookkeeper) | $5.20 |\n| Morgan (P&L) | $4.50 |\n| Sam (CRM) | $3.50 |\n| Drew (Order Tracking) | $1.20 |\n| **Total** | **$174.90** |\n\n## Action Required\n\n🔴 Upload March bank statement to unblock P&L report`,
     category: "financial",
     tags: ["P&L", "costs", "budget"],
     linkedEntries: [] as string[],

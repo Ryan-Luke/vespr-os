@@ -104,9 +104,9 @@ export const agents: Agent[] = [
   },
   {
     id: "a7",
-    name: "Automation Expert",
+    name: "Nyx",
     role: "Automation Architect",
-    avatar: "AE",
+    avatar: "NX",
     pixelAvatarIndex: 0,
     provider: "anthropic",
     model: "Claude Sonnet",

@@ -44,7 +44,7 @@ export default function AutomationsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
           <p className="text-sm text-muted-foreground">
-            Recurring workflows managed by your Automation Expert
+            Recurring workflows managed by Nyx, your Automation Architect
           </p>
         </div>
         <Button>
