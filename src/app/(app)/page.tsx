@@ -11,6 +11,7 @@ import {
   AlertCircle,
   TrendingUp,
 } from "lucide-react"
+import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 
 export const dynamic = "force-dynamic"
 
@@ -33,6 +34,19 @@ export default async function DashboardPage() {
     { label: "Active Agents", value: allAgents.length.toString(), change: 0, changeLabel: "all teams" },
     { label: "Monthly Cost", value: `$${totalCost.toFixed(2)}`, change: -8.2, changeLabel: "vs last month" },
   ]
+
+  // Chart data: cost by team (from DB)
+  const costByTeamData = allTeams.map((team) => {
+    const teamAgents = allAgents.filter((a) => a.teamId === team.id)
+    const cost = teamAgents.reduce((sum, a) => sum + (a.costThisMonth ?? 0), 0)
+    return { team: team.name, cost }
+  })
+
+  // Chart data: task status distribution (from DB)
+  const taskStatusData = (["backlog", "todo", "in_progress", "review", "done"] as const).map((status) => ({
+    status,
+    count: allTasks.filter((t) => t.status === status).length,
+  }))
 
   return (
     <div className="p-6 space-y-6 overflow-y-auto h-full">
@@ -59,6 +73,27 @@ export default async function DashboardPage() {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-3">
+        <Card>
+          <CardHeader><CardTitle className="text-base">Agent Activity (Last 7 Days)</CardTitle></CardHeader>
+          <CardContent>
+            <AgentActivityChart />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Cost by Team</CardTitle></CardHeader>
+          <CardContent>
+            <CostByTeamChart data={costByTeamData} />
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="text-base">Task Status Distribution</CardTitle></CardHeader>
+          <CardContent>
+            <TaskStatusChart data={taskStatusData} />
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-6 lg:grid-cols-3">

@@ -1,7 +1,7 @@
 import { generateText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents as agentsTable } from "@/lib/db/schema"
+import { agents as agentsTable, agentSops } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export const maxDuration = 30
@@ -28,6 +28,10 @@ export async function POST(req: Request) {
   const teammates = allAgents.filter((a) => a.teamId === teamId && a.id !== agentId)
   const teamContext = teamContexts[teamId] || ""
 
+  // Load SOPs for richer context
+  const sops = await db.select().from(agentSops).where(eq(agentSops.agentId, agentId)).limit(3)
+  const sopContext = sops.length > 0 ? `\nYour procedures: ${sops.map((s) => s.title).join(", ")}` : ""
+
   const recentContext = recentMessages.length > 0
     ? `\n\nRecent channel messages:\n${recentMessages.map((m) => `${m.name}: ${m.content}`).join("\n")}`
     : ""
@@ -38,7 +42,7 @@ export async function POST(req: Request) {
 
 Context: ${teamContext}
 Your teammates: ${teammates.map((t) => `${t.name} (${t.role})`).join(", ")}
-${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}
+${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}${sopContext}
 
 RULES:
 - Write a SHORT Slack message (1-2 sentences max) as if you're updating your team or responding to a teammate.
