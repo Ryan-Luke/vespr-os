@@ -15,6 +15,7 @@ export const teams = pgTable("teams", {
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon").notNull().default("⚙️"),
+  leadAgentId: uuid("lead_agent_id"), // team lead — references agents but no FK to avoid circular
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
@@ -33,6 +34,7 @@ export const agents = pgTable("agents", {
   currentTask: text("current_task"),
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
+  isTeamLead: boolean("is_team_lead").notNull().default(false),
   tasksCompleted: integer("tasks_completed").notNull().default(0),
   costThisMonth: real("cost_this_month").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -91,6 +93,19 @@ export const automations = pgTable("automations", {
   lastRunAt: timestamp("last_run_at"),
   nextRunAt: timestamp("next_run_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Agent SOPs ─────────────────────────────────────────────
+export const agentSops = pgTable("agent_sops", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  title: text("title").notNull(),
+  content: text("content").notNull(), // rich text / markdown
+  category: text("category").notNull().default("general"), // general, process, tools, escalation, reference
+  sortOrder: integer("sort_order").notNull().default(0),
+  version: integer("version").notNull().default(1),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
 // ── Agent Schedules (Cron Jobs) ────────────────────────────
