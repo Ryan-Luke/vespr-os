@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -80,7 +80,11 @@ const templates = [
   { id: "custom", name: "Custom Agent", role: "", team: "", description: "Build from scratch with full customization" },
 ]
 
-export default function BuilderPage() {
+export default function BuilderPageWrapper() {
+  return <Suspense><BuilderPageInner /></Suspense>
+}
+
+function BuilderPageInner() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const prefillTeam = searchParams.get("team")
