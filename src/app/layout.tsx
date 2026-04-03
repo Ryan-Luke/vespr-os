@@ -29,10 +29,9 @@ export default function RootLayout({
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
-      <body className="flex h-screen overflow-hidden">
+      <body className="h-screen overflow-hidden">
         <TooltipProvider>
-          <Sidebar />
-          <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
+          {children}
         </TooltipProvider>
       </body>
     </html>
