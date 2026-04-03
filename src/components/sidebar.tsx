@@ -29,7 +29,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/office", label: "Office", icon: Building2 },
   { href: "/tasks", label: "Task Board", icon: ClipboardList },
-  { href: "/brain", label: "Brain", icon: Brain },
+  { href: "/knowledge", label: "Knowledge", icon: Brain },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/builder", label: "Agent Builder", icon: PlusCircle },
