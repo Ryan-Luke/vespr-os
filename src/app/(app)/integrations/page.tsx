@@ -44,7 +44,7 @@ interface Integration {
 const integrations: Integration[] = [
   { id: "slack", name: "Slack", description: "Send messages and updates to Slack channels", icon: <MessageSquare className="h-5 w-5" />, category: "communication", connected: true, agentsUsing: 5 },
   { id: "gmail", name: "Gmail", description: "Read, send, and manage emails", icon: <Mail className="h-5 w-5" />, category: "communication", connected: true, agentsUsing: 3, popular: true },
-  { id: "hubspot", name: "HubSpot", description: "CRM, contacts, deals, and pipeline management", icon: <Database className="h-5 w-5" />, category: "crm", connected: true, agentsUsing: 4, popular: true },
+  { id: "hubspot", name: "GHL", description: "CRM, contacts, deals, and pipeline management", icon: <Database className="h-5 w-5" />, category: "crm", connected: true, agentsUsing: 4, popular: true },
   { id: "google-cal", name: "Google Calendar", description: "Create and manage calendar events", icon: <Calendar className="h-5 w-5" />, category: "productivity", connected: true, agentsUsing: 2 },
   { id: "google-analytics", name: "Google Analytics", description: "Access website analytics and traffic data", icon: <BarChart3 className="h-5 w-5" />, category: "analytics", connected: true, agentsUsing: 1 },
   { id: "shopify", name: "Shopify", description: "Manage orders, products, and inventory", icon: <ShoppingCart className="h-5 w-5" />, category: "ecommerce", connected: false, agentsUsing: 0, popular: true },

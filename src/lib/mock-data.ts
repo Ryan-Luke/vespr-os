@@ -86,7 +86,7 @@ export const agents: Agent[] = [
     model: "n8n Workflow",
     status: "working",
     teamId: "t2",
-    currentTask: "Syncing new leads to HubSpot",
+    currentTask: "Syncing new leads to GHL",
     skills: ["CRM Sync", "Data Cleanup", "Pipeline Management"],
     tasksCompleted: 1205,
     costThisMonth: 3.50,
@@ -355,7 +355,7 @@ export const messages: Message[] = [
     senderAgentId: "a6",
     senderName: "Sam",
     senderAvatar: "CM",
-    content: "All 23 prospects have been added to HubSpot with complete enrichment data. Pipeline stage: 'New Lead'. Tags: fintech, Q2-outreach.",
+    content: "All 23 prospects have been added to GHL with complete enrichment data. Pipeline stage: 'New Lead'. Tags: fintech, Q2-outreach.",
     messageType: "status",
     timestamp: new Date(Date.now() - 1000 * 60 * 10),
     reactions: [
@@ -463,7 +463,7 @@ export const messages: Message[] = [
     senderAgentId: "a2",
     senderName: "Alex",
     senderAvatar: "SA",
-    content: "The organic inbound is a great sign — means the content strategy is compounding. @Riley make sure we tag those separately in HubSpot so we can track organic vs paid pipeline.",
+    content: "The organic inbound is a great sign — means the content strategy is compounding. @Riley make sure we tag those separately in GHL so we can track organic vs paid pipeline.",
     messageType: "text",
     timestamp: new Date(Date.now() - 1000 * 60 * 27),
     reactions: [
@@ -476,7 +476,7 @@ export const messages: Message[] = [
     senderAgentId: "a6",
     senderName: "Sam",
     senderAvatar: "CM",
-    content: "Already tagged. Created a new pipeline stage 'AI Inbound' in HubSpot. The 4 prospects are in there with full enrichment data.",
+    content: "Already tagged. Created a new pipeline stage 'AI Inbound' in GHL. The 4 prospects are in there with full enrichment data.",
     messageType: "text",
     timestamp: new Date(Date.now() - 1000 * 60 * 25),
     reactions: [
@@ -552,7 +552,7 @@ export const automations: Automation[] = [
   {
     id: "auto3",
     name: "Daily Lead Sync",
-    description: "Syncs new leads from all sources into HubSpot CRM with enrichment data",
+    description: "Syncs new leads from all sources into GHL CRM with enrichment data",
     schedule: "0 8 * * *",
     lastRun: new Date(Date.now() - 1000 * 60 * 60 * 8),
     nextRun: new Date(Date.now() + 1000 * 60 * 60 * 16),
@@ -608,7 +608,7 @@ export const activityFeed = [
   { id: "af3", agent: "Morgan", action: "Needs attention", detail: "Missing March bank statement for P&L", time: "30 min ago", status: "error" as const },
   { id: "af4", agent: "Casey", action: "Resolved 12 support tickets", detail: "Avg response: 1.2 hrs", time: "45 min ago", status: "success" as const },
   { id: "af5", agent: "Zara", action: "Scheduled 15 social posts", detail: "Instagram & LinkedIn, next 5 days", time: "1 hr ago", status: "success" as const },
-  { id: "af6", agent: "Sam", action: "Synced 47 contacts", detail: "HubSpot CRM updated", time: "2 hrs ago", status: "success" as const },
+  { id: "af6", agent: "Sam", action: "Synced 47 contacts", detail: "GHL CRM updated", time: "2 hrs ago", status: "success" as const },
   { id: "af7", agent: "Automation Expert", action: "Processed 8 invoices", detail: "Total value: $23,450", time: "2 hrs ago", status: "success" as const },
   { id: "af8", agent: "Drew", action: "Flagged shipping delay", detail: "Order #ORD-8834, FedEx weather delay", time: "3 hrs ago", status: "warning" as const },
   { id: "af9", agent: "Riley", action: "Sent 34 outreach emails", detail: "Open rate: 42%, 3 replies", time: "4 hrs ago", status: "success" as const },
