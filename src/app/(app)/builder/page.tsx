@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -35,8 +35,18 @@ import {
   Code,
   Wrench,
   Loader2,
+  Sparkles,
+  SlidersHorizontal,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import {
+  PERSONALITY_PRESETS,
+  TRAIT_LABELS,
+  DEFAULT_TRAITS,
+  CATEGORY_INFO,
+  type PersonalityTraits,
+  type PersonalityPreset,
+} from "@/lib/personality-presets"
 
 const skillOptions = [
   { id: "web-search", name: "Web Search", icon: Globe, description: "Search the internet for information" },
@@ -72,8 +82,24 @@ export default function BuilderPage() {
   const [agentTeam, setAgentTeam] = useState("")
   const [agentProvider, setAgentProvider] = useState("")
   const [agentDescription, setAgentDescription] = useState("")
+  const [agentAutonomy, setAgentAutonomy] = useState("supervised")
   const [creating, setCreating] = useState(false)
   const [dbTeams, setDbTeams] = useState<{ id: string; name: string; icon: string }[]>([])
+
+  // Personality state
+  const [personalityMode, setPersonalityMode] = useState<"preset" | "custom">("preset")
+  const [selectedPreset, setSelectedPreset] = useState<PersonalityPreset | null>(null)
+  const [customTraits, setCustomTraits] = useState<PersonalityTraits>({ ...DEFAULT_TRAITS })
+  const [presetSearch, setPresetSearch] = useState("")
+  const [presetCategory, setPresetCategory] = useState<string>("all")
+
+  const filteredPresets = useMemo(() => {
+    return PERSONALITY_PRESETS.filter((p) => {
+      const matchesSearch = !presetSearch || p.name.toLowerCase().includes(presetSearch.toLowerCase()) || p.description.toLowerCase().includes(presetSearch.toLowerCase())
+      const matchesCategory = presetCategory === "all" || p.category === presetCategory
+      return matchesSearch && matchesCategory
+    })
+  }, [presetSearch, presetCategory])
 
   useEffect(() => {
     fetch("/api/teams").then((r) => r.json()).then((teams) => setDbTeams(teams))
@@ -108,8 +134,8 @@ export default function BuilderPage() {
       </div>
 
       {/* Progress Steps */}
-      <div className="flex items-center gap-2">
-        {["Template", "Details", "Skills", "Review"].map((label, i) => (
+      <div className="flex items-center gap-2 flex-wrap">
+        {["Template", "Details", "Personality", "Skills", "Review"].map((label, i) => (
           <div key={label} className="flex items-center gap-2">
             <button
               onClick={() => i <= step && setStep(i)}
@@ -125,7 +151,7 @@ export default function BuilderPage() {
               <span className="font-mono text-xs">{i + 1}</span>
               {label}
             </button>
-            {i < 3 && (
+            {i < 4 && (
               <div className={cn("h-px w-8", i < step ? "bg-primary" : "bg-border")} />
             )}
           </div>
@@ -223,6 +249,24 @@ export default function BuilderPage() {
               </div>
             </div>
             <div className="space-y-2">
+              <Label>Autonomy Level</Label>
+              <Select value={agentAutonomy} onValueChange={(v) => setAgentAutonomy(v ?? "supervised")}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="full_auto">Full Auto — works independently 24/7</SelectItem>
+                  <SelectItem value="supervised">Supervised — asks before key actions</SelectItem>
+                  <SelectItem value="manual">Manual — only works when you ask</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                {agentAutonomy === "full_auto" && "This agent will work continuously without asking for permission."}
+                {agentAutonomy === "supervised" && "This agent will flag important decisions for your approval."}
+                {agentAutonomy === "manual" && "This agent only acts when you directly assign work."}
+              </p>
+            </div>
+            <div className="space-y-2">
               <Label>Description</Label>
               <Textarea
                 placeholder="Describe what this agent should do in plain language... e.g., 'Research our competitors' pricing pages daily and alert me if anything changes.'"
@@ -233,15 +277,179 @@ export default function BuilderPage() {
             </div>
             <div className="flex justify-end">
               <Button onClick={() => setStep(2)}>
-                Next: Skills
+                Next: Personality
               </Button>
             </div>
           </CardContent>
         </Card>
       )}
 
-      {/* Step 2: Skills */}
+      {/* Step 2: Personality */}
       {step === 2 && (
+        <div className="space-y-4">
+          {/* Mode Toggle */}
+          <div className="flex gap-2">
+            <Button
+              variant={personalityMode === "preset" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setPersonalityMode("preset")}
+              className="gap-2"
+            >
+              <Sparkles className="h-4 w-4" />
+              Choose Character
+            </Button>
+            <Button
+              variant={personalityMode === "custom" ? "default" : "outline"}
+              size="sm"
+              onClick={() => { setPersonalityMode("custom"); setSelectedPreset(null) }}
+              className="gap-2"
+            >
+              <SlidersHorizontal className="h-4 w-4" />
+              Build Custom
+            </Button>
+          </div>
+
+          {personalityMode === "preset" ? (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Character Library
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Choose a famous personality — your agent will communicate in their style
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {/* Search + Filter */}
+                <div className="flex gap-2">
+                  <Input
+                    placeholder="Search characters..."
+                    value={presetSearch}
+                    onChange={(e) => setPresetSearch(e.target.value)}
+                    className="flex-1"
+                  />
+                  <Select value={presetCategory} onValueChange={(v) => setPresetCategory(v ?? "all")}>
+                    <SelectTrigger className="w-36">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">All Categories</SelectItem>
+                      {Object.entries(CATEGORY_INFO).map(([key, { label, icon }]) => (
+                        <SelectItem key={key} value={key}>{icon} {label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                {/* Character Grid */}
+                <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3 max-h-[400px] overflow-y-auto pr-1">
+                  {filteredPresets.map((preset) => (
+                    <button
+                      key={preset.id}
+                      onClick={() => setSelectedPreset(preset)}
+                      className={cn(
+                        "flex flex-col gap-1 rounded-lg border p-3 text-left transition-all hover:border-primary/50",
+                        selectedPreset?.id === preset.id
+                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          : "border-border"
+                      )}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm font-medium">{preset.name}</span>
+                        <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                          {CATEGORY_INFO[preset.category].icon}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">
+                        {preset.description}
+                      </p>
+                    </button>
+                  ))}
+                  {filteredPresets.length === 0 && (
+                    <p className="text-sm text-muted-foreground col-span-3 text-center py-8">
+                      No characters found
+                    </p>
+                  )}
+                </div>
+
+                {/* Selected Preview */}
+                {selectedPreset && (
+                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <h4 className="font-semibold text-sm">{selectedPreset.name}</h4>
+                        <p className="text-xs text-muted-foreground">{selectedPreset.description}</p>
+                      </div>
+                      <Badge>{CATEGORY_INFO[selectedPreset.category].label}</Badge>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Communication style</p>
+                      <p className="text-xs italic">&ldquo;{selectedPreset.speechStyle}&rdquo;</p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                      {(Object.entries(selectedPreset.traits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
+                        <div key={key} className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground w-20">{TRAIT_LABELS[key].name}</span>
+                          <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                            <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
+                          </div>
+                          <span className="text-xs font-mono w-7 text-right">{val}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          ) : (
+            <Card>
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <SlidersHorizontal className="h-4 w-4" />
+                  Custom Personality
+                </CardTitle>
+                <p className="text-xs text-muted-foreground">
+                  Tune each trait to shape how your agent communicates — like building a character in The Sims
+                </p>
+              </CardHeader>
+              <CardContent className="space-y-5">
+                {(Object.entries(customTraits) as [keyof PersonalityTraits, number][]).map(([key, val]) => {
+                  const label = TRAIT_LABELS[key]
+                  return (
+                    <div key={key} className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <Label className="text-sm font-medium">{label.name}</Label>
+                        <span className="text-xs font-mono text-muted-foreground">{val}</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <span className="text-xs text-muted-foreground w-20 text-right">{label.low}</span>
+                        <input
+                          type="range"
+                          min={0}
+                          max={100}
+                          value={val}
+                          onChange={(e) => setCustomTraits((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
+                          className="flex-1 h-2 accent-primary cursor-pointer"
+                        />
+                        <span className="text-xs text-muted-foreground w-20">{label.high}</span>
+                      </div>
+                    </div>
+                  )
+                })}
+              </CardContent>
+            </Card>
+          )}
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button onClick={() => setStep(3)}>Next: Skills</Button>
+          </div>
+        </div>
+      )}
+
+      {/* Step 3: Skills */}
+      {step === 3 && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -284,18 +492,18 @@ export default function BuilderPage() {
             </CardContent>
           </Card>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(1)}>
+            <Button variant="outline" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button onClick={() => setStep(3)}>
+            <Button onClick={() => setStep(4)}>
               Next: Review
             </Button>
           </div>
         </div>
       )}
 
-      {/* Step 3: Review */}
-      {step === 3 && (
+      {/* Step 4: Review */}
+      {step === 4 && (
         <div className="space-y-4">
           <Card>
             <CardHeader>
@@ -319,6 +527,10 @@ export default function BuilderPage() {
                   <p className="text-sm text-muted-foreground">Provider</p>
                   <p className="font-medium capitalize">{agentProvider || "Not set"}</p>
                 </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Autonomy</p>
+                  <p className="font-medium">{agentAutonomy === "full_auto" ? "Full Auto" : agentAutonomy === "supervised" ? "Supervised" : "Manual"}</p>
+                </div>
               </div>
               {agentDescription && (
                 <div>
@@ -326,6 +538,26 @@ export default function BuilderPage() {
                   <p className="text-sm mt-1">{agentDescription}</p>
                 </div>
               )}
+              <Separator />
+              <div>
+                <p className="text-sm text-muted-foreground mb-2">Personality</p>
+                {selectedPreset ? (
+                  <div className="flex items-center gap-2">
+                    <Badge variant="default">{selectedPreset.name}</Badge>
+                    <span className="text-xs text-muted-foreground">{selectedPreset.description}</span>
+                  </div>
+                ) : personalityMode === "custom" ? (
+                  <div className="flex flex-wrap gap-2">
+                    {(Object.entries(customTraits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
+                      <Badge key={key} variant="secondary" className="text-xs">
+                        {TRAIT_LABELS[key].name}: {val}
+                      </Badge>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">Default personality</p>
+                )}
+              </div>
               <Separator />
               <div>
                 <p className="text-sm text-muted-foreground mb-2">Skills</p>
@@ -347,7 +579,7 @@ export default function BuilderPage() {
             </CardContent>
           </Card>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>
+            <Button variant="outline" onClick={() => setStep(3)}>
               Back
             </Button>
             <Button disabled={creating} onClick={async () => {
@@ -365,6 +597,9 @@ export default function BuilderPage() {
                     model: agentProvider === "openai" ? "GPT-4o" : agentProvider === "google" ? "Gemini" : "Claude Haiku",
                     description: agentDescription,
                     skills: Array.from(selectedSkills).map((id) => skillOptions.find((s) => s.id === id)?.name || id),
+                    personalityPresetId: selectedPreset?.id || null,
+                    personality: selectedPreset ? selectedPreset.traits : customTraits,
+                    autonomyLevel: agentAutonomy,
                   }),
                 })
                 router.push("/teams")

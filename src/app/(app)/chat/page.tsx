@@ -13,7 +13,7 @@ import type { AgentStatus } from "@/lib/types"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -30,6 +30,7 @@ interface DBAgent {
   teamId: string | null
   currentTask: string | null
   skills: string[]
+  isTeamLead: boolean
   tasksCompleted: number
   costThisMonth: number
 }
@@ -88,6 +89,17 @@ function MessageBubble({
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
+  const [feedbackGiven, setFeedbackGiven] = useState<"positive" | "negative" | null>(null)
+
+  function giveFeedback(rating: "positive" | "negative") {
+    if (!agent || feedbackGiven) return
+    setFeedbackGiven(rating)
+    fetch("/api/feedback", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ agentId: agent.id, messageId: message.id, rating }),
+    }).catch(() => setFeedbackGiven(null))
+  }
 
   const avatarEl = agent
     ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={36} className="rounded-lg border border-border" />
@@ -128,6 +140,25 @@ function MessageBubble({
       </div>
       {hovered && (
         <div className="absolute right-2 -top-3 flex items-center gap-0.5 rounded-md border border-border bg-card shadow-sm p-0.5">
+          {agent && (
+            <>
+              <button
+                className={cn("h-7 w-7 flex items-center justify-center rounded transition-colors", feedbackGiven === "positive" ? "bg-green-500/20 text-green-500" : "hover:bg-accent text-muted-foreground hover:text-green-500")}
+                onClick={() => giveFeedback("positive")}
+                disabled={!!feedbackGiven}
+              >
+                <ThumbsUp className="h-3.5 w-3.5" />
+              </button>
+              <button
+                className={cn("h-7 w-7 flex items-center justify-center rounded transition-colors", feedbackGiven === "negative" ? "bg-red-500/20 text-red-500" : "hover:bg-accent text-muted-foreground hover:text-red-500")}
+                onClick={() => giveFeedback("negative")}
+                disabled={!!feedbackGiven}
+              >
+                <ThumbsDown className="h-3.5 w-3.5" />
+              </button>
+              <div className="w-px h-4 bg-border mx-0.5" />
+            </>
+          )}
           {["👍", "🔥", "✅", "👀"].map((emoji) => (
             <button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-sm" onClick={() => onAddReaction(message.id, emoji)}>{emoji}</button>
           ))}
@@ -252,6 +283,10 @@ export default function ChatPage() {
   const activeChannelData = dbChannels.find((c) => c.id === activeChannel)
 
   function getChannelAgents() {
+    if (activeChannelData?.name === "team-leaders") {
+      // Team leads + Chief of Staff (agents with no team)
+      return dbAgents.filter((a: any) => a.isTeamLead || !a.teamId)
+    }
     if (!activeChannelData?.teamId) return dbAgents.slice(0, 3)
     return dbAgents.filter((a) => a.teamId === activeChannelData.teamId)
   }
@@ -377,19 +412,26 @@ export default function ChatPage() {
 
   useEffect(() => {
     if (!autonomousMode || dbChannels.length === 0 || dbAgents.length === 0) return
-    const teamChannels = dbChannels.filter((c) => c.teamId)
+    const teamChannels = dbChannels.filter((c) => c.teamId || c.name === "team-leaders")
     let idx = 0
 
     async function trigger() {
       if (!autonomousRef.current) return
       const channel = teamChannels[idx % teamChannels.length]
       idx++
-      const teamAgents = dbAgents.filter((a) => a.teamId === channel.teamId)
-      if (teamAgents.length === 0) return
-      const agent = teamAgents[Math.floor(Math.random() * teamAgents.length)]
+
+      // For team-leaders channel, pick from leads + CoS; otherwise pick from team agents
+      let eligibleAgents: DBAgent[]
+      if (channel.name === "team-leaders") {
+        eligibleAgents = dbAgents.filter((a: any) => a.isTeamLead || !a.teamId)
+      } else {
+        eligibleAgents = dbAgents.filter((a) => a.teamId === channel.teamId)
+      }
+      if (eligibleAgents.length === 0) return
+      const agent = eligibleAgents[Math.floor(Math.random() * eligibleAgents.length)]
 
       try {
-        const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: agent.id, teamId: channel.teamId, recentMessages: [] }) })
+        const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: agent.id, teamId: channel.teamId, channelName: channel.name, recentMessages: [] }) })
         if (!res.ok) return
         const { text } = await res.json()
         if (!text || !autonomousRef.current) return
@@ -449,7 +491,7 @@ export default function ChatPage() {
             <h2 className="font-bold text-sm">{activeChannelData?.name}</h2>
             {/* Channel member avatars */}
             {(() => {
-              const members = activeChannelData?.teamId ? dbAgents.filter((a) => a.teamId === activeChannelData.teamId) : dbAgents.slice(0, 5)
+              const members = getChannelAgents()
               return (
                 <button onClick={() => setShowMembers(!showMembers)} className="flex items-center gap-1.5 ml-1 hover:bg-accent rounded-md px-2 py-1 transition-colors">
                   <div className="flex -space-x-1.5">
@@ -533,7 +575,7 @@ export default function ChatPage() {
           </div>
           <div className="flex-1 overflow-y-auto p-2">
             {(() => {
-              const members = activeChannelData?.teamId ? dbAgents.filter((a) => a.teamId === activeChannelData.teamId) : dbAgents
+              const members = activeChannelData?.name === "team-leaders" ? getChannelAgents() : activeChannelData?.teamId ? dbAgents.filter((a) => a.teamId === activeChannelData.teamId) : dbAgents
               return (
                 <div className="space-y-0.5">
                   {members.map((agent) => (

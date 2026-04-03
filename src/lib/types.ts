@@ -1,8 +1,19 @@
 export type AgentStatus = "working" | "idle" | "error" | "paused"
+export type AutonomyLevel = "full_auto" | "supervised" | "manual"
 export type AgentProvider = "anthropic" | "openai" | "google" | "custom"
 export type MessageType = "text" | "tool_call" | "result" | "status" | "approval_request"
 export type ChannelType = "team" | "agent" | "project" | "direct" | "system"
 export type TaskStatus = "pending" | "in_progress" | "completed" | "blocked"
+
+export interface PersonalityTraits {
+  formality: number
+  humor: number
+  energy: number
+  warmth: number
+  directness: number
+  confidence: number
+  verbosity: number
+}
 
 export interface Agent {
   id: string
@@ -17,6 +28,10 @@ export interface Agent {
   teamId: string
   currentTask: string | null
   skills: string[]
+  personalityPresetId: string | null
+  personality: PersonalityTraits
+  autonomyLevel: AutonomyLevel
+  isTeamLead: boolean
   tasksCompleted: number
   costThisMonth: number
 }

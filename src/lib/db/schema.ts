@@ -34,6 +34,17 @@ export const agents = pgTable("agents", {
   currentTask: text("current_task"),
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
+  personalityPresetId: text("personality_preset_id"), // null = custom personality
+  personality: jsonb("personality").$type<{
+    formality: number   // 0 = casual, 100 = formal
+    humor: number       // 0 = dry, 100 = goofy
+    energy: number      // 0 = calm, 100 = intense
+    warmth: number      // 0 = cool, 100 = warm
+    directness: number  // 0 = diplomatic, 100 = blunt
+    confidence: number  // 0 = humble, 100 = bold
+    verbosity: number   // 0 = terse, 100 = expressive
+  }>().notNull().default({ formality: 40, humor: 30, energy: 50, warmth: 60, directness: 50, confidence: 50, verbosity: 40 }),
+  autonomyLevel: text("autonomy_level").notNull().default("supervised"), // "full_auto" | "supervised" | "manual"
   isTeamLead: boolean("is_team_lead").notNull().default(false),
   tasksCompleted: integer("tasks_completed").notNull().default(0),
   costThisMonth: real("cost_this_month").notNull().default(0),
@@ -133,6 +144,16 @@ export const agentSchedules = pgTable("agent_schedules", {
   enabled: boolean("enabled").notNull().default(true),
   lastRunAt: timestamp("last_run_at"),
   nextRunAt: timestamp("next_run_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Agent Feedback ────────────────────────────────────────
+export const agentFeedback = pgTable("agent_feedback", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  messageId: uuid("message_id").references(() => messages.id),
+  rating: text("rating").notNull(), // "positive" | "negative"
+  correction: text("correction"), // optional text correction from the user
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 

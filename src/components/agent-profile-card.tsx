@@ -1,13 +1,28 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { StatusDot } from "@/components/status-dot"
-import type { Agent } from "@/lib/types"
-import { MessageSquare, Clock, DollarSign, Brain } from "lucide-react"
+import type { Agent, PersonalityTraits } from "@/lib/types"
+import { PERSONALITY_PRESETS, TRAIT_LABELS } from "@/lib/personality-presets"
+import { MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react"
+import { cn } from "@/lib/utils"
 import Link from "next/link"
+
+/** Get the top 3 most distinctive traits (furthest from 50) */
+function getTopTraits(traits: PersonalityTraits) {
+  return (Object.entries(traits) as [keyof PersonalityTraits, number][])
+    .map(([key, val]) => ({ key, val, distance: Math.abs(val - 50) }))
+    .sort((a, b) => b.distance - a.distance)
+    .slice(0, 3)
+    .map(({ key, val }) => {
+      const label = TRAIT_LABELS[key]
+      return val >= 50 ? label.high : label.low
+    })
+}
 
 export function AgentProfileCard({
   agent,
@@ -18,8 +33,25 @@ export function AgentProfileCard({
   children: React.ReactNode
   onDM?: (agent: Agent) => void
 }) {
+  const preset = agent.personalityPresetId
+    ? PERSONALITY_PRESETS.find((p) => p.id === agent.personalityPresetId)
+    : null
+
+  const [feedback, setFeedback] = useState<{ positive: number; negative: number } | null>(null)
+  const [feedbackLoaded, setFeedbackLoaded] = useState(false)
+
+  // Load feedback on popover open (lazy)
+  function loadFeedback() {
+    if (feedbackLoaded) return
+    setFeedbackLoaded(true)
+    fetch(`/api/feedback?agentId=${agent.id}`)
+      .then((r) => r.json())
+      .then((d) => setFeedback(d))
+      .catch(() => {})
+  }
+
   return (
-    <Popover>
+    <Popover onOpenChange={(open) => { if (open) loadFeedback() }}>
       <PopoverTrigger className="cursor-pointer hover:opacity-80 transition-opacity">
         {children}
       </PopoverTrigger>
@@ -37,6 +69,23 @@ export function AgentProfileCard({
             </div>
           </div>
 
+          {/* Autonomy Level */}
+          {agent.autonomyLevel && (
+            <div className="mt-2">
+              <Badge
+                variant="secondary"
+                className={cn(
+                  "text-xs h-5",
+                  agent.autonomyLevel === "full_auto" && "bg-green-500/10 text-green-600 border-green-500/20",
+                  agent.autonomyLevel === "manual" && "bg-orange-500/10 text-orange-600 border-orange-500/20",
+                )}
+              >
+                {agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}
+              </Badge>
+              {agent.isTeamLead && <Badge variant="secondary" className="text-xs h-5 ml-1 bg-violet-500/10 text-violet-600 border-violet-500/20">Team Lead</Badge>}
+            </div>
+          )}
+
           {/* Current Task */}
           {agent.currentTask && (
             <div className="mt-3 p-2 rounded-md bg-muted/50 border border-border">
@@ -45,8 +94,27 @@ export function AgentProfileCard({
             </div>
           )}
 
+          {/* Personality */}
+          {(preset || agent.personality) && (
+            <div className="mt-3 p-2 rounded-md bg-violet-500/5 border border-violet-500/20">
+              <p className="text-xs text-muted-foreground mb-1">Personality</p>
+              {preset ? (
+                <div>
+                  <span className="text-xs font-medium">{preset.name}</span>
+                  <p className="text-xs text-muted-foreground mt-0.5 italic line-clamp-1">{preset.speechStyle}</p>
+                </div>
+              ) : agent.personality ? (
+                <div className="flex flex-wrap gap-1">
+                  {getTopTraits(agent.personality).map((trait) => (
+                    <Badge key={trait} variant="secondary" className="text-xs h-5">{trait}</Badge>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+          )}
+
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-2 mt-3">
+          <div className={`grid gap-2 mt-3 ${feedback && (feedback.positive + feedback.negative) > 0 ? "grid-cols-4" : "grid-cols-3"}`}>
             <div className="text-center">
               <p className="text-sm font-bold font-mono">{agent.tasksCompleted}</p>
               <p className="text-xs text-muted-foreground">Tasks</p>
@@ -59,6 +127,15 @@ export function AgentProfileCard({
               <p className="text-sm font-bold font-mono">{agent.model.split(" ").pop()}</p>
               <p className="text-xs text-muted-foreground">Model</p>
             </div>
+            {feedback && (feedback.positive + feedback.negative) > 0 && (
+              <div className="text-center">
+                <p className="text-sm font-bold font-mono flex items-center justify-center gap-1">
+                  <ThumbsUp className="h-3 w-3 text-green-500" />{feedback.positive}
+                  <ThumbsDown className="h-3 w-3 text-red-500 ml-0.5" />{feedback.negative}
+                </p>
+                <p className="text-xs text-muted-foreground">Rating</p>
+              </div>
+            )}
           </div>
 
           {/* Skills */}
