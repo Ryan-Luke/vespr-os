@@ -82,6 +82,7 @@ export default async function TeamsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium">{agent.name}</span>
+                        {(agent.level ?? 0) > 0 && <span className="text-xs font-mono text-muted-foreground bg-muted rounded px-1">Lv.{agent.level}</span>}
                         <StatusDot status={agent.status as any} />
                         {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-400" />}
                       </div>

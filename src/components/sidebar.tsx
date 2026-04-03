@@ -28,16 +28,16 @@ import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 
 const navItems = [
-  { href: "/", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/", label: "Chat", icon: MessageSquare },
+  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/teams", label: "Teams", icon: Users },
-  { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/office", label: "Office", icon: Building2 },
   { href: "/tasks", label: "Task Board", icon: ClipboardList },
   { href: "/knowledge", label: "Knowledge", icon: Brain },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/decisions", label: "Decision Log", icon: Shield },
   { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/builder", label: "Agent Builder", icon: PlusCircle },
+  { href: "/builder", label: "Hire Agent", icon: PlusCircle },
   { href: "/settings", label: "Settings", icon: Settings },
 ]
 
