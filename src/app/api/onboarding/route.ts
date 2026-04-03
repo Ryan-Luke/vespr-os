@@ -27,114 +27,100 @@ const TEMPLATES: BusinessTemplate[] = [
   {
     id: "ecommerce",
     name: "E-Commerce",
-    description: "Online store with product, marketing, support, and fulfillment teams",
+    description: "Online store with marketing, sales, ops, fulfillment, and finance leads",
     icon: "🛒",
     teams: [
       { name: "Marketing", icon: "📣", description: "Drive traffic, content, and brand awareness", agents: [
-        { name: "Maya", role: "Content Writer", personalityPresetId: "leslie-knope", skills: ["Writing", "SEO", "Content Strategy"], isTeamLead: true, currentTask: "Drafting product descriptions for new collection" },
-        { name: "Zara", role: "Social Media Manager", personalityPresetId: "taylor-swift", skills: ["Social Media", "Copywriting", "Scheduling"], currentTask: "Planning Instagram content calendar" },
-        { name: "Alex", role: "SEO Analyst", personalityPresetId: "hermione", skills: ["SEO Audit", "Keyword Research", "Analytics"], currentTask: "Analyzing competitor keyword gaps" },
+        { name: "Maya", role: "Head of Marketing", personalityPresetId: "leslie-knope", skills: ["Content Strategy", "SEO", "Paid Ads", "Social Media", "Brand"], isTeamLead: true, currentTask: "Developing go-to-market strategy" },
       ]},
       { name: "Sales", icon: "💰", description: "Lead generation, outreach, and conversion", agents: [
-        { name: "Jordan", role: "Lead Researcher", personalityPresetId: "sherlock", skills: ["Web Research", "Lead Scoring", "Data Enrichment"], isTeamLead: true, currentTask: "Building prospect list for Q2 campaign" },
-        { name: "Riley", role: "Outreach Specialist", personalityPresetId: "han-solo", skills: ["Email Writing", "Follow-ups", "Personalization"], currentTask: "Crafting cold email sequences" },
+        { name: "Jordan", role: "Head of Sales", personalityPresetId: "sherlock", skills: ["Lead Generation", "Outreach", "Pipeline Management", "CRM", "Closing"], isTeamLead: true, currentTask: "Building initial sales pipeline" },
       ]},
       { name: "Operations", icon: "⚙️", description: "Automations, processes, and system management", agents: [
-        { name: "Nyx", role: "Automation Architect", personalityPresetId: "tony-stark", skills: ["n8n", "Workflow Design", "API Integration"], isTeamLead: true, currentTask: "Building order notification workflow" },
+        { name: "Nyx", role: "Head of Operations", personalityPresetId: "tony-stark", skills: ["Workflow Design", "Automation", "Process Optimization", "Systems"], isTeamLead: true, currentTask: "Mapping core business processes" },
       ]},
       { name: "Fulfillment", icon: "📦", description: "Order tracking, shipping, and customer support", agents: [
-        { name: "Casey", role: "Customer Support", personalityPresetId: "samwise", skills: ["Customer Service", "Ticket Triage", "Escalation"], isTeamLead: true, currentTask: "Clearing morning support queue" },
-        { name: "Drew", role: "Order Tracker", personalityPresetId: "aragorn", skills: ["Order Tracking", "Shipping Updates", "Delay Detection"], currentTask: "Monitoring active shipments" },
+        { name: "Casey", role: "Head of Fulfillment", personalityPresetId: "samwise", skills: ["Customer Support", "Order Management", "Shipping", "Quality Control"], isTeamLead: true, currentTask: "Setting up fulfillment workflows" },
       ]},
       { name: "Finance", icon: "📊", description: "Bookkeeping, reporting, and invoicing", agents: [
-        { name: "Finley", role: "Bookkeeper", personalityPresetId: "ron-swanson", skills: ["Bookkeeping", "Reconciliation", "QuickBooks"], isTeamLead: true, currentTask: "Categorizing this month's transactions" },
+        { name: "Finley", role: "Head of Finance", personalityPresetId: "ron-swanson", skills: ["Bookkeeping", "Financial Reporting", "Budgeting", "Invoicing"], isTeamLead: true, currentTask: "Setting up financial tracking" },
       ]},
     ],
   },
   {
     id: "agency",
     name: "Agency / Services",
-    description: "Client services business with account management and delivery teams",
+    description: "Client services with account management, creative, delivery, and growth leads",
     icon: "🏢",
     teams: [
       { name: "Account Management", icon: "🤝", description: "Client relationships and communication", agents: [
-        { name: "Elena", role: "Account Director", personalityPresetId: "obi-wan", skills: ["Client Relations", "Project Scoping", "Negotiation"], isTeamLead: true, currentTask: "Preparing Q2 client review decks" },
-        { name: "Marcus", role: "Client Success", personalityPresetId: "samwise", skills: ["Onboarding", "Check-ins", "Upselling"], currentTask: "Running weekly client health checks" },
+        { name: "Elena", role: "Account Director", personalityPresetId: "obi-wan", skills: ["Client Relations", "Project Scoping", "Negotiation", "Retention"], isTeamLead: true, currentTask: "Preparing client onboarding process" },
       ]},
       { name: "Creative", icon: "🎨", description: "Design, copy, and creative production", agents: [
-        { name: "Aria", role: "Creative Director", personalityPresetId: "willy-wonka", skills: ["Creative Strategy", "Brand Identity", "Art Direction"], isTeamLead: true, currentTask: "Reviewing brand refresh concepts" },
-        { name: "Kai", role: "Copywriter", personalityPresetId: "tyrion", skills: ["Copywriting", "Tone of Voice", "Headlines"], currentTask: "Writing landing page copy for client launch" },
+        { name: "Aria", role: "Creative Director", personalityPresetId: "willy-wonka", skills: ["Creative Strategy", "Brand Identity", "Copywriting", "Art Direction"], isTeamLead: true, currentTask: "Defining creative standards and templates" },
       ]},
       { name: "Delivery", icon: "🚀", description: "Project execution and quality assurance", agents: [
-        { name: "Dev", role: "Project Manager", personalityPresetId: "captain-america", skills: ["Project Management", "Timeline Tracking", "Resource Allocation"], isTeamLead: true, currentTask: "Updating project boards for all active clients" },
-        { name: "Quinn", role: "QA Specialist", personalityPresetId: "hermione", skills: ["Quality Assurance", "Testing", "Documentation"], currentTask: "Running QA on latest deliverables" },
+        { name: "Dev", role: "Head of Delivery", personalityPresetId: "captain-america", skills: ["Project Management", "Timeline Tracking", "QA", "Resource Allocation"], isTeamLead: true, currentTask: "Building project delivery framework" },
       ]},
       { name: "Growth", icon: "📈", description: "New business development and marketing", agents: [
-        { name: "Blake", role: "Business Development", personalityPresetId: "jordan-peterson", skills: ["Prospecting", "Proposals", "Pipeline Management"], isTeamLead: true, currentTask: "Following up on 3 warm leads" },
+        { name: "Blake", role: "Head of Growth", personalityPresetId: "alex-hormozi", skills: ["Prospecting", "Proposals", "Pipeline Management", "Content Marketing"], isTeamLead: true, currentTask: "Developing new business strategy" },
       ]},
     ],
   },
   {
     id: "saas",
     name: "SaaS / Tech",
-    description: "Software product company with engineering, product, and growth teams",
+    description: "Software company with product, engineering, growth, and customer success leads",
     icon: "💻",
     teams: [
       { name: "Product", icon: "🎯", description: "Product strategy, roadmap, and user research", agents: [
-        { name: "Sage", role: "Product Manager", personalityPresetId: "steve-jobs", skills: ["User Research", "Roadmapping", "Prioritization"], isTeamLead: true, currentTask: "Analyzing feature request data from last sprint" },
-        { name: "Mira", role: "UX Researcher", personalityPresetId: "dumbledore", skills: ["User Interviews", "Analytics", "A/B Testing"], currentTask: "Synthesizing user interview findings" },
+        { name: "Sage", role: "Head of Product", personalityPresetId: "steve-jobs", skills: ["User Research", "Roadmapping", "Prioritization", "Product Strategy"], isTeamLead: true, currentTask: "Defining product vision and roadmap" },
       ]},
       { name: "Engineering", icon: "⚡", description: "Development, infrastructure, and technical operations", agents: [
-        { name: "Atlas", role: "Tech Lead", personalityPresetId: "gandalf", skills: ["Architecture", "Code Review", "Technical Planning"], isTeamLead: true, currentTask: "Reviewing PRs for the new API" },
-        { name: "Byte", role: "DevOps Engineer", personalityPresetId: "tony-stark", skills: ["CI/CD", "Infrastructure", "Monitoring"], currentTask: "Optimizing deployment pipeline" },
+        { name: "Atlas", role: "Head of Engineering", personalityPresetId: "gandalf", skills: ["Architecture", "Code Review", "Technical Planning", "DevOps"], isTeamLead: true, currentTask: "Setting up technical architecture" },
       ]},
       { name: "Growth", icon: "📣", description: "Marketing, content, and user acquisition", agents: [
-        { name: "Nova", role: "Growth Lead", personalityPresetId: "gary-vee", skills: ["Content Marketing", "SEO", "Paid Ads"], isTeamLead: true, currentTask: "Launching new content campaign" },
-        { name: "Pixel", role: "Community Manager", personalityPresetId: "peter-parker", skills: ["Community Building", "Social Media", "Events"], currentTask: "Engaging in product launch thread" },
+        { name: "Blaze", role: "Head of Growth", personalityPresetId: "gary-vee", skills: ["Content Marketing", "SEO", "Paid Ads", "Community Building"], isTeamLead: true, currentTask: "Developing acquisition strategy" },
       ]},
       { name: "Customer Success", icon: "💚", description: "Onboarding, support, and retention", agents: [
-        { name: "Harper", role: "CS Lead", personalityPresetId: "leslie-knope", skills: ["Onboarding", "Churn Prevention", "Health Scoring"], isTeamLead: true, currentTask: "Setting up automated onboarding flow" },
+        { name: "Harper", role: "Head of Customer Success", personalityPresetId: "leslie-knope", skills: ["Onboarding", "Churn Prevention", "Support", "Health Scoring"], isTeamLead: true, currentTask: "Designing customer onboarding flow" },
       ]},
     ],
   },
   {
     id: "content",
     name: "Content Creator",
-    description: "Personal brand with content, community, and monetization teams",
+    description: "Personal brand with content, distribution, monetization, and community leads",
     icon: "🎬",
     teams: [
       { name: "Content", icon: "✍️", description: "Writing, video, and multimedia production", agents: [
-        { name: "Luna", role: "Content Strategist", personalityPresetId: "taylor-swift", skills: ["Content Strategy", "Editorial Calendar", "Trend Analysis"], isTeamLead: true, currentTask: "Planning next month's content themes" },
-        { name: "Reel", role: "Video Editor", personalityPresetId: "spike-spiegel", skills: ["Video Editing", "Thumbnails", "Short-Form"], currentTask: "Editing latest YouTube video" },
-        { name: "Ghost", role: "Ghostwriter", personalityPresetId: "tyrion", skills: ["Long-Form Writing", "Newsletters", "Thread Writing"], currentTask: "Drafting weekly newsletter" },
+        { name: "Luna", role: "Head of Content", personalityPresetId: "taylor-swift", skills: ["Content Strategy", "Writing", "Video", "Editorial Calendar"], isTeamLead: true, currentTask: "Planning content strategy and themes" },
       ]},
       { name: "Distribution", icon: "📡", description: "Platform management and audience growth", agents: [
-        { name: "Amp", role: "Distribution Manager", personalityPresetId: "han-solo", skills: ["Social Media", "Cross-Posting", "Analytics"], isTeamLead: true, currentTask: "Optimizing posting schedule across platforms" },
+        { name: "Amp", role: "Head of Distribution", personalityPresetId: "han-solo", skills: ["Social Media", "Cross-Posting", "Analytics", "Growth Hacking"], isTeamLead: true, currentTask: "Mapping distribution channels and schedule" },
       ]},
       { name: "Monetization", icon: "💰", description: "Products, partnerships, and revenue", agents: [
-        { name: "Cash", role: "Revenue Manager", personalityPresetId: "alex-hormozi", skills: ["Product Launches", "Partnerships", "Pricing"], isTeamLead: true, currentTask: "Setting up new digital product funnel" },
+        { name: "Cash", role: "Head of Revenue", personalityPresetId: "alex-hormozi", skills: ["Product Launches", "Partnerships", "Pricing", "Funnels"], isTeamLead: true, currentTask: "Designing monetization strategy" },
       ]},
       { name: "Community", icon: "💬", description: "Audience engagement and community management", agents: [
-        { name: "Vibe", role: "Community Manager", personalityPresetId: "bob-ross", skills: ["Community Building", "DM Management", "Events"], isTeamLead: true, currentTask: "Responding to community messages" },
+        { name: "Vibe", role: "Head of Community", personalityPresetId: "bob-ross", skills: ["Community Building", "DM Management", "Events", "Moderation"], isTeamLead: true, currentTask: "Setting up community engagement plan" },
       ]},
     ],
   },
   {
     id: "consulting",
     name: "Consulting / Coaching",
-    description: "Knowledge business with client delivery, content, and admin teams",
+    description: "Knowledge business with client delivery, marketing, and operations leads",
     icon: "🎓",
     teams: [
       { name: "Client Delivery", icon: "🎯", description: "Client work, coaching sessions, and deliverables", agents: [
-        { name: "Sage", role: "Senior Consultant", personalityPresetId: "ray-dalio", skills: ["Strategy", "Analysis", "Frameworks"], isTeamLead: true, currentTask: "Preparing client strategy deck" },
-        { name: "Coach", role: "Session Coordinator", personalityPresetId: "obi-wan", skills: ["Scheduling", "Follow-ups", "Notes"], currentTask: "Organizing this week's coaching sessions" },
+        { name: "Sage", role: "Head of Client Delivery", personalityPresetId: "ray-dalio", skills: ["Strategy", "Analysis", "Frameworks", "Coaching", "Presentations"], isTeamLead: true, currentTask: "Building client delivery framework" },
       ]},
       { name: "Marketing", icon: "📣", description: "Lead generation, thought leadership, and brand", agents: [
-        { name: "Maya", role: "Content Writer", personalityPresetId: "paul-graham", skills: ["Writing", "Thought Leadership", "LinkedIn"], isTeamLead: true, currentTask: "Writing LinkedIn article on industry trends" },
-        { name: "Aria", role: "Lead Gen Specialist", personalityPresetId: "jordan-peterson", skills: ["Funnels", "Webinars", "Email Marketing"], currentTask: "Setting up lead magnet funnel" },
+        { name: "Maya", role: "Head of Marketing", personalityPresetId: "paul-graham", skills: ["Thought Leadership", "Content Marketing", "Funnels", "Email"], isTeamLead: true, currentTask: "Developing thought leadership strategy" },
       ]},
       { name: "Operations", icon: "⚙️", description: "Admin, billing, and process management", agents: [
-        { name: "Ops", role: "Operations Manager", personalityPresetId: "hermione", skills: ["Invoicing", "Contracts", "CRM Management"], isTeamLead: true, currentTask: "Processing monthly invoices" },
+        { name: "Iris", role: "Head of Operations", personalityPresetId: "hermione", skills: ["Invoicing", "Contracts", "CRM Management", "Scheduling"], isTeamLead: true, currentTask: "Setting up operational systems" },
       ]},
     ],
   },
