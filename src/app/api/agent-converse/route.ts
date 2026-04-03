@@ -1,6 +1,8 @@
 import { generateText } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
-import { agents } from "@/lib/mock-data"
+import { db } from "@/lib/db"
+import { agents as agentsTable } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 
 export const maxDuration = 30
 
@@ -19,10 +21,11 @@ export async function POST(req: Request) {
     recentMessages: { name: string; content: string }[]
   }
 
-  const agent = agents.find((a) => a.id === agentId)
+  const allAgents = await db.select().from(agentsTable)
+  const agent = allAgents.find((a) => a.id === agentId)
   if (!agent) return Response.json({ error: "Agent not found" }, { status: 404 })
 
-  const teammates = agents.filter((a) => a.teamId === teamId && a.id !== agentId)
+  const teammates = allAgents.filter((a) => a.teamId === teamId && a.id !== agentId)
   const teamContext = teamContexts[teamId] || ""
 
   const recentContext = recentMessages.length > 0

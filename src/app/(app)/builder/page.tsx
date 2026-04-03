@@ -1,6 +1,7 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -33,6 +34,7 @@ import {
   Headphones,
   Code,
   Wrench,
+  Loader2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -61,6 +63,7 @@ const templates = [
 ]
 
 export default function BuilderPage() {
+  const router = useRouter()
   const [step, setStep] = useState(0)
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
@@ -69,6 +72,12 @@ export default function BuilderPage() {
   const [agentTeam, setAgentTeam] = useState("")
   const [agentProvider, setAgentProvider] = useState("")
   const [agentDescription, setAgentDescription] = useState("")
+  const [creating, setCreating] = useState(false)
+  const [dbTeams, setDbTeams] = useState<{ id: string; name: string; icon: string }[]>([])
+
+  useEffect(() => {
+    fetch("/api/teams").then((r) => r.json()).then((teams) => setDbTeams(teams))
+  }, [])
 
   function toggleSkill(id: string) {
     setSelectedSkills((prev) => {
@@ -191,11 +200,10 @@ export default function BuilderPage() {
                     <SelectValue placeholder="Select a team" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Marketing">📣 Marketing</SelectItem>
-                    <SelectItem value="Sales">💰 Sales</SelectItem>
-                    <SelectItem value="Operations">⚙️ Operations</SelectItem>
-                    <SelectItem value="Finance">📊 Finance</SelectItem>
-                    <SelectItem value="Fulfillment">📦 Fulfillment</SelectItem>
+                    {dbTeams.map((t) => (
+                      <SelectItem key={t.id} value={t.name}>{t.icon} {t.name}</SelectItem>
+                    ))}
+                    {dbTeams.length === 0 && <SelectItem value="" disabled>Loading teams...</SelectItem>}
                   </SelectContent>
                 </Select>
               </div>
@@ -342,9 +350,29 @@ export default function BuilderPage() {
             <Button variant="outline" onClick={() => setStep(2)}>
               Back
             </Button>
-            <Button>
-              <PlusCircle className="h-4 w-4 mr-2" />
-              Create Agent
+            <Button disabled={creating} onClick={async () => {
+              setCreating(true)
+              try {
+                const team = dbTeams.find((t) => t.name === agentTeam)
+                await fetch("/api/agents/create", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    name: agentName,
+                    role: agentRole,
+                    teamId: team?.id || null,
+                    provider: agentProvider || "anthropic",
+                    model: agentProvider === "openai" ? "GPT-4o" : agentProvider === "google" ? "Gemini" : "Claude Haiku",
+                    description: agentDescription,
+                    skills: Array.from(selectedSkills).map((id) => skillOptions.find((s) => s.id === id)?.name || id),
+                  }),
+                })
+                router.push("/teams")
+              } catch (e) { console.error(e) }
+              setCreating(false)
+            }}>
+              {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-2" />}
+              {creating ? "Creating..." : "Create Agent"}
             </Button>
           </div>
         </div>
