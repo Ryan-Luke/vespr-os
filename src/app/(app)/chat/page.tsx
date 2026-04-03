@@ -322,14 +322,26 @@ export default function ChatPage() {
     }).then((r) => r.json())
     setChannelMessages((prev) => [...prev, userMsg])
 
-    // Find responding agent
+    // Find responding agent — smart selection
     const channelAgents = getChannelAgents()
     const mentionMatch = /@(\w+)/.exec(text)
-    let respondingAgent = channelAgents[Math.floor(Math.random() * channelAgents.length)]
+    let respondingAgent: DBAgent
+
     if (mentionMatch) {
+      // Direct @mention takes priority
       const mentioned = dbAgents.find((a) => a.name.toLowerCase() === mentionMatch[1].toLowerCase())
-      if (mentioned) respondingAgent = mentioned
+      respondingAgent = mentioned || channelAgents[0]
+    } else if (activeChannelData?.name === "team-leaders") {
+      // In team-leaders, Nova (Chief of Staff) responds by default
+      const nova = channelAgents.find((a) => !a.teamId)
+      respondingAgent = nova || channelAgents[0]
+    } else {
+      // In team channels, the lead responds first
+      const lead = channelAgents.find((a: any) => a.isTeamLead)
+      respondingAgent = lead || channelAgents[0]
     }
+
+    if (!respondingAgent) respondingAgent = channelAgents[Math.floor(Math.random() * channelAgents.length)]
 
     setChannelLoading(true)
     try {
@@ -378,8 +390,28 @@ export default function ChatPage() {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ channelId: activeChannel, senderAgentId: respondingAgent.id, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: fullText, messageType: "text" }),
         }).then((r) => r.json())
-        // Replace placeholder with saved message
         setChannelMessages((prev) => prev.map((m) => m.id === placeholder.id ? savedMsg : m))
+
+        // 40% chance: a second team member chimes in (makes it feel alive)
+        const otherAgents = channelAgents.filter((a) => a.id !== respondingAgent.id && a.status !== "paused")
+        if (otherAgents.length > 0 && Math.random() > 0.6) {
+          const secondAgent = otherAgents[Math.floor(Math.random() * otherAgents.length)]
+          try {
+            const followUp = await fetch("/api/agent-converse", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ agentId: secondAgent.id, teamId: activeChannelData?.teamId, channelName: activeChannelData?.name, recentMessages: [{ name: "You", content: text }, { name: respondingAgent.name, content: fullText }] }),
+            }).then((r) => r.json())
+            if (followUp.text) {
+              const secondMsg = await fetch("/api/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ channelId: activeChannel, senderAgentId: secondAgent.id, senderName: secondAgent.name, senderAvatar: secondAgent.avatar, content: followUp.text, messageType: "text" }),
+              }).then((r) => r.json())
+              setChannelMessages((prev) => [...prev, secondMsg])
+            }
+          } catch { /* silent — second agent chiming in is optional */ }
+        }
       }
     } catch {
       setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
