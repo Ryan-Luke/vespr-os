@@ -228,10 +228,21 @@ export default function ChatPage() {
     })
   }, [])
 
-  // Load messages when channel changes
+  // Load messages when channel changes + poll every 5 seconds
   useEffect(() => {
     if (!activeChannel || dmAgent) return
     fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then(setChannelMessages)
+
+    const poll = setInterval(() => {
+      fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then((msgs) => {
+        setChannelMessages((prev) => {
+          if (msgs.length !== prev.length) return msgs
+          return prev
+        })
+      }).catch(() => {})
+    }, 5000)
+
+    return () => clearInterval(poll)
   }, [activeChannel, dmAgent])
 
   // Auto-scroll on new messages

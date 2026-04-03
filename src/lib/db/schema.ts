@@ -108,6 +108,20 @@ export const agentSops = pgTable("agent_sops", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
+// ── Knowledge Entries ─────────────────────────────────────
+export const knowledgeEntries = pgTable("knowledge_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  title: text("title").notNull(),
+  content: text("content").notNull(), // markdown
+  category: text("category").notNull().default("business"),
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  linkedEntries: jsonb("linked_entries").$type<string[]>().notNull().default([]),
+  createdByAgentId: uuid("created_by_agent_id").references(() => agents.id),
+  createdByName: text("created_by_name").notNull().default("Unknown"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
 // ── Agent Schedules (Cron Jobs) ────────────────────────────
 export const agentSchedules = pgTable("agent_schedules", {
   id: uuid("id").primaryKey().defaultRandom(),

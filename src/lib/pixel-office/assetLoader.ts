@@ -78,7 +78,11 @@ export interface LoadedAssets {
   layout: OfficeLayout
 }
 
+let cachedAssets: LoadedAssets | null = null
+
 export async function loadAllAssets(): Promise<LoadedAssets> {
+  // Return cached assets if already loaded (prevents re-decoding PNGs on every navigation)
+  if (cachedAssets) return cachedAssets
   const base = "/assets/"
 
   const [assetIndex, catalog] = await Promise.all([
@@ -146,5 +150,6 @@ export async function loadAllAssets(): Promise<LoadedAssets> {
     layout = await fetch(`${base}${assetIndex.defaultLayout}`).then((r) => r.json())
   }
 
-  return { layout: layout! }
+  cachedAssets = { layout: layout! }
+  return cachedAssets
 }

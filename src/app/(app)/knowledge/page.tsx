@@ -23,10 +23,10 @@ interface KnowledgeEntry {
   category: string
   tags: string[]
   linkedEntries: string[]
-  createdBy: string
-  createdByAgentId: string
-  createdAt: Date
-  updatedAt: Date
+  createdByName: string
+  createdByAgentId: string | null
+  createdAt: string
+  updatedAt: string
 }
 
 const categories = [
@@ -39,60 +39,8 @@ const categories = [
   { id: "financial", label: "Financial", icon: DollarSign, emoji: "💰" },
 ]
 
-const knowledgeEntries: KnowledgeEntry[] = [
-  {
-    id: "k1", title: "Section 8 Real Estate Offer — ICP & Positioning",
-    content: `## Ideal Customer Profile\n\n- Investors with **$250k+** looking to invest into Section 8\n- Already own other real estate properties\n- Looking for passive income through government-backed rental programs\n\n## Value Proposition\n\n- Turnkey Section 8 investment properties\n- Pre-qualified tenants with guaranteed government rent payments\n- Full property management included\n\n## Key Messaging\n\n- Focus on passive income and government-backed security\n- Lead with ROI numbers and cash flow projections\n- Differentiate from traditional real estate with the Section 8 stability angle\n\n## Pricing\n\n- Calls booked at **$140/call**\n- Targeting **3-4X ROAS** on ad spend\n\n> See also: [[V1 Ad Campaign Performance]], [[GHL Pipeline Setup]]`,
-    category: "campaigns", tags: ["section-8", "real-estate", "ICP", "ads"], linkedEntries: ["k2", "k4", "k8"],
-    createdBy: "Maya", createdByAgentId: "a1", createdAt: new Date(Date.now() - 86400000 * 5), updatedAt: new Date(Date.now() - 86400000 * 0.5),
-  },
-  {
-    id: "k2", title: "V1 Ad Campaign Performance",
-    content: `## Launch Status\n\n**Date:** April 2, 2026\n**Status:** ✅ Live and performing\n\n## Day 1 Metrics\n\n| Metric | Value |\n|--------|-------|\n| Booked calls | 2 |\n| Cost per call | $140 |\n| Financial qualification | Both passed ($250k+) |\n| Organic inbound | 4 messages |\n| Call requests | 1 this week |\n\n## Projections\n\n- Scale to **4-5 calls/day** by end of next week\n- CPM solid, CTR above benchmark\n- Expecting **3-4X ROAS** at target daily spend\n- Pacing **$120k/month** at daily spend goal\n\n## Creative Pipeline\n\n- [x] V1 creatives running\n- [ ] 3 new ad copy variations (Maya working on these)\n- [ ] Case study angle in development\n- [ ] Need more variations to prevent fatigue at scale\n\n> See also: [[Section 8 Real Estate Offer — ICP & Positioning]]`,
-    category: "campaigns", tags: ["section-8", "ads", "performance", "metrics"], linkedEntries: ["k1", "k3"],
-    createdBy: "Zara", createdByAgentId: "a3", createdAt: new Date(Date.now() - 86400000 * 0.5), updatedAt: new Date(Date.now() - 3600000),
-  },
-  {
-    id: "k3", title: "GHL Pipeline Setup",
-    content: `## Pipeline Stages\n\n1. **New Lead**\n2. **AI Inbound** (organic — separate from paid)\n3. **Qualified**\n4. **Call Booked**\n5. **Call Completed**\n6. **Proposal Sent**\n7. **Closed Won**\n8. **Closed Lost**\n\n## Tags System\n\n- **Source:** paid, organic, referral\n- **Campaign:** section-8, fintech, ai-services\n- **Qualification:** financial-qualified, needs-review\n\n## Automations\n\n- New lead → auto-enrichment with company data\n- Call booked → Slack notification to sales channel\n- 48hr no-response → follow-up sequence triggered\n\n> See also: [[Section 8 Real Estate Offer — ICP & Positioning]], [[Fintech Outreach Campaign]]`,
-    category: "processes", tags: ["GHL", "CRM", "pipeline", "automation"], linkedEntries: ["k1", "k5"],
-    createdBy: "Sam", createdByAgentId: "a6", createdAt: new Date(Date.now() - 86400000 * 3), updatedAt: new Date(Date.now() - 86400000),
-  },
-  {
-    id: "k4", title: "Content Strategy — Q2 2026",
-    content: `## Cadence\n\n- **Blog:** 5 posts/week\n- **Instagram:** 15 posts/week (carousel + stories)\n- **LinkedIn:** 3 posts/week\n\n## Focus Areas\n\n1. AI in small business *(primary)*\n2. Section 8 real estate investing\n3. Business automation case studies\n\n## SEO Targets\n\n| Keyword | Volume | Competition |\n|---------|--------|-------------|\n| business automation | 3x higher than expected | Medium |\n| AI for small business | Growing 40% MoM | Low |\n| Section 8 investing | Low competition | High intent |\n\n## Content Repurposing Flow\n\n\`\`\`\nBlog Post\n  ├── 5 Instagram carousel slides\n  ├── 3 LinkedIn posts\n  ├── Short-form ad creatives (top performers)\n  └── Monthly LinkedIn series\n\`\`\`\n\n## Sprint Progress\n\n- **14/20** blog posts published\n- Organic traffic up **22%** toward 30% goal`,
-    category: "campaigns", tags: ["content", "SEO", "blog", "social-media"], linkedEntries: ["k1", "k2"],
-    createdBy: "Maya", createdByAgentId: "a1", createdAt: new Date(Date.now() - 86400000 * 7), updatedAt: new Date(Date.now() - 86400000 * 2),
-  },
-  {
-    id: "k5", title: "Fintech Outreach Campaign",
-    content: `## Target\n\n- **Vertical:** Fintech companies\n- **ICP:** Series A to Series C, 50-500 employees\n\n## Status\n\n- ✅ 23 qualified prospects identified\n- ✅ All added to GHL with enrichment data\n- ✅ 5-step personalized email sequences drafted\n- ⏳ Awaiting owner approval on sequences\n\n## Results\n\n| Metric | Value |\n|--------|-------|\n| Prospects found | 23 |\n| Opened email #1 | 8 (35% open rate) |\n| Replied | 3 |\n| Next step | Follow up with remaining 15 |\n\n## A/B Testing\n\n- Testing 5 subject line variants\n- Currently in review stage`,
-    category: "campaigns", tags: ["fintech", "outreach", "email", "B2B"], linkedEntries: ["k3"],
-    createdBy: "Jordan", createdByAgentId: "a4", createdAt: new Date(Date.now() - 86400000 * 4), updatedAt: new Date(Date.now() - 86400000),
-  },
-  {
-    id: "k6", title: "Customer Support SLAs",
-    content: `## Response Time\n\n- **Target:** < 2 hours\n- **Current:** 1.2 hours ✅\n\n## Resolution Rate\n\n- **Target:** 95% same-day\n- **Current:** 93% *(working toward goal)*\n\n## Escalation Matrix\n\n| Issue Type | Handler | Escalation |\n|-----------|---------|------------|\n| General inquiry | Casey | — |\n| Refund < $100 | Casey (auto-approve) | — |\n| Refund > $100 | Casey | → Owner approval |\n| Shipping delay | Drew → Casey | — |\n| Technical issue | Casey | → Operations |\n\n## Active Issues\n\n- Customer #4521: requesting $189 refund (delayed shipment)\n- Order #ORD-8834: delayed by FedEx weather at Memphis hub`,
-    category: "processes", tags: ["support", "SLA", "escalation"], linkedEntries: ["k7"],
-    createdBy: "Casey", createdByAgentId: "a11", createdAt: new Date(Date.now() - 86400000 * 6), updatedAt: new Date(Date.now() - 86400000 * 0.5),
-  },
-  {
-    id: "k7", title: "Shipping & Fulfillment Tracker",
-    content: `## Overview\n\n- **Active shipments:** 23\n- **On-time rate:** 94%\n- **Avg delivery:** 3.2 days\n\n## Carrier Mix\n\n| Carrier | Share | Reliability |\n|---------|-------|-------------|\n| FedEx | 60% | ⚠️ Memphis issues |\n| UPS | 30% | ✅ Reliable |\n| USPS | 10% | ✅ OK for small items |\n\n## Current Delays\n\n- **FedEx Memphis hub** — weather delays\n- Affected: #ORD-8834, #ORD-8891, #ORD-8903\n- ETA: Tomorrow by 5 PM\n\n## Recommendations\n\n- Consider adding UPS as backup for Southeast routes\n- FedEx Memphis has been unreliable 3x this quarter`,
-    category: "metrics", tags: ["shipping", "fulfillment", "logistics"], linkedEntries: ["k6"],
-    createdBy: "Drew", createdByAgentId: "a12", createdAt: new Date(Date.now() - 86400000 * 2), updatedAt: new Date(Date.now() - 3600000 * 4),
-  },
-  {
-    id: "k8", title: "Monthly Financial Overview",
-    content: `## Status\n\n⚠️ **Q1 P&L blocked** — need March bank statement\n\n## AI Agent Costs (Monthly)\n\n| Agent | Cost |\n|-------|------|\n| Jordan (Lead Research) | $45.00 |\n| Maya (Content) | $28.50 |\n| Riley (Outreach) | $22.30 |\n| Casey (Support) | $18.90 |\n| Alex (SEO) | $15.20 |\n| Automation Expert | $12.00 |\n| Quinn (Process) | $9.80 |\n| Zara (Social) | $8.90 |\n| Finley (Bookkeeper) | $5.20 |\n| Morgan (P&L) | $4.50 |\n| Sam (CRM) | $3.50 |\n| Drew (Order Tracking) | $1.20 |\n| **Total** | **$174.90** |\n\n## Action Required\n\n🔴 Upload March bank statement to unblock P&L report`,
-    category: "financial", tags: ["P&L", "costs", "budget"], linkedEntries: ["k1"],
-    createdBy: "Morgan", createdByAgentId: "a10", createdAt: new Date(Date.now() - 86400000 * 3), updatedAt: new Date(Date.now() - 86400000),
-  },
-]
-
 // Render markdown-like content with wiki-links
 function RenderContent({ content, entries, onNavigate }: { content: string; entries: KnowledgeEntry[]; onNavigate: (id: string) => void }) {
-  const parts = content.split(/(\[\[.*?\]\])/g)
   return (
     <div className="prose prose-sm prose-invert max-w-none">
       {content.split("\n").map((line, i) => {
@@ -211,7 +159,7 @@ function KnowledgeGraph({ entries, selectedId, onSelect }: { entries: KnowledgeE
       ctx.font = `${r * 0.65}px sans-serif`; ctx.textAlign = "center"; ctx.textBaseline = "middle"
       ctx.fillText(cat?.emoji || "🧠", p.x, p.y)
       ctx.font = "11px system-ui"; ctx.fillStyle = sel || linked ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.45)"
-      const label = entry.title.length > 22 ? entry.title.slice(0, 22) + "…" : entry.title
+      const label = entry.title.length > 22 ? entry.title.slice(0, 22) + "..." : entry.title
       ctx.fillText(label, p.x, p.y + r + 14)
     })
 
@@ -234,40 +182,165 @@ function KnowledgeGraph({ entries, selectedId, onSelect }: { entries: KnowledgeE
   return <div ref={containerRef} className="w-full h-full"><canvas ref={canvasRef} onClick={handleClick} className="cursor-pointer" /></div>
 }
 
+// New entry form
+function NewEntryForm({ onSave, onCancel, saving }: { onSave: (entry: { title: string; content: string; category: string; tags: string[]; createdByName: string }) => void; onCancel: () => void; saving: boolean }) {
+  const [title, setTitle] = useState("")
+  const [content, setContent] = useState("")
+  const [category, setCategory] = useState("business")
+  const [tagsInput, setTagsInput] = useState("")
+  const [authorName, setAuthorName] = useState("You")
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <h2 className="text-sm font-bold">New Knowledge Entry</h2>
+        <button onClick={onCancel} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Title</label>
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Entry title..." className="h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Category</label>
+          <div className="flex gap-1 flex-wrap">
+            {categories.filter((c) => c.id !== "all").map((cat) => (
+              <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors", category === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+            ))}
+          </div>
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tags (comma separated)</label>
+          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tag1, tag2, tag3" className="h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Author</label>
+          <Input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Name" className="h-8 text-sm" />
+        </div>
+        <div>
+          <label className="text-xs font-medium text-muted-foreground mb-1 block">Content (Markdown)</label>
+          <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={16} className="font-mono text-xs" placeholder="Write your knowledge entry in markdown..." />
+          <p className="text-xs text-muted-foreground mt-1">Use **bold**, *italic*, `code`, [[Wiki Links]], ## Headers, - bullets, | tables |</p>
+        </div>
+        <div className="flex gap-2">
+          <Button size="sm" disabled={!title.trim() || !content.trim() || saving} onClick={() => onSave({ title: title.trim(), content, category, tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean), createdByName: authorName.trim() || "You" })}>
+            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
+          </Button>
+          <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+        </div>
+      </div>
+    </div>
+  )
+}
+
 export default function KnowledgePage() {
+  const [entries, setEntries] = useState<KnowledgeEntry[]>([])
+  const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
   const [selectedEntry, setSelectedEntry] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"list" | "graph">("list")
   const [editing, setEditing] = useState(false)
   const [editContent, setEditContent] = useState("")
+  const [editTitle, setEditTitle] = useState("")
+  const [saving, setSaving] = useState(false)
+  const [showNewForm, setShowNewForm] = useState(false)
 
-  const filtered = knowledgeEntries.filter((e) => {
+  // Fetch entries from API
+  const fetchEntries = useCallback(async () => {
+    try {
+      const res = await fetch("/api/knowledge")
+      if (res.ok) {
+        const data = await res.json()
+        setEntries(data)
+      }
+    } catch (err) {
+      console.error("Failed to fetch knowledge entries:", err)
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => {
+    fetchEntries()
+  }, [fetchEntries])
+
+  const handleCreate = async (entry: { title: string; content: string; category: string; tags: string[]; createdByName: string }) => {
+    setSaving(true)
+    try {
+      const res = await fetch("/api/knowledge", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(entry),
+      })
+      if (res.ok) {
+        const created = await res.json()
+        setEntries((prev) => [...prev, created])
+        setShowNewForm(false)
+        setSelectedEntry(created.id)
+      }
+    } catch (err) {
+      console.error("Failed to create entry:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const handleSaveEdit = async () => {
+    if (!selectedEntry) return
+    setSaving(true)
+    try {
+      const res = await fetch("/api/knowledge", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ id: selectedEntry, content: editContent, title: editTitle }),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setEntries((prev) => prev.map((e) => (e.id === updated.id ? updated : e)))
+        setEditing(false)
+      }
+    } catch (err) {
+      console.error("Failed to update entry:", err)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const filtered = entries.filter((e) => {
     const matchesSearch = !search || e.title.toLowerCase().includes(search.toLowerCase()) || e.content.toLowerCase().includes(search.toLowerCase()) || e.tags.some((t) => t.includes(search.toLowerCase()))
     const matchesCat = activeCategory === "all" || e.category === activeCategory
     return matchesSearch && matchesCat
   })
 
-  const selected = selectedEntry ? knowledgeEntries.find((e) => e.id === selectedEntry) : null
-  const linkedEntries = selected ? knowledgeEntries.filter((e) => selected.linkedEntries.includes(e.id)) : []
-  const backlinks = selected ? knowledgeEntries.filter((e) => e.linkedEntries.includes(selected.id)) : []
+  const selected = selectedEntry ? entries.find((e) => e.id === selectedEntry) : null
+  const linkedEntries = selected ? entries.filter((e) => selected.linkedEntries.includes(e.id)) : []
+  const backlinks = selected ? entries.filter((e) => e.linkedEntries.includes(selected.id)) : []
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <Loader2 className="h-6 w-6 animate-spin text-muted-foreground" />
+      </div>
+    )
+  }
 
   return (
     <div className="flex h-full overflow-hidden">
-      {/* Left — List/Graph */}
+      {/* Left -- List/Graph */}
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-400" />
             <h1 className="text-lg font-semibold tracking-tight">Knowledge</h1>
-            <Badge variant="secondary" className="text-xs">{knowledgeEntries.length} entries</Badge>
+            <Badge variant="secondary" className="text-xs">{entries.length} entries</Badge>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-border overflow-hidden">
               <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><List className="h-3.5 w-3.5" /></button>
               <button onClick={() => setViewMode("graph")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "graph" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Network className="h-3.5 w-3.5" /></button>
             </div>
-            <Button size="sm" className="h-8"><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
+            <Button size="sm" className="h-8" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
           </div>
         </div>
 
@@ -284,19 +357,19 @@ export default function KnowledgePage() {
         </div>
 
         {viewMode === "graph" ? (
-          <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={setSelectedEntry} /></div>
+          <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={(id) => { setSelectedEntry(id); setShowNewForm(false); setEditing(false) }} /></div>
         ) : (
           <div className="flex-1 overflow-y-auto p-4 space-y-2">
             {filtered.map((entry) => {
               const agent = agents.find((a) => a.id === entry.createdByAgentId)
               return (
-                <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setEditing(false) }} className={cn("w-full text-left rounded-lg border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
+                <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-lg border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
                   <div className="flex items-start gap-3">
                     {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                     <div className="flex-1 min-w-0">
                       <h3 className="text-sm font-medium truncate">{entry.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        by {entry.createdBy} · {Math.round((Date.now() - entry.updatedAt.getTime()) / 3600000)}h ago
+                        by {entry.createdByName} · {Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago
                         {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
                       </p>
                       <div className="flex gap-1 mt-1.5 flex-wrap">
@@ -311,13 +384,20 @@ export default function KnowledgePage() {
         )}
       </div>
 
-      {/* Right — Detail */}
-      {selected && (
+      {/* Right -- New Entry Form */}
+      {showNewForm && (
+        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
+          <NewEntryForm onSave={handleCreate} onCancel={() => setShowNewForm(false)} saving={saving} />
+        </div>
+      )}
+
+      {/* Right -- Detail */}
+      {selected && !showNewForm && (
         <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h2 className="text-sm font-bold truncate flex-1 mr-2">{selected.title}</h2>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { setEditing(!editing); setEditContent(selected.content) }}>
+              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { if (editing) { setEditing(false) } else { setEditing(true); setEditContent(selected.content); setEditTitle(selected.title) } }}>
                 <Edit3 className="h-3 w-3 mr-1" />{editing ? "Preview" : "Edit"}
               </Button>
               <button onClick={() => setSelectedEntry(null)} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
@@ -329,7 +409,7 @@ export default function KnowledgePage() {
             <div className="flex items-center gap-3">
               {(() => { const a = agents.find((a) => a.id === selected.createdByAgentId); return a ? <PixelAvatar characterIndex={a.pixelAvatarIndex} size={28} className="rounded-md border border-border" /> : null })()}
               <div>
-                <p className="text-xs"><span className="font-medium">{selected.createdBy}</span> created this</p>
+                <p className="text-xs"><span className="font-medium">{selected.createdByName}</span> created this</p>
                 <p className="text-xs text-muted-foreground">Updated {new Date(selected.updatedAt).toLocaleDateString()}</p>
               </div>
             </div>
@@ -341,15 +421,21 @@ export default function KnowledgePage() {
             {/* Content */}
             {editing ? (
               <div className="space-y-2">
+                <div>
+                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Title</label>
+                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 text-sm" />
+                </div>
                 <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={20} className="font-mono text-xs" />
                 <div className="flex gap-2">
-                  <Button size="sm"><Save className="h-3.5 w-3.5 mr-1" />Save</Button>
+                  <Button size="sm" disabled={saving} onClick={handleSaveEdit}>
+                    {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
+                  </Button>
                   <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
                 </div>
                 <p className="text-xs text-muted-foreground">Use **bold**, *italic*, `code`, [[Wiki Links]], ## Headers, - bullets, | tables |</p>
               </div>
             ) : (
-              <RenderContent content={selected.content} entries={knowledgeEntries} onNavigate={setSelectedEntry} />
+              <RenderContent content={selected.content} entries={entries} onNavigate={setSelectedEntry} />
             )}
 
             {/* Linked + Backlinks */}
