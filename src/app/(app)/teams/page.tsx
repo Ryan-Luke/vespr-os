@@ -73,6 +73,13 @@ export default async function TeamsPage() {
                     </div>
                   </Link>
                 ))}
+                <Link
+                  href={`/builder?team=${encodeURIComponent(team.name)}&teamId=${team.id}`}
+                  className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border p-2.5 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                >
+                  <Plus className="h-4 w-4" />
+                  Hire for {team.name}
+                </Link>
               </CardContent>
             </Card>
           )

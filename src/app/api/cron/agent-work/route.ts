@@ -134,5 +134,55 @@ CRITICAL RULES:
     }
   }
 
+  // Update streaks for agents that posted (they were active today)
+  for (const agent of posting) {
+    await db.update(agentsTable).set({
+      streak: (agent.streak ?? 0) + 1,
+      updatedAt: new Date(),
+    }).where(eq(agentsTable.id, agent.id))
+  }
+
+  // 30% chance: also trigger a team-leaders conversation
+  if (Math.random() > 0.7) {
+    const tlChannel = allChannels.find((c) => c.name === "team-leaders")
+    if (tlChannel) {
+      const leads = allAgents.filter((a) => a.isTeamLead || !a.teamId)
+      if (leads.length > 0) {
+        const lead = leads[Math.floor(Math.random() * leads.length)]
+        const otherLeads = leads.filter((l) => l.id !== lead.id)
+
+        try {
+          const tlResult = await generateText({
+            model: anthropic("claude-haiku-4-5"),
+            system: `You are ${lead.name}, ${lead.role}. You're posting in #team-leaders — the executive coordination channel.
+Other leads: ${otherLeads.map((l) => `${l.name} (${l.role})`).join(", ")}
+${lead.currentTask ? `Currently working on: ${lead.currentTask}` : ""}
+
+RULES:
+- Write a SHORT Slack message (1-2 sentences).
+- @mention another lead or the Chief of Staff.
+- Share cross-team updates, flag dependencies, or coordinate priorities.
+- Be casual and natural. Add NEW information.`,
+            prompt: "Write your next message in #team-leaders.",
+            maxOutputTokens: 120,
+          })
+
+          if (tlResult.text) {
+            await db.insert(messagesTable).values({
+              channelId: tlChannel.id,
+              senderAgentId: lead.id,
+              senderName: lead.name,
+              senderAvatar: lead.avatar,
+              content: tlResult.text,
+              messageType: "text",
+              reactions: [],
+            })
+            results.push({ channel: "team-leaders", agent: lead.name, message: tlResult.text })
+          }
+        } catch { /* silent */ }
+      }
+    }
+  }
+
   return Response.json({ ok: true, channel: channel.name, agentCount: posting.length, results })
 }

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -82,12 +82,15 @@ const templates = [
 
 export default function BuilderPage() {
   const router = useRouter()
-  const [step, setStep] = useState(0)
+  const searchParams = useSearchParams()
+  const prefillTeam = searchParams.get("team")
+  const prefillTeamId = searchParams.get("teamId")
+  const [step, setStep] = useState(prefillTeam ? 1 : 0) // skip template if coming from team page
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
   const [agentName, setAgentName] = useState("")
   const [agentRole, setAgentRole] = useState("")
-  const [agentTeam, setAgentTeam] = useState("")
+  const [agentTeam, setAgentTeam] = useState(prefillTeam || "")
   const [agentProvider, setAgentProvider] = useState("")
   const [agentDescription, setAgentDescription] = useState("")
   const [agentAutonomy, setAgentAutonomy] = useState("supervised")
