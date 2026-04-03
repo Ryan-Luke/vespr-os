@@ -8,6 +8,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import { StatusDot } from "@/components/status-dot"
 import type { Agent, PersonalityTraits } from "@/lib/types"
 import { PERSONALITY_PRESETS, TRAIT_LABELS } from "@/lib/personality-presets"
+import { levelProgress, levelTitle } from "@/lib/gamification"
 import { MessageSquare, ThumbsUp, ThumbsDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
@@ -69,22 +70,36 @@ export function AgentProfileCard({
             </div>
           </div>
 
-          {/* Autonomy Level */}
-          {agent.autonomyLevel && (
-            <div className="mt-2">
-              <Badge
-                variant="secondary"
-                className={cn(
-                  "text-xs h-5",
-                  agent.autonomyLevel === "full_auto" && "bg-green-500/10 text-green-600 border-green-500/20",
-                  agent.autonomyLevel === "manual" && "bg-orange-500/10 text-orange-600 border-orange-500/20",
-                )}
-              >
-                {agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}
-              </Badge>
-              {agent.isTeamLead && <Badge variant="secondary" className="text-xs h-5 ml-1 bg-violet-500/10 text-violet-600 border-violet-500/20">Team Lead</Badge>}
+          {/* Level & Autonomy */}
+          <div className="mt-2 space-y-1.5">
+            {agent.level != null && agent.level > 0 && (
+              <div>
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-xs font-medium">Lv.{agent.level} {levelTitle(agent.level)}</span>
+                  <span className="text-xs text-muted-foreground">{agent.xp ?? 0} XP</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${levelProgress(agent.xp ?? 0)}%` }} />
+                </div>
+              </div>
+            )}
+            <div className="flex flex-wrap gap-1">
+              {agent.autonomyLevel && (
+                <Badge
+                  variant="secondary"
+                  className={cn(
+                    "text-xs h-5",
+                    agent.autonomyLevel === "full_auto" && "bg-green-500/10 text-green-600 border-green-500/20",
+                    agent.autonomyLevel === "manual" && "bg-orange-500/10 text-orange-600 border-orange-500/20",
+                  )}
+                >
+                  {agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}
+                </Badge>
+              )}
+              {agent.isTeamLead && <Badge variant="secondary" className="text-xs h-5 bg-violet-500/10 text-violet-600 border-violet-500/20">Team Lead</Badge>}
+              {(agent.streak ?? 0) >= 7 && <Badge variant="secondary" className="text-xs h-5 bg-orange-500/10 text-orange-600 border-orange-500/20">🔥 {agent.streak}d streak</Badge>}
             </div>
-          )}
+          </div>
 
           {/* Current Task */}
           {agent.currentTask && (

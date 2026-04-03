@@ -47,6 +47,9 @@ export const agents = pgTable("agents", {
   }>().notNull().default({ formality: 40, humor: 30, energy: 50, warmth: 60, directness: 50, confidence: 50, verbosity: 40 }),
   autonomyLevel: text("autonomy_level").notNull().default("supervised"), // "full_auto" | "supervised" | "manual"
   isTeamLead: boolean("is_team_lead").notNull().default(false),
+  xp: integer("xp").notNull().default(0),
+  level: integer("level").notNull().default(1),
+  streak: integer("streak").notNull().default(0), // consecutive days active
   tasksCompleted: integer("tasks_completed").notNull().default(0),
   costThisMonth: real("cost_this_month").notNull().default(0),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -155,6 +158,40 @@ export const agentSchedules = pgTable("agent_schedules", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
+// ── Approval Log & Progressive Autonomy ───────────────────
+export const approvalLog = pgTable("approval_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  actionType: text("action_type").notNull(), // e.g. "send_email", "publish_content", "approve_spend", "launch_campaign"
+  description: text("description").notNull(),
+  decision: text("decision").notNull(), // "approved" | "rejected" | "modified"
+  reasoning: text("reasoning"), // why the agent requested this
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+export const autoApprovals = pgTable("auto_approvals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  actionType: text("action_type").notNull(), // auto-approved action type
+  approvalCount: integer("approval_count").notNull().default(0), // how many times approved before auto
+  enabled: boolean("enabled").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Decision Log (Audit Trail) ────────────────────────────
+export const decisionLog = pgTable("decision_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id),
+  agentName: text("agent_name").notNull(),
+  actionType: text("action_type").notNull(), // "task_completed", "sop_updated", "message_sent", "integration_call", "approval_requested", "decision_made"
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  reasoning: text("reasoning"), // why the agent did this
+  outcome: text("outcome"), // what happened as a result
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 // ── Agent Feedback ────────────────────────────────────────
 export const agentFeedback = pgTable("agent_feedback", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -163,6 +200,17 @@ export const agentFeedback = pgTable("agent_feedback", {
   rating: text("rating").notNull(), // "positive" | "negative"
   correction: text("correction"), // optional text correction from the user
   createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Gamification ──────────────────────────────────────────
+export const milestones = pgTable("milestones", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id),
+  type: text("type").notNull(), // "agent" | "team" | "company"
+  name: text("name").notNull(), // e.g. "First Task", "Century Club", "Revenue Milestone"
+  description: text("description").notNull(),
+  icon: text("icon").notNull(), // emoji
+  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
 })
 
 // ── Activity Log ──────────────────────────────────────────

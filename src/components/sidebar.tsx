@@ -19,6 +19,7 @@ import {
   Brain,
   Menu,
   X,
+  Shield,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -34,6 +35,7 @@ const navItems = [
   { href: "/tasks", label: "Task Board", icon: ClipboardList },
   { href: "/knowledge", label: "Knowledge", icon: Brain },
   { href: "/automations", label: "Automations", icon: Zap },
+  { href: "/decisions", label: "Decision Log", icon: Shield },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/builder", label: "Agent Builder", icon: PlusCircle },
   { href: "/settings", label: "Settings", icon: Settings },

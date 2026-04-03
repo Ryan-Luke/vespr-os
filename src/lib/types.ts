@@ -32,6 +32,9 @@ export interface Agent {
   personality: PersonalityTraits
   autonomyLevel: AutonomyLevel
   isTeamLead: boolean
+  xp: number
+  level: number
+  streak: number
   tasksCompleted: number
   costThisMonth: number
 }

@@ -1,7 +1,7 @@
 import type { Agent, Team, Channel, Message, Automation, KPI } from "./types"
 import { DEFAULT_TRAITS } from "./personality-presets"
 
-const defaultPersonality = { personalityPresetId: null, personality: { ...DEFAULT_TRAITS }, autonomyLevel: "supervised" as const, isTeamLead: false }
+const defaultPersonality = { personalityPresetId: null, personality: { ...DEFAULT_TRAITS }, autonomyLevel: "supervised" as const, isTeamLead: false, xp: 0, level: 1, streak: 0 }
 
 export const agents: Agent[] = [
   {
