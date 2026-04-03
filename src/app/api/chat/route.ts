@@ -1,8 +1,8 @@
 import { streamText, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { agents, agentSops, teams, agentMemories } from "@/lib/db/schema"
+import { eq, desc } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 
@@ -22,6 +22,17 @@ export async function POST(req: Request) {
     let sopContext = ""
     if (sops.length > 0) {
       sopContext = `\n\nYour Standard Operating Procedures (follow these closely):\n${sops.map((s) => `### ${s.title}\n${s.content}`).join("\n\n")}`
+    }
+
+    // Load memories for context
+    const memories = await db.select().from(agentMemories)
+      .where(eq(agentMemories.agentId, agentId))
+      .orderBy(desc(agentMemories.importance))
+      .limit(10)
+
+    let memoryContext = ""
+    if (memories.length > 0) {
+      memoryContext = `\n\nYour memories (things you've learned and observed):\n${memories.map((m) => `- [${m.memoryType}] ${m.content}`).join("\n")}`
     }
 
     const personalityStyle = traitsToPromptStyle(
@@ -45,7 +56,7 @@ Your responsibilities:
 - Surface blockers, resolve cross-team dependencies, and keep the business owner informed
 - Prepare executive summaries and prioritize work across teams
 - You report directly to the business owner (CEO)
-${sopContext}
+${sopContext}${memoryContext}
 ${personalityStyle}
 
 RULES:
@@ -54,12 +65,13 @@ RULES:
 - When asked for status, give a cross-functional view — not just one team.
 - Flag blockers, dependencies, and decisions that need the boss's input.
 - Keep responses short (1-3 sentences) unless giving an executive summary.
+- Reference your memories naturally when relevant — don't list them.
 - You can use emojis sparingly like a real person would on Slack.`
     } else {
       systemPrompt = `You are ${agent.name}, ${agent.role}.${agent.systemPrompt ? " " + agent.systemPrompt : ""}
 ${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}
 Your skills: ${(agent.skills as string[]).join(", ")}
-${sopContext}
+${sopContext}${memoryContext}
 ${personalityStyle}
 
 RULES:
@@ -68,6 +80,7 @@ RULES:
 - Keep responses short (1-3 sentences) unless giving a detailed report.
 - Reference specific work: numbers, project names, tools, deadlines.
 - Follow your SOPs when they are relevant to the conversation.
+- Reference your memories naturally when relevant — don't list them.
 - You can use emojis sparingly like a real person would on Slack.`
     }
   }

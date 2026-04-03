@@ -1,239 +1,198 @@
 "use client"
 
-import { useState } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useState, useEffect } from "react"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Switch } from "@/components/ui/switch"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import {
-  Search,
-  Plus,
-  Check,
-  ExternalLink,
-  Mail,
-  MessageSquare,
-  Database,
-  Calendar,
-  BarChart3,
-  ShoppingCart,
-  CreditCard,
-  FileText,
-  Globe,
-  Headphones,
-  Megaphone,
-  FolderKanban,
-  Zap,
-  Link2,
-  Settings2,
-} from "lucide-react"
+  Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
+} from "@/components/ui/select"
+import { Plug, Search, Check, X, ExternalLink, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface Integration {
   id: string
   name: string
-  description: string
-  icon: React.ReactNode
+  provider: string
   category: string
-  connected: boolean
-  agentsUsing: number
-  popular?: boolean
+  status: string
+  connectedAt: string | null
 }
 
-const integrations: Integration[] = [
-  { id: "slack", name: "Slack", description: "Send messages and updates to Slack channels", icon: <MessageSquare className="h-5 w-5" />, category: "communication", connected: true, agentsUsing: 5 },
-  { id: "gmail", name: "Gmail", description: "Read, send, and manage emails", icon: <Mail className="h-5 w-5" />, category: "communication", connected: true, agentsUsing: 3, popular: true },
-  { id: "hubspot", name: "GHL", description: "CRM, contacts, deals, and pipeline management", icon: <Database className="h-5 w-5" />, category: "crm", connected: true, agentsUsing: 4, popular: true },
-  { id: "google-cal", name: "Google Calendar", description: "Create and manage calendar events", icon: <Calendar className="h-5 w-5" />, category: "productivity", connected: true, agentsUsing: 2 },
-  { id: "google-analytics", name: "Google Analytics", description: "Access website analytics and traffic data", icon: <BarChart3 className="h-5 w-5" />, category: "analytics", connected: true, agentsUsing: 1 },
-  { id: "shopify", name: "Shopify", description: "Manage orders, products, and inventory", icon: <ShoppingCart className="h-5 w-5" />, category: "ecommerce", connected: false, agentsUsing: 0, popular: true },
-  { id: "stripe", name: "Stripe", description: "Payment processing, invoices, and subscriptions", icon: <CreditCard className="h-5 w-5" />, category: "finance", connected: true, agentsUsing: 2 },
-  { id: "quickbooks", name: "QuickBooks", description: "Accounting, bookkeeping, and financial reports", icon: <FileText className="h-5 w-5" />, category: "finance", connected: true, agentsUsing: 2 },
-  { id: "notion", name: "Notion", description: "Docs, wikis, and knowledge base management", icon: <FileText className="h-5 w-5" />, category: "productivity", connected: false, agentsUsing: 0 },
-  { id: "google-drive", name: "Google Drive", description: "File storage, sharing, and document management", icon: <FolderKanban className="h-5 w-5" />, category: "productivity", connected: true, agentsUsing: 3 },
-  { id: "zendesk", name: "Zendesk", description: "Customer support tickets and knowledge base", icon: <Headphones className="h-5 w-5" />, category: "support", connected: false, agentsUsing: 0 },
-  { id: "intercom", name: "Intercom", description: "Live chat, customer messaging, and support", icon: <MessageSquare className="h-5 w-5" />, category: "support", connected: false, agentsUsing: 0 },
-  { id: "instagram", name: "Instagram", description: "Post content, stories, and manage comments", icon: <Megaphone className="h-5 w-5" />, category: "social", connected: true, agentsUsing: 1 },
-  { id: "linkedin", name: "LinkedIn", description: "Post content and manage company page", icon: <Globe className="h-5 w-5" />, category: "social", connected: true, agentsUsing: 1 },
-  { id: "twitter", name: "X (Twitter)", description: "Post tweets and monitor mentions", icon: <Megaphone className="h-5 w-5" />, category: "social", connected: false, agentsUsing: 0 },
-  { id: "n8n", name: "n8n", description: "Visual workflow automation with 500+ connectors", icon: <Zap className="h-5 w-5" />, category: "automation", connected: true, agentsUsing: 1, popular: true },
-  { id: "zapier", name: "Zapier", description: "Connect 7,000+ apps with automated workflows", icon: <Zap className="h-5 w-5" />, category: "automation", connected: false, agentsUsing: 0 },
-  { id: "airtable", name: "Airtable", description: "Spreadsheet-database hybrid for structured data", icon: <Database className="h-5 w-5" />, category: "productivity", connected: false, agentsUsing: 0 },
-  { id: "jira", name: "Jira", description: "Project tracking, sprints, and issue management", icon: <FolderKanban className="h-5 w-5" />, category: "productivity", connected: false, agentsUsing: 0 },
-  { id: "github", name: "GitHub", description: "Code repos, issues, PRs, and CI/CD", icon: <Globe className="h-5 w-5" />, category: "development", connected: false, agentsUsing: 0 },
-  { id: "webhook", name: "Custom Webhook", description: "Connect any service via HTTP webhooks", icon: <Link2 className="h-5 w-5" />, category: "custom", connected: false, agentsUsing: 0 },
-  { id: "mcp", name: "MCP Server", description: "Connect AI tools via Model Context Protocol", icon: <Settings2 className="h-5 w-5" />, category: "custom", connected: false, agentsUsing: 0 },
+const AVAILABLE_TOOLS = [
+  // Communication
+  { provider: "gmail", name: "Gmail", category: "communication", description: "Send and read emails", icon: "📧" },
+  { provider: "google-calendar", name: "Google Calendar", category: "communication", description: "Manage calendar events", icon: "📅" },
+  { provider: "slack", name: "Slack", category: "communication", description: "External team messaging", icon: "💬" },
+  // CRM & Sales
+  { provider: "hubspot", name: "HubSpot", category: "crm", description: "CRM and sales pipeline", icon: "🔶" },
+  { provider: "ghl", name: "GoHighLevel", category: "crm", description: "All-in-one marketing CRM", icon: "🚀" },
+  { provider: "salesforce", name: "Salesforce", category: "crm", description: "Enterprise CRM", icon: "☁️" },
+  { provider: "pipedrive", name: "Pipedrive", category: "crm", description: "Sales pipeline management", icon: "🏁" },
+  // Marketing
+  { provider: "meta-ads", name: "Meta Ads", category: "marketing", description: "Facebook & Instagram advertising", icon: "📘" },
+  { provider: "google-ads", name: "Google Ads", category: "marketing", description: "Search and display advertising", icon: "🔍" },
+  { provider: "mailchimp", name: "Mailchimp", category: "marketing", description: "Email marketing", icon: "🐒" },
+  { provider: "convertkit", name: "ConvertKit", category: "marketing", description: "Creator email platform", icon: "✉️" },
+  { provider: "buffer", name: "Buffer", category: "marketing", description: "Social media scheduling", icon: "📱" },
+  { provider: "ahrefs", name: "Ahrefs", category: "marketing", description: "SEO and backlink analysis", icon: "🔗" },
+  // Finance
+  { provider: "quickbooks", name: "QuickBooks", category: "finance", description: "Accounting and bookkeeping", icon: "📊" },
+  { provider: "stripe", name: "Stripe", category: "finance", description: "Payment processing", icon: "💳" },
+  { provider: "xero", name: "Xero", category: "finance", description: "Cloud accounting", icon: "📒" },
+  { provider: "plaid", name: "Plaid", category: "finance", description: "Bank account connections", icon: "🏦" },
+  // Operations
+  { provider: "shopify", name: "Shopify", category: "operations", description: "E-commerce platform", icon: "🛍️" },
+  { provider: "shipstation", name: "ShipStation", category: "operations", description: "Shipping and fulfillment", icon: "📦" },
+  { provider: "zapier", name: "Zapier", category: "operations", description: "Workflow automation", icon: "⚡" },
+  { provider: "n8n", name: "n8n", category: "operations", description: "Self-hosted automation", icon: "🔄" },
+  { provider: "notion", name: "Notion", category: "operations", description: "Docs and project management", icon: "📝" },
+  // Development
+  { provider: "github", name: "GitHub", category: "development", description: "Code repositories", icon: "🐙" },
+  { provider: "vercel", name: "Vercel", category: "development", description: "Deployment platform", icon: "▲" },
+  { provider: "figma", name: "Figma", category: "development", description: "Design collaboration", icon: "🎨" },
+  // Support
+  { provider: "zendesk", name: "Zendesk", category: "support", description: "Customer support tickets", icon: "🎧" },
+  { provider: "intercom", name: "Intercom", category: "support", description: "Customer messaging", icon: "💁" },
 ]
 
-const categories = [
+const CATEGORIES = [
   { id: "all", label: "All" },
   { id: "communication", label: "Communication" },
-  { id: "crm", label: "CRM" },
-  { id: "productivity", label: "Productivity" },
+  { id: "crm", label: "CRM & Sales" },
+  { id: "marketing", label: "Marketing" },
   { id: "finance", label: "Finance" },
-  { id: "social", label: "Social Media" },
-  { id: "support", label: "Support" },
-  { id: "ecommerce", label: "E-commerce" },
-  { id: "analytics", label: "Analytics" },
-  { id: "automation", label: "Automation" },
+  { id: "operations", label: "Operations" },
   { id: "development", label: "Development" },
-  { id: "custom", label: "Custom" },
+  { id: "support", label: "Support" },
 ]
 
 export default function IntegrationsPage() {
+  const [connected, setConnected] = useState<Integration[]>([])
   const [search, setSearch] = useState("")
-  const [activeCategory, setActiveCategory] = useState("all")
+  const [category, setCategory] = useState("all")
+  const [connecting, setConnecting] = useState<string | null>(null)
+  const [loaded, setLoaded] = useState(false)
 
-  const connectedCount = integrations.filter((i) => i.connected).length
-  const filtered = integrations.filter((i) => {
-    const matchesSearch =
-      !search ||
-      i.name.toLowerCase().includes(search.toLowerCase()) ||
-      i.description.toLowerCase().includes(search.toLowerCase())
-    const matchesCategory = activeCategory === "all" || i.category === activeCategory
-    return matchesSearch && matchesCategory
+  useEffect(() => {
+    fetch("/api/integrations").then((r) => r.json()).then((data) => {
+      setConnected(Array.isArray(data) ? data : [])
+      setLoaded(true)
+    }).catch(() => setLoaded(true))
+  }, [])
+
+  const connectedProviders = new Set(connected.filter((c) => c.status === "connected").map((c) => c.provider))
+
+  const filtered = AVAILABLE_TOOLS.filter((t) => {
+    if (category !== "all" && t.category !== category) return false
+    if (search) {
+      const q = search.toLowerCase()
+      return t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+    }
+    return true
   })
 
-  const connectedIntegrations = filtered.filter((i) => i.connected)
-  const availableIntegrations = filtered.filter((i) => !i.connected)
+  async function connect(tool: typeof AVAILABLE_TOOLS[0]) {
+    setConnecting(tool.provider)
+    try {
+      const result = await fetch("/api/integrations", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: tool.name, provider: tool.provider, category: tool.category }),
+      }).then((r) => r.json())
+      setConnected((prev) => [...prev, result])
+    } catch { /* */ }
+    setConnecting(null)
+  }
+
+  async function disconnect(provider: string) {
+    const integration = connected.find((c) => c.provider === provider)
+    if (!integration) return
+    await fetch("/api/integrations", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: integration.id, status: "disconnected" }),
+    })
+    setConnected((prev) => prev.map((c) => c.provider === provider ? { ...c, status: "disconnected" } : c))
+  }
 
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Integrations</h1>
-          <p className="text-sm text-muted-foreground">
-            Connect tools and services for your AI team to use
-          </p>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge variant="secondary" className="font-mono">
-            {connectedCount} connected
-          </Badge>
-          <Button>
-            <Plus className="h-4 w-4 mr-2" />
-            Custom Integration
-          </Button>
-        </div>
+    <div className="p-6 space-y-6 h-full overflow-y-auto">
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
+          <Plug className="h-6 w-6" />
+          Integrations
+        </h1>
+        <p className="text-sm text-muted-foreground">
+          Connect your tools so agents can work with your existing stack
+        </p>
       </div>
 
-      {/* Search and Filter */}
-      <div className="flex items-center gap-4">
-        <div className="relative flex-1 max-w-sm">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search integrations..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        <div className="flex gap-1 overflow-x-auto">
-          {categories.slice(0, 8).map((cat) => (
-            <button
-              key={cat.id}
-              onClick={() => setActiveCategory(cat.id)}
-              className={cn(
-                "px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors",
-                activeCategory === cat.id
-                  ? "bg-primary text-primary-foreground"
-                  : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              {cat.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Connected Integrations */}
-      {connectedIntegrations.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-            Connected ({connectedIntegrations.length})
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {connectedIntegrations.map((integration) => (
-              <Card key={integration.id} className="border-primary/20">
-                <CardContent className="pt-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center text-primary">
-                        {integration.icon}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-sm">{integration.name}</h3>
-                          <Badge variant="default" className="text-xs h-5">
-                            <Check className="h-3 w-3 mr-0.5" />
-                            Connected
-                          </Badge>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {integration.description}
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex items-center justify-between mt-4 pt-3 border-t border-border">
-                    <span className="text-xs text-muted-foreground">
-                      Used by {integration.agentsUsing} {integration.agentsUsing === 1 ? "agent" : "agents"}
-                    </span>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="sm" className="h-7 text-xs">
-                        <Settings2 className="h-3 w-3 mr-1" />
-                        Configure
-                      </Button>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+      {/* Connected summary */}
+      {connectedProviders.size > 0 && (
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="text-sm text-muted-foreground">Connected:</span>
+          {connected.filter((c) => c.status === "connected").map((c) => {
+            const tool = AVAILABLE_TOOLS.find((t) => t.provider === c.provider)
+            return (
+              <Badge key={c.id} variant="secondary" className="gap-1.5 h-7">
+                <span>{tool?.icon}</span> {c.name}
+                <button onClick={() => disconnect(c.provider)} className="ml-1 hover:text-red-400 transition-colors"><X className="h-3 w-3" /></button>
+              </Badge>
+            )
+          })}
         </div>
       )}
 
-      {/* Available Integrations */}
-      {availableIntegrations.length > 0 && (
-        <div>
-          <h2 className="text-sm font-semibold text-muted-foreground mb-3 uppercase tracking-wider">
-            Available ({availableIntegrations.length})
-          </h2>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
-            {availableIntegrations.map((integration) => (
-              <Card key={integration.id} className="hover:border-primary/30 transition-colors">
-                <CardContent className="pt-5">
-                  <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3">
-                      <div className="h-10 w-10 rounded-lg bg-muted flex items-center justify-center text-muted-foreground">
-                        {integration.icon}
-                      </div>
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h3 className="font-medium text-sm">{integration.name}</h3>
-                          {integration.popular && (
-                            <Badge variant="secondary" className="text-xs h-5">Popular</Badge>
-                          )}
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {integration.description}
-                        </p>
-                      </div>
+      {/* Filters */}
+      <div className="flex gap-2 flex-wrap">
+        <div className="relative flex-1 min-w-[200px]">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input placeholder="Search integrations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+        </div>
+        <Select value={category} onValueChange={(v) => setCategory(v ?? "all")}>
+          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            {CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+          </SelectContent>
+        </Select>
+      </div>
+
+      {/* Tool grid */}
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        {filtered.map((tool) => {
+          const isConnected = connectedProviders.has(tool.provider)
+          const isConnecting = connecting === tool.provider
+          return (
+            <Card key={tool.provider} className={cn("transition-colors", isConnected && "border-green-500/30 bg-green-500/5")}>
+              <CardContent className="pt-5">
+                <div className="flex items-start gap-3">
+                  <span className="text-2xl">{tool.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <h3 className="text-sm font-semibold">{tool.name}</h3>
+                      {isConnected && <Badge variant="secondary" className="text-xs h-5 bg-green-500/10 text-green-600 gap-1"><Check className="h-3 w-3" />Connected</Badge>}
                     </div>
+                    <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
+                    <Badge variant="outline" className="text-xs mt-2 capitalize">{tool.category}</Badge>
                   </div>
-                  <div className="flex items-center justify-end mt-4 pt-3 border-t border-border">
-                    <Button size="sm" variant="outline" className="h-7 text-xs">
-                      <Plus className="h-3 w-3 mr-1" />
+                </div>
+                <div className="mt-3 flex justify-end">
+                  {isConnected ? (
+                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => disconnect(tool.provider)}>Disconnect</Button>
+                  ) : (
+                    <Button size="sm" className="text-xs h-7" onClick={() => connect(tool)} disabled={isConnecting}>
+                      {isConnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plug className="h-3 w-3 mr-1" />}
                       Connect
                     </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      )}
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
     </div>
   )
 }

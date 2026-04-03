@@ -84,6 +84,8 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [milestones, setMilestones] = useState<Milestone[]>([])
   const [feedback, setFeedback] = useState<FeedbackStats | null>(null)
   const [decisions, setDecisions] = useState<DecisionEntry[]>([])
+  const [memories, setMemories] = useState<{ id: string; memoryType: string; content: string; importance: number; createdAt: string }[]>([])
+  const [reviewLoading, setReviewLoading] = useState(false)
   const [loading, setLoading] = useState(true)
   const [editingSop, setEditingSop] = useState<string | null>(null)
   const [newSopTitle, setNewSopTitle] = useState("")
@@ -99,12 +101,14 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
       fetch(`/api/gamification?agentId=${agentId}`).then((r) => r.json()),
       fetch(`/api/feedback?agentId=${agentId}`).then((r) => r.json()),
       fetch(`/api/decisions?agentId=${agentId}&limit=10`).then((r) => r.json()),
-    ]).then(([agents, agentSops, agentMilestones, fb, decs]) => {
+      fetch(`/api/memory?agentId=${agentId}&limit=20`).then((r) => r.json()),
+    ]).then(([agents, agentSops, agentMilestones, fb, decs, mems]) => {
       setAgent(agents.find((a: DBAgent) => a.id === agentId) || null)
       setSops(agentSops)
       setMilestones(Array.isArray(agentMilestones) ? agentMilestones : [])
       setFeedback(fb)
       setDecisions(Array.isArray(decs) ? decs : [])
+      setMemories(Array.isArray(mems) ? mems : [])
       setLoading(false)
     })
   }, [agentId])
@@ -177,6 +181,15 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           </div>
           <div className="flex gap-2 shrink-0">
             <Link href="/chat"><Button variant="outline" size="sm"><MessageSquare className="h-4 w-4 mr-1" />Chat</Button></Link>
+            <Button variant="outline" size="sm" disabled={reviewLoading} onClick={async () => {
+              setReviewLoading(true)
+              try {
+                await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) })
+              } catch { /* */ }
+              setReviewLoading(false)
+            }}>
+              {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trophy className="h-4 w-4 mr-1" />}Review
+            </Button>
             <Button variant="outline" size="sm">
               {agent.status === "paused" ? <><Play className="h-4 w-4 mr-1" />Resume</> : <><Pause className="h-4 w-4 mr-1" />Pause</>}
             </Button>
@@ -259,6 +272,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           <TabsList>
             <TabsTrigger value="skills">Skills</TabsTrigger>
             <TabsTrigger value="sops">SOPs ({sops.length})</TabsTrigger>
+            <TabsTrigger value="memory">Memory ({memories.length})</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
@@ -345,6 +359,48 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
                 </Card>
               )
             })}
+          </TabsContent>
+
+          <TabsContent value="memory" className="mt-4 space-y-4">
+            <div>
+              <h3 className="text-sm font-semibold flex items-center gap-2"><Brain className="h-4 w-4" />Agent Memory</h3>
+              <p className="text-xs text-muted-foreground">What {agent.name} has learned and remembers across conversations</p>
+            </div>
+            {memories.length === 0 ? (
+              <Card className="border-dashed"><CardContent className="pt-6 flex flex-col items-center justify-center py-8 text-muted-foreground">
+                <Brain className="h-8 w-8 mb-2 opacity-30" /><p className="text-sm font-medium">No memories yet</p>
+                <p className="text-xs mt-1">As you chat with {agent.name} and provide feedback, they'll build up memories that persist across conversations.</p>
+              </CardContent></Card>
+            ) : (
+              <div className="space-y-2">
+                {memories.map((mem) => {
+                  const typeColors: Record<string, string> = {
+                    observation: "bg-blue-500/10 text-blue-600",
+                    preference: "bg-purple-500/10 text-purple-600",
+                    learning: "bg-green-500/10 text-green-600",
+                    relationship: "bg-pink-500/10 text-pink-600",
+                    skill: "bg-amber-500/10 text-amber-600",
+                  }
+                  return (
+                    <Card key={mem.id}>
+                      <CardContent className="py-3 px-4">
+                        <div className="flex items-start gap-2">
+                          <Badge variant="secondary" className={cn("text-xs h-5 shrink-0 capitalize", typeColors[mem.memoryType] || "")}>
+                            {mem.memoryType}
+                          </Badge>
+                          <p className="text-sm flex-1">{mem.content}</p>
+                          <div className="flex items-center gap-1 shrink-0">
+                            <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden" title={`Importance: ${Math.round(mem.importance * 100)}%`}>
+                              <div className="h-full rounded-full bg-primary" style={{ width: `${mem.importance * 100}%` }} />
+                            </div>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  )
+                })}
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="history" className="mt-4 space-y-4">

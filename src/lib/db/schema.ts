@@ -232,6 +232,30 @@ export const agentFeedback = pgTable("agent_feedback", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
+// ── Integrations ──────────────────────────────────────────
+export const integrations = pgTable("integrations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(),
+  provider: text("provider").notNull(), // "gmail", "hubspot", "stripe", etc.
+  category: text("category").notNull(), // "communication", "crm", "finance", "marketing", "operations"
+  status: text("status").notNull().default("disconnected"), // "connected" | "disconnected" | "error"
+  config: jsonb("config").$type<Record<string, unknown>>().default({}),
+  connectedAt: timestamp("connected_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Agent Memory ──────────────────────────────────────────
+export const agentMemories = pgTable("agent_memories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  memoryType: text("memory_type").notNull(), // "observation" | "preference" | "learning" | "relationship" | "skill"
+  content: text("content").notNull(),
+  importance: real("importance").notNull().default(0.5), // 0-1, higher = more likely to be recalled
+  source: text("source"), // "conversation" | "feedback" | "task_outcome" | "correction" | "system"
+  relatedAgentId: uuid("related_agent_id"), // for relationship memories
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 // ── Gamification ──────────────────────────────────────────
 export const milestones = pgTable("milestones", {
   id: uuid("id").primaryKey().defaultRandom(),
