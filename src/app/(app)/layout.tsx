@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Sidebar, MobileMenuButton } from "@/components/sidebar"
+import { GlobalSearch } from "@/components/global-search"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -32,6 +33,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <MobileMenuButton onClick={() => setMobileOpen(true)} />
 
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
+      <GlobalSearch />
     </div>
   )
 }

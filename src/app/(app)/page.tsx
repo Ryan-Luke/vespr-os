@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { agents as agentsTable, teams as teamsTable, tasks as tasksTable, messages as messagesTable } from "@/lib/db/schema"
+import { agents as agentsTable, teams as teamsTable, tasks as tasksTable, activityLog as activityLogTable } from "@/lib/db/schema"
 import { desc } from "drizzle-orm"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
@@ -10,17 +10,22 @@ import {
   Clock,
   AlertCircle,
   TrendingUp,
+  MessageSquare,
+  BookOpen,
+  FileText,
+  Flag,
+  Activity,
 } from "lucide-react"
 import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
-  const [allAgents, allTeams, allTasks, recentMessages] = await Promise.all([
+  const [allAgents, allTeams, allTasks, recentActivity] = await Promise.all([
     db.select().from(agentsTable),
     db.select().from(teamsTable),
     db.select().from(tasksTable),
-    db.select().from(messagesTable).orderBy(desc(messagesTable.createdAt)).limit(10),
+    db.select().from(activityLogTable).orderBy(desc(activityLogTable.createdAt)).limit(10),
   ])
 
   const workingAgents = allAgents.filter((a) => a.status === "working").length
@@ -142,19 +147,36 @@ export default async function DashboardPage() {
           <CardHeader><CardTitle className="text-base">Activity Feed</CardTitle></CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentMessages.map((msg) => (
-                <div key={msg.id} className="flex items-start gap-3">
-                  <div className="mt-0.5"><CheckCircle2 className="h-4 w-4 text-green-500" /></div>
-                  <div className="flex-1 min-w-0">
-                    <p className="text-sm"><span className="font-medium">{msg.senderName}</span> <span className="text-muted-foreground">posted</span></p>
-                    <p className="text-xs text-muted-foreground truncate">{msg.content}</p>
+              {recentActivity.map((entry) => {
+                const iconMap: Record<string, React.ReactNode> = {
+                  completed_task: <CheckCircle2 className="h-4 w-4 text-green-500" />,
+                  sent_message: <MessageSquare className="h-4 w-4 text-blue-500" />,
+                  updated_knowledge: <BookOpen className="h-4 w-4 text-purple-500" />,
+                  created_sop: <FileText className="h-4 w-4 text-indigo-500" />,
+                  flagged: <Flag className="h-4 w-4 text-red-500" />,
+                }
+                const icon = iconMap[entry.action] ?? <Activity className="h-4 w-4 text-muted-foreground" />
+
+                const now = Date.now()
+                const diffMs = now - new Date(entry.createdAt).getTime()
+                const diffMin = Math.floor(diffMs / 60000)
+                const diffHr = Math.floor(diffMin / 60)
+                const timeAgo = diffHr > 0 ? `${diffHr}h ago` : diffMin > 0 ? `${diffMin}m ago` : "just now"
+
+                return (
+                  <div key={entry.id} className="flex items-start gap-3">
+                    <div className="mt-0.5">{icon}</div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm"><span className="font-medium">{entry.agentName}</span></p>
+                      <p className="text-xs text-muted-foreground truncate">{entry.description}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
+                      <Clock className="h-3 w-3" />
+                      {timeAgo}
+                    </span>
                   </div>
-                  <span className="text-xs text-muted-foreground whitespace-nowrap flex items-center gap-1">
-                    <Clock className="h-3 w-3" />
-                    {new Date(msg.createdAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </span>
-                </div>
-              ))}
+                )
+              })}
             </div>
           </CardContent>
         </Card>

@@ -135,3 +135,14 @@ export const agentSchedules = pgTable("agent_schedules", {
   nextRunAt: timestamp("next_run_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
+
+// ── Activity Log ──────────────────────────────────────────
+export const activityLog = pgTable("activity_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id),
+  agentName: text("agent_name").notNull(),
+  action: text("action").notNull(), // e.g., "completed_task", "sent_message", "updated_knowledge", "created_sop"
+  description: text("description").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
