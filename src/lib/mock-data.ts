@@ -422,7 +422,7 @@ export const messages: Message[] = [
     senderAgentId: "a4",
     senderName: "Jordan",
     senderAvatar: "LR",
-    content: "Two booked calls already today from the ads at $140/call. Both passed financial qualifications. These are solid leads — Section 8 landlords with 3+ properties.",
+    content: "Two booked calls already today from the ads at $140/call. Both passed financial qualifications. These are solid leads — leads with $250k+ looking to invest into Section 8 who already own other real estate.",
     messageType: "text",
     timestamp: new Date(Date.now() - 1000 * 60 * 38),
     reactions: [
