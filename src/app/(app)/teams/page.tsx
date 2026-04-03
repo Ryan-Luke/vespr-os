@@ -7,6 +7,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable } from "@/lib/db/schema"
 import { Users, Target, Crown, Plus } from "lucide-react"
+import { CreateDepartmentButton } from "./create-department"
 
 export const dynamic = "force-dynamic"
 
@@ -25,7 +26,7 @@ export default async function TeamsPage() {
             Your AI workforce organized by business function
           </p>
         </div>
-        <Button><Plus className="h-4 w-4 mr-2" />New Department</Button>
+        <CreateDepartmentButton />
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
