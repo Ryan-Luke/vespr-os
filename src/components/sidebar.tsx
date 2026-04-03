@@ -16,6 +16,7 @@ import {
   Plug,
   ClipboardList,
   LogOut,
+  Brain,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -28,6 +29,7 @@ const navItems = [
   { href: "/chat", label: "Chat", icon: MessageSquare },
   { href: "/office", label: "Office", icon: Building2 },
   { href: "/tasks", label: "Task Board", icon: ClipboardList },
+  { href: "/brain", label: "Brain", icon: Brain },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/builder", label: "Agent Builder", icon: PlusCircle },
