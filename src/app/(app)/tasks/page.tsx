@@ -21,8 +21,10 @@ interface DBAgent { id: string; name: string; role: string; pixelAvatarIndex: nu
 interface DBTeam { id: string; name: string; icon: string }
 interface DBTask {
   id: string; title: string; description: string | null
-  assignedAgentId: string | null; teamId: string | null
+  assignedAgentId: string | null; assignedToUser: boolean; teamId: string | null
   status: string; priority: string
+  linkedMessageIds: string[]
+  instructions: string | null; resources: { label: string; url: string }[] | null; blockedReason: string | null
   createdAt: string; completedAt: string | null
 }
 
@@ -56,15 +58,22 @@ function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAge
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
   return (
-    <Card className="p-3 hover:border-primary/30 transition-colors group cursor-default">
-      <p className="text-sm font-medium leading-tight">{task.title}</p>
+    <Card className={cn("p-3 hover:border-primary/30 transition-colors group cursor-default", task.assignedToUser && "border-amber-500/30 bg-amber-500/5")}>
+      <div className="flex items-center gap-1.5">
+        {task.assignedToUser && <Badge variant="outline" className="text-xs h-5 border-amber-500/40 text-amber-500 bg-amber-500/10">You</Badge>}
+        <p className="text-sm font-medium leading-tight">{task.title}</p>
+      </div>
       {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
+      {task.blockedReason && <p className="text-xs text-red-400 mt-1">Blocks: {task.blockedReason}</p>}
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2">
           <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>{priority.label}</Badge>
           {team && <span className="text-xs text-muted-foreground">{team.icon}</span>}
+          {task.linkedMessageIds?.length > 0 && (
+            <span className="text-xs text-muted-foreground flex items-center gap-0.5"><MessageSquare className="h-3 w-3" />{task.linkedMessageIds.length}</span>
+          )}
         </div>
-        {agent && (
+        {agent && !task.assignedToUser && (
           <div className="flex items-center gap-1.5">
             <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded" />
             <span className="text-xs text-muted-foreground">{agent.name}</span>

@@ -148,7 +148,15 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { templateId, businessName } = await req.json() as { templateId: string; businessName?: string }
+  const { templateId, businessName, lane, businessIdea, existingTools, existingPainPoints, teamSize } = await req.json() as {
+    templateId: string
+    businessName?: string
+    lane?: "new" | "existing"
+    businessIdea?: string
+    existingTools?: string
+    existingPainPoints?: string
+    teamSize?: string
+  }
 
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
@@ -225,37 +233,97 @@ export async function POST(req: Request) {
     }
   }
 
-  // Welcome messages in #team-leaders from Nova + each lead
+  // Welcome messages — adapted to lane
   const teamLeads = insertedAgents.filter((a) => a.isTeamLead)
-  const welcomeMessages = [
-    {
+  const isNew = lane === "new"
+  const bName = businessName || "your business"
+
+  const welcomeMessages: any[] = []
+
+  if (isNew) {
+    // Lane 1: New builder — guided, R&D-first
+    welcomeMessages.push({
       channelId: teamLeadersChannel.id,
       senderAgentId: chiefOfStaff.id,
       senderName: chiefOfStaff.name,
       senderAvatar: chiefOfStaff.avatar,
-      content: `Welcome to ${businessName || "your new business"} 🎉 I'm Nova, your Chief of Staff. I'll coordinate across all departments and keep you informed.\n\nYour team leads are assembled and ready. Let's hear from everyone.`,
+      content: `Welcome to ${bName} 🎉 I'm Nova, your Chief of Staff.\n\nSince you're building something new, here's how this works: your **R&D / Product team activates first**. They'll help you validate your idea, understand the market, and define what you're building.\n\nOnce we have clarity there, I'll activate Marketing, Sales, Ops, and Finance as they become relevant. One step at a time.\n\nTeam leads — introduce yourselves.`,
       messageType: "text",
-    },
-    ...teamLeads.map((lead) => {
+    })
+
+    // Find R&D/Product lead and have them go first with a more educational intro
+    const productLead = teamLeads.find((a) => {
+      const team = insertedTeams.find((t) => t.id === a.teamId)
+      return team?.name.toLowerCase().includes("product") || team?.name.toLowerCase().includes("r&d") || team?.name.toLowerCase().includes("creative")
+    })
+
+    if (productLead) {
+      const team = insertedTeams.find((t) => t.id === productLead.teamId)
+      welcomeMessages.push({
+        channelId: teamLeadersChannel.id,
+        senderAgentId: productLead.id,
+        senderName: productLead.name,
+        senderAvatar: productLead.avatar,
+        content: `Hey boss 👋 I'm ${productLead.name}, leading ${team?.name}. I'm your first point of contact.\n\n${businessIdea ? `I see you mentioned: "${businessIdea}" — great starting point. Let's dig into this together.` : "Let's start by talking through your idea — even a rough concept works."}\n\nHead to **#${team?.name.toLowerCase().replace(/\s+/g, "-")}** and let's get started. I'll walk you through everything.`,
+        messageType: "text",
+      })
+    }
+
+    // Other leads introduce briefly
+    for (const lead of teamLeads) {
+      if (lead.id === productLead?.id) continue
       const team = insertedTeams.find((t) => t.id === lead.teamId)
-      return {
+      welcomeMessages.push({
         channelId: teamLeadersChannel.id,
         senderAgentId: lead.id,
         senderName: lead.name,
         senderAvatar: lead.avatar,
-        content: `Hey boss 👋 I'm ${lead.name}, heading up ${team?.name}. Currently working on: ${lead.currentTask}. Ready to hit the ground running.`,
+        content: `I'm ${lead.name}, heading up ${team?.name}. I'll be here when you need me — ${team?.name} activates once we have the foundation in place. No rush 👋`,
         messageType: "text",
-      }
-    }),
-    {
+      })
+    }
+
+    welcomeMessages.push({
       channelId: teamLeadersChannel.id,
       senderAgentId: chiefOfStaff.id,
       senderName: chiefOfStaff.name,
       senderAvatar: chiefOfStaff.avatar,
-      content: `All leads checked in. Your ${businessName || "business"} is ready to go.\n\nHead to the **Dashboard** for an overview, or jump into **Chat** to talk with your team. I'll be in #team-leaders if you need me 💪`,
+      content: `Perfect. Start with ${productLead?.name || "your Product lead"} — they'll guide you through idea validation.\n\nI'll be here in #team-leaders coordinating everything behind the scenes 💪`,
       messageType: "text",
-    },
-  ]
+    })
+  } else {
+    // Lane 2: Existing business — all active, migration-focused
+    welcomeMessages.push({
+      channelId: teamLeadersChannel.id,
+      senderAgentId: chiefOfStaff.id,
+      senderName: chiefOfStaff.name,
+      senderAvatar: chiefOfStaff.avatar,
+      content: `Welcome to ${bName} 🎉 I'm Nova, your Chief of Staff.\n\nSince you already have a running business, **all departments are active and ready**. Each lead will run an intake to understand your current operations, tools, and processes.\n\n${existingTools ? `I see you're using: ${existingTools.slice(0, 200)}${existingTools.length > 200 ? "..." : ""}. We'll map these into our workflows.` : ""}\n${existingPainPoints ? `Priority pain points: ${existingPainPoints.slice(0, 200)}${existingPainPoints.length > 200 ? "..." : ""}. We'll address these first.` : ""}\n\nTeam leads — introduce yourselves and start intake.`,
+      messageType: "text",
+    })
+
+    for (const lead of teamLeads) {
+      const team = insertedTeams.find((t) => t.id === lead.teamId)
+      welcomeMessages.push({
+        channelId: teamLeadersChannel.id,
+        senderAgentId: lead.id,
+        senderName: lead.name,
+        senderAvatar: lead.avatar,
+        content: `Hey boss 👋 I'm ${lead.name}, heading up ${team?.name}. Ready to learn how you're currently running ${team?.name.toLowerCase()} so I can replicate and improve your processes. Head to **#${team?.name.toLowerCase().replace(/\s+/g, "-")}** when you're ready — I'll run a quick intake.`,
+        messageType: "text",
+      })
+    }
+
+    welcomeMessages.push({
+      channelId: teamLeadersChannel.id,
+      senderAgentId: chiefOfStaff.id,
+      senderName: chiefOfStaff.name,
+      senderAvatar: chiefOfStaff.avatar,
+      content: `All leads are ready. Start with whichever department needs the most help — or just hit the **Dashboard** to see the big picture.\n\n${teamSize ? `With your current team of ${teamSize}, we'll figure out what to augment first.` : ""} I'll coordinate everything from here 💪`,
+      messageType: "text",
+    })
+  }
+
   await db.insert(messages).values(welcomeMessages)
 
   return Response.json({

@@ -13,9 +13,10 @@ import type { AgentStatus } from "@/lib/types"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 // Types from DB
 interface DBAgent {
@@ -52,6 +53,7 @@ interface DBMessage {
   senderAvatar: string
   content: string
   messageType: string
+  linkedTaskId: string | null
   reactions: { emoji: string; count: number; agentNames: string[] }[]
   createdAt: string
 }
@@ -121,6 +123,12 @@ function MessageBubble({
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
         </div>
         <p className="text-sm text-foreground/90 mt-0.5 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        {message.linkedTaskId && (
+          <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+            <ClipboardList className="h-3 w-3" />
+            Linked task
+          </Link>
+        )}
         {message.messageType === "approval_request" && (
           <div className="flex gap-2 mt-2">
             <Button size="sm" variant="default" className="h-7 text-xs">Approve</Button>
@@ -337,7 +345,7 @@ export default function ChatPage() {
       let fullText = ""
 
       // Add placeholder
-      const placeholder: DBMessage = { id: `temp-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "", messageType: "text", reactions: [], createdAt: new Date().toISOString() }
+      const placeholder: DBMessage = { id: `temp-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
       setChannelMessages((prev) => [...prev, placeholder])
 
       if (reader) {
@@ -374,7 +382,7 @@ export default function ChatPage() {
         setChannelMessages((prev) => prev.map((m) => m.id === placeholder.id ? savedMsg : m))
       }
     } catch {
-      setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", reactions: [], createdAt: new Date().toISOString() }])
+      setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
     } finally {
       setChannelLoading(false)
     }

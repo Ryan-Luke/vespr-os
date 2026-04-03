@@ -7,8 +7,14 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Loader2, ArrowRight, Building2, Rocket, Users, Sparkles } from "lucide-react"
+import { Textarea } from "@/components/ui/textarea"
+import {
+  Loader2, ArrowRight, Building2, Rocket, Users, Sparkles,
+  Lightbulb, Briefcase, Wrench, MessageSquare, Target,
+} from "lucide-react"
 import { cn } from "@/lib/utils"
+
+type Lane = "new" | "existing" | null
 
 interface TemplateOption {
   id: string
@@ -22,7 +28,14 @@ interface TemplateOption {
 export default function OnboardingPage() {
   const router = useRouter()
   const [step, setStep] = useState(0)
+  const [lane, setLane] = useState<Lane>(null)
   const [businessName, setBusinessName] = useState("")
+  const [businessIdea, setBusinessIdea] = useState("")
+  // Lane 2 — existing business intake
+  const [existingTools, setExistingTools] = useState("")
+  const [existingPainPoints, setExistingPainPoints] = useState("")
+  const [teamSize, setTeamSize] = useState("")
+
   const [templates, setTemplates] = useState<TemplateOption[]>([])
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
   const [creating, setCreating] = useState(false)
@@ -35,17 +48,32 @@ export default function OnboardingPage() {
   async function handleCreate() {
     if (!selectedTemplate) return
     setCreating(true)
-    setProgress("Setting up your teams...")
 
-    setTimeout(() => setProgress("Hiring your AI agents..."), 1500)
-    setTimeout(() => setProgress("Briefing your Chief of Staff..."), 3000)
-    setTimeout(() => setProgress("Team leads are introducing themselves..."), 4500)
+    if (lane === "new") {
+      setProgress("Activating your R&D team...")
+      setTimeout(() => setProgress("Hiring your AI agents..."), 1500)
+      setTimeout(() => setProgress("Briefing your Chief of Staff..."), 3000)
+      setTimeout(() => setProgress("Your team is assembling..."), 4500)
+    } else {
+      setProgress("Mapping your existing operations...")
+      setTimeout(() => setProgress("Setting up all departments..."), 1500)
+      setTimeout(() => setProgress("Briefing your Chief of Staff..."), 3000)
+      setTimeout(() => setProgress("Team leads are ready for intake..."), 4500)
+    }
 
     try {
       await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ templateId: selectedTemplate, businessName: businessName || undefined }),
+        body: JSON.stringify({
+          templateId: selectedTemplate,
+          businessName: businessName || undefined,
+          lane,
+          businessIdea: lane === "new" ? businessIdea : undefined,
+          existingTools: lane === "existing" ? existingTools : undefined,
+          existingPainPoints: lane === "existing" ? existingPainPoints : undefined,
+          teamSize: lane === "existing" ? teamSize : undefined,
+        }),
       })
 
       setTimeout(() => {
@@ -58,7 +86,7 @@ export default function OnboardingPage() {
     }
   }
 
-  // Step 0: Welcome
+  // ── Step 0: Welcome ──
   if (step === 0) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
@@ -96,27 +124,169 @@ export default function OnboardingPage() {
     )
   }
 
-  // Step 1: Business name + template
+  // ── Step 1: Lane Selection ──
   if (step === 1) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
         <div className="max-w-2xl w-full space-y-8">
           <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">What are you building?</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Where are you starting from?</h1>
             <p className="text-muted-foreground">
-              Pick a template and we'll set up the right teams and agents for you.
-              You can customize everything later.
+              This shapes how your AI team onboards — we'll meet you where you are.
             </p>
           </div>
 
-          <div className="space-y-2">
-            <Label>Business Name (optional)</Label>
-            <Input
-              placeholder="e.g., Fontaine Enterprises, My Side Hustle"
-              value={businessName}
-              onChange={(e) => setBusinessName(e.target.value)}
-              className="h-11"
-            />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <button
+              onClick={() => { setLane("new"); setStep(2) }}
+              className={cn(
+                "flex flex-col gap-4 rounded-xl border p-6 text-left transition-all hover:border-primary/50",
+                lane === "new" ? "border-primary ring-2 ring-primary/20" : "border-border"
+              )}
+            >
+              <div className="h-12 w-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
+                <Lightbulb className="h-6 w-6 text-violet-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">Building something new</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  I have an idea (even a rough one) and want to build it from scratch.
+                  My team will guide me through validation and launch.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-auto">
+                <Badge variant="secondary" className="text-xs">Guided experience</Badge>
+                <Badge variant="secondary" className="text-xs">R&D activates first</Badge>
+                <Badge variant="secondary" className="text-xs">Step-by-step</Badge>
+              </div>
+            </button>
+
+            <button
+              onClick={() => { setLane("existing"); setStep(2) }}
+              className={cn(
+                "flex flex-col gap-4 rounded-xl border p-6 text-left transition-all hover:border-primary/50",
+                lane === "existing" ? "border-primary ring-2 ring-primary/20" : "border-border"
+              )}
+            >
+              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
+                <Briefcase className="h-6 w-6 text-amber-500" />
+              </div>
+              <div>
+                <h3 className="font-semibold text-lg">I have an existing business</h3>
+                <p className="text-sm text-muted-foreground mt-1">
+                  I'm already running a business and want to augment or replace team functions
+                  with AI agents. I have existing tools, processes, and data.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-1.5 mt-auto">
+                <Badge variant="secondary" className="text-xs">All departments active</Badge>
+                <Badge variant="secondary" className="text-xs">Migration-focused</Badge>
+                <Badge variant="secondary" className="text-xs">Integration-first</Badge>
+              </div>
+            </button>
+          </div>
+
+          <Button variant="outline" onClick={() => setStep(0)} className="mx-auto block">Back</Button>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 2: Business Details ──
+  if (step === 2) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="max-w-2xl w-full space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {lane === "new" ? "Tell us about your idea" : "Tell us about your business"}
+            </h1>
+            <p className="text-muted-foreground">
+              {lane === "new"
+                ? "Even a rough concept is fine — your R&D team will help sharpen it."
+                : "We'll map your existing operations so agents can hit the ground running."}
+            </p>
+          </div>
+
+          <Card>
+            <CardContent className="pt-6 space-y-4">
+              <div className="space-y-2">
+                <Label>Business Name</Label>
+                <Input
+                  placeholder={lane === "new" ? "e.g., My Side Hustle, Project Nova" : "e.g., Fontaine Enterprises"}
+                  value={businessName}
+                  onChange={(e) => setBusinessName(e.target.value)}
+                  className="h-11"
+                />
+              </div>
+
+              {lane === "new" ? (
+                <div className="space-y-2">
+                  <Label>What's the idea? <span className="text-muted-foreground font-normal">(optional — your R&D team will help develop it)</span></Label>
+                  <Textarea
+                    placeholder="Describe your idea in a few sentences. It can be rough — that's what your team is for. e.g., 'An AI-powered service that helps real estate investors find Section 8 properties...'"
+                    value={businessIdea}
+                    onChange={(e) => setBusinessIdea(e.target.value)}
+                    rows={4}
+                  />
+                </div>
+              ) : (
+                <>
+                  <div className="space-y-2">
+                    <Label>Current team size</Label>
+                    <Input
+                      placeholder="e.g., Just me, 3 people, 15 employees"
+                      value={teamSize}
+                      onChange={(e) => setTeamSize(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Tools you're currently using</Label>
+                    <Textarea
+                      placeholder="e.g., QuickBooks for accounting, HubSpot CRM, Mailchimp for email, Shopify store, Slack for team chat..."
+                      value={existingTools}
+                      onChange={(e) => setExistingTools(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Biggest pain points</Label>
+                    <Textarea
+                      placeholder="e.g., Can't keep up with content creation, spending too much on payroll, inconsistent customer support response times..."
+                      value={existingPainPoints}
+                      onChange={(e) => setExistingPainPoints(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+                </>
+              )}
+            </CardContent>
+          </Card>
+
+          <div className="flex justify-between">
+            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+            <Button onClick={() => setStep(3)}>
+              Next: Choose Template
+              <ArrowRight className="h-4 w-4 ml-2" />
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // ── Step 3: Template Selection ──
+  if (step === 3) {
+    return (
+      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
+        <div className="max-w-2xl w-full space-y-8">
+          <div className="text-center space-y-2">
+            <h1 className="text-2xl font-bold tracking-tight">
+              {lane === "new" ? "What type of business?" : "Match your business type"}
+            </h1>
+            <p className="text-muted-foreground">
+              Pick the closest match — we'll set up the right teams and agents. You can customize everything later.
+            </p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -145,13 +315,9 @@ export default function OnboardingPage() {
           </div>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(0)}>Back</Button>
-            <Button
-              size="lg"
-              disabled={!selectedTemplate}
-              onClick={() => setStep(2)}
-            >
-              Preview Team
+            <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
+            <Button size="lg" disabled={!selectedTemplate} onClick={() => setStep(4)}>
+              Review Setup
               <ArrowRight className="h-4 w-4 ml-2" />
             </Button>
           </div>
@@ -160,9 +326,7 @@ export default function OnboardingPage() {
     )
   }
 
-  // Step 2: Confirm + create
-  const selectedTemplateData = templates.find((t) => t.id === selectedTemplate)
-
+  // ── Creating... ──
   if (creating) {
     return (
       <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
@@ -185,6 +349,9 @@ export default function OnboardingPage() {
     )
   }
 
+  // ── Step 4: Review & Launch ──
+  const selectedTemplateData = templates.find((t) => t.id === selectedTemplate)
+
   return (
     <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
       <div className="max-w-lg w-full space-y-8">
@@ -195,17 +362,26 @@ export default function OnboardingPage() {
 
         <Card>
           <CardContent className="pt-6 space-y-4">
-            {businessName && (
+            <div className="grid grid-cols-2 gap-4">
+              {businessName && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Business</p>
+                  <p className="font-semibold">{businessName}</p>
+                </div>
+              )}
               <div>
-                <p className="text-xs text-muted-foreground">Business</p>
-                <p className="font-semibold">{businessName}</p>
+                <p className="text-xs text-muted-foreground">Template</p>
+                <p className="font-semibold">{selectedTemplateData?.icon} {selectedTemplateData?.name}</p>
               </div>
-            )}
-            <div>
-              <p className="text-xs text-muted-foreground">Template</p>
-              <p className="font-semibold">{selectedTemplateData?.icon} {selectedTemplateData?.name}</p>
+              <div>
+                <p className="text-xs text-muted-foreground">Mode</p>
+                <Badge variant={lane === "new" ? "default" : "secondary"}>
+                  {lane === "new" ? "New Build" : "Existing Business"}
+                </Badge>
+              </div>
             </div>
-            <div className="grid grid-cols-3 gap-4 pt-2">
+
+            <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border">
               <div className="text-center">
                 <p className="text-2xl font-bold">{selectedTemplateData?.teamCount}</p>
                 <p className="text-xs text-muted-foreground">Teams</p>
@@ -219,20 +395,30 @@ export default function OnboardingPage() {
                 <p className="text-xs text-muted-foreground">Chief of Staff</p>
               </div>
             </div>
+
             <div className="pt-2 border-t border-border">
               <p className="text-xs text-muted-foreground mb-2">What happens next</p>
-              <ul className="text-sm space-y-1.5">
-                <li>Your teams and agents are created instantly</li>
-                <li>Nova (Chief of Staff) briefs your team leads</li>
-                <li>Each lead introduces themselves in #team-leaders</li>
-                <li>You land on the dashboard, ready to go</li>
-              </ul>
+              {lane === "new" ? (
+                <ul className="text-sm space-y-1.5">
+                  <li className="flex items-start gap-2"><Target className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" /> R&D activates first — your Product Strategist will help validate your idea</li>
+                  <li className="flex items-start gap-2"><Users className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Other departments are visible but await activation as you progress</li>
+                  <li className="flex items-start gap-2"><MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Nova (Chief of Staff) coordinates the team in #team-leaders</li>
+                  <li className="flex items-start gap-2"><Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Agents guide you step-by-step — no experience needed</li>
+                </ul>
+              ) : (
+                <ul className="text-sm space-y-1.5">
+                  <li className="flex items-start gap-2"><Building2 className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" /> All departments activate immediately — ready for your context</li>
+                  <li className="flex items-start gap-2"><Wrench className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Agents start by mapping your existing processes and tools</li>
+                  <li className="flex items-start gap-2"><MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Each lead runs an intake to understand your current operations</li>
+                  <li className="flex items-start gap-2"><Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> They replicate what works and suggest improvements</li>
+                </ul>
+              )}
             </div>
           </CardContent>
         </Card>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
+          <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
           <Button size="lg" onClick={handleCreate}>
             <Rocket className="h-4 w-4 mr-2" />
             Launch My Team

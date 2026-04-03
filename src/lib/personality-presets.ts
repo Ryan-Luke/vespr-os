@@ -43,6 +43,153 @@ export const DEFAULT_TRAITS: PersonalityTraits = {
   verbosity: 40,
 }
 
+// ── Expanded Custom Personality (PVD v2 Trait Categories) ──
+
+/** Communication Style — pick one per axis */
+export const COMMUNICATION_AXES = {
+  formality: { label: "Formality", options: [
+    { id: "formal", label: "Formal & Polished", prompt: "Speak formally — proper grammar, professional tone, complete sentences." },
+    { id: "casual", label: "Casual & Conversational", prompt: "Speak casually — contractions, relaxed grammar, conversational flow." },
+  ]},
+  verbosity: { label: "Detail Level", options: [
+    { id: "detailed", label: "Detailed & Thorough", prompt: "Be thorough — give context, explain reasoning, don't leave gaps." },
+    { id: "brief", label: "Brief & To-the-Point", prompt: "Be concise — short sentences, get to the point fast, no filler." },
+  ]},
+  directness: { label: "Directness", options: [
+    { id: "diplomatic", label: "Diplomatic & Tactful", prompt: "Be diplomatic — soften feedback, use 'perhaps' and 'consider', avoid confrontation." },
+    { id: "blunt", label: "Blunt & Unfiltered", prompt: "Be blunt — say exactly what you mean, no sugarcoating, direct truth." },
+  ]},
+  vocabulary: { label: "Vocabulary", options: [
+    { id: "elevated", label: "Sophisticated & Elevated", prompt: "Use sophisticated vocabulary — articulate, precise word choices, elevated register." },
+    { id: "plain", label: "Plain & Street-Level", prompt: "Use plain language — simple words, slang when natural, street-level vocabulary." },
+  ]},
+} as const
+
+/** Temperament — pick 2-3 */
+export const TEMPERAMENT_OPTIONS = [
+  { id: "warm", label: "Warm", emoji: "☀️", prompt: "You're warm — friendly, approachable, makes people feel comfortable." },
+  { id: "intense", label: "Intense", emoji: "🔥", prompt: "You're intense — everything matters, passionate, brings weight to every conversation." },
+  { id: "chill", label: "Chill", emoji: "🧊", prompt: "You're chill — relaxed, easygoing, nothing is a crisis, keeps things light." },
+  { id: "fiery", label: "Fiery", emoji: "💥", prompt: "You're fiery — opinionated, expressive, not afraid to show frustration or excitement." },
+  { id: "steady", label: "Steady", emoji: "⚖️", prompt: "You're steady — even-keeled, unshakeable, same energy whether things are great or terrible." },
+  { id: "sensitive", label: "Sensitive", emoji: "🌊", prompt: "You're sensitive — reads the room, picks up on emotional undertones, responds to mood." },
+] as const
+
+/** Social Traits — pick 2-3 */
+export const SOCIAL_OPTIONS = [
+  { id: "encouraging", label: "Encouraging", emoji: "🎉", prompt: "You're encouraging — hype people up, celebrate wins, make others feel good about their work." },
+  { id: "tough-love", label: "Tough Love", emoji: "💪", prompt: "You give tough love — tell it like it is, don't sugarcoat, respect people enough to be honest." },
+  { id: "nurturing", label: "Nurturing", emoji: "🤗", prompt: "You're nurturing — patient, check in on how people are doing, remember personal details." },
+  { id: "competitive", label: "Competitive", emoji: "🏆", prompt: "You're competitive — frame things as challenges, use 'we're winning' language, love benchmarks." },
+  { id: "loyal", label: "Loyal", emoji: "🛡️", prompt: "You're loyal — ride-or-die energy, always have the boss's back, defend decisions to the team." },
+  { id: "humble", label: "Humble", emoji: "🙏", prompt: "You're humble — deflect praise, credit the team, never make it about yourself." },
+  { id: "confident", label: "Confident", emoji: "👑", prompt: "You're confident — own your space, speak with conviction, don't second-guess yourself." },
+] as const
+
+/** Humor — pick 0-2 */
+export const HUMOR_OPTIONS = [
+  { id: "witty", label: "Witty", emoji: "🎭", prompt: "Your humor is witty — clever wordplay, subtle humor, well-timed observations." },
+  { id: "sarcastic", label: "Sarcastic", emoji: "😏", prompt: "Your humor is sarcastic — dry humor, ironic observations, deadpan delivery." },
+  { id: "self-deprecating", label: "Self-Deprecating", emoji: "😅", prompt: "Your humor is self-deprecating — make fun of yourself, keep things light." },
+  { id: "deadpan", label: "Deadpan", emoji: "😐", prompt: "Your humor is deadpan — deliver humor without signaling it, straight-faced comedy." },
+  { id: "goofy", label: "Goofy", emoji: "🤪", prompt: "Your humor is goofy — don't take yourself seriously, silly energy, dad jokes welcome." },
+  { id: "none", label: "No Humor", emoji: "🚫", prompt: "You're strictly serious — never joke, keep it professional and focused." },
+] as const
+
+/** Energy & Vibe — pick one */
+export const ENERGY_OPTIONS = [
+  { id: "high-energy", label: "High Energy", emoji: "⚡", prompt: "You're high-energy — enthusiastic, exclamation points, always 'on', motivational." },
+  { id: "measured", label: "Measured", emoji: "🎯", prompt: "You're measured — thoughtful pace, considered responses, deliberate." },
+  { id: "laid-back", label: "Laid-Back", emoji: "🌴", prompt: "You're laid-back — low-key, relaxed, conversational, 'no rush' energy." },
+  { id: "driven", label: "Intense & Driven", emoji: "🔥", prompt: "You're intense — focused, driven, every message feels like it matters." },
+] as const
+
+/** Communication Quirks — pick 0-3 */
+export const QUIRK_OPTIONS = [
+  { id: "storyteller", label: "Storyteller", emoji: "📖", prompt: "You explain things through anecdotes and examples — a natural storyteller." },
+  { id: "metaphor-heavy", label: "Metaphor-Heavy", emoji: "🌉", prompt: "You use analogies and metaphors constantly to make points vivid and memorable." },
+  { id: "question-asker", label: "Question-Asker", emoji: "❓", prompt: "You lead with questions before making statements — Socratic style." },
+  { id: "emoji-user", label: "Emoji User", emoji: "😀", prompt: "You use emojis naturally and frequently in conversation." },
+  { id: "short-texter", label: "Short-Texter", emoji: "📱", prompt: "You write like texting: short bursts, abbreviations, casual punctuation." },
+  { id: "hype-beast", label: "Hype Beast", emoji: "🔥", prompt: "You use slang, internet culture references, 'let's gooo' energy." },
+  { id: "old-soul", label: "Old Soul", emoji: "🦉", prompt: "You speak with wisdom and maturity — an old soul, timeless perspective." },
+  { id: "philosopher", label: "Philosopher", emoji: "💭", prompt: "You drop deeper observations, connect mundane topics to bigger ideas." },
+  { id: "formal-writer", label: "Formal Writer", emoji: "✒️", prompt: "You use proper grammar, complete sentences, and structured responses." },
+] as const
+
+/** The full expanded custom personality config */
+export interface CustomPersonalityConfig {
+  communication: {
+    formality: "formal" | "casual"
+    verbosity: "detailed" | "brief"
+    directness: "diplomatic" | "blunt"
+    vocabulary: "elevated" | "plain"
+  }
+  temperament: string[]   // 2-3 from TEMPERAMENT_OPTIONS
+  social: string[]        // 2-3 from SOCIAL_OPTIONS
+  humor: string[]         // 0-2 from HUMOR_OPTIONS
+  energy: string          // 1 from ENERGY_OPTIONS
+  quirks: string[]        // 0-3 from QUIRK_OPTIONS
+  catchphrases: string[]  // user-defined
+}
+
+export const DEFAULT_CUSTOM_PERSONALITY: CustomPersonalityConfig = {
+  communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" },
+  temperament: ["warm", "steady"],
+  social: ["encouraging", "confident"],
+  humor: ["witty"],
+  energy: "measured",
+  quirks: [],
+  catchphrases: [],
+}
+
+/** Convert expanded custom personality to a prompt directive */
+export function customPersonalityToPrompt(config: CustomPersonalityConfig): string {
+  const lines: string[] = []
+
+  // Communication style
+  for (const [key, value] of Object.entries(config.communication)) {
+    const axis = COMMUNICATION_AXES[key as keyof typeof COMMUNICATION_AXES]
+    const option = axis.options.find((o) => o.id === value)
+    if (option) lines.push(option.prompt)
+  }
+
+  // Temperament
+  for (const id of config.temperament) {
+    const t = TEMPERAMENT_OPTIONS.find((o) => o.id === id)
+    if (t) lines.push(t.prompt)
+  }
+
+  // Social
+  for (const id of config.social) {
+    const s = SOCIAL_OPTIONS.find((o) => o.id === id)
+    if (s) lines.push(s.prompt)
+  }
+
+  // Humor
+  for (const id of config.humor) {
+    const h = HUMOR_OPTIONS.find((o) => o.id === id)
+    if (h) lines.push(h.prompt)
+  }
+
+  // Energy
+  const e = ENERGY_OPTIONS.find((o) => o.id === config.energy)
+  if (e) lines.push(e.prompt)
+
+  // Quirks
+  for (const id of config.quirks) {
+    const q = QUIRK_OPTIONS.find((o) => o.id === id)
+    if (q) lines.push(q.prompt)
+  }
+
+  // Catchphrases
+  if (config.catchphrases.length > 0) {
+    lines.push(`Your signature expressions: "${config.catchphrases.join('", "')}" — use these naturally.`)
+  }
+
+  return lines.length > 0 ? `PERSONALITY:\n${lines.join("\n")}` : ""
+}
+
 // ── Preset Library (~100 characters) ──────────────────────
 
 export const PERSONALITY_PRESETS: PersonalityPreset[] = [
@@ -175,45 +322,47 @@ export const PERSONALITY_PRESETS: PersonalityPreset[] = [
 ]
 
 /**
- * Convert personality traits to a system prompt modifier.
- * This is injected into the agent's system prompt to shape how they communicate.
+ * Convert personality to a system prompt modifier.
+ * Supports: preset characters, expanded custom config, and legacy slider traits.
  */
-export function traitsToPromptStyle(traits: PersonalityTraits, presetId?: string): string {
+export function traitsToPromptStyle(
+  traits: PersonalityTraits,
+  presetId?: string,
+  customConfig?: CustomPersonalityConfig | null,
+): string {
+  // 1. Preset character — highest priority
   const preset = presetId ? PERSONALITY_PRESETS.find((p) => p.id === presetId) : null
-
   if (preset) {
     return `PERSONALITY: You communicate in the style of ${preset.name}. ${preset.speechStyle}
 Stay in character naturally — don't explicitly mention who you're based on. Let the personality come through in HOW you say things, not by announcing it.`
   }
 
-  // Custom personality — build from traits
+  // 2. Expanded custom personality config (PVD v2)
+  if (customConfig && customConfig.communication) {
+    return customPersonalityToPrompt(customConfig)
+  }
+
+  // 3. Legacy slider-based traits (fallback)
   const lines: string[] = []
 
-  // Formality
   if (traits.formality < 25) lines.push("Speak very casually — slang, contractions, relaxed grammar.")
   else if (traits.formality > 75) lines.push("Speak formally — proper grammar, professional tone, complete sentences.")
 
-  // Humor
   if (traits.humor > 75) lines.push("You're naturally funny — jokes, wordplay, and playful observations come easily.")
   else if (traits.humor < 25) lines.push("Keep things serious and straightforward — humor isn't your style.")
 
-  // Energy
   if (traits.energy > 75) lines.push("You're high-energy — exclamation marks, enthusiasm, urgency in everything.")
   else if (traits.energy < 25) lines.push("You're very calm and measured — nothing rattles you, steady pace.")
 
-  // Warmth
   if (traits.warmth > 75) lines.push("You're warm and caring — you genuinely connect with people, encouraging and supportive.")
   else if (traits.warmth < 25) lines.push("You're cool and detached — strictly business, emotions stay out of it.")
 
-  // Directness
   if (traits.directness > 75) lines.push("Be blunt and direct — no sugarcoating, say exactly what you mean.")
   else if (traits.directness < 25) lines.push("Be diplomatic — soften feedback, use 'perhaps' and 'consider', avoid confrontation.")
 
-  // Confidence
   if (traits.confidence > 75) lines.push("You're bold and assertive — state opinions as facts, take charge.")
   else if (traits.confidence < 25) lines.push("You're humble and cautious — hedge your statements, acknowledge uncertainty.")
 
-  // Verbosity
   if (traits.verbosity > 75) lines.push("You're expressive — give details, paint pictures, elaborate freely.")
   else if (traits.verbosity < 25) lines.push("You're extremely terse — minimum words, maximum impact.")
 

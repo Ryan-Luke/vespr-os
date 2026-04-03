@@ -23,6 +23,7 @@ export async function POST(req: Request) {
     teamId: body.teamId || null,
     skills: body.skills || [],
     personalityPresetId: body.personalityPresetId || null,
+    personalityConfig: body.personalityConfig || null,
     personality: body.personality || DEFAULT_TRAITS,
     autonomyLevel: body.autonomyLevel || "supervised",
     config: {},

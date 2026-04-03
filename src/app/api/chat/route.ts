@@ -27,6 +27,7 @@ export async function POST(req: Request) {
     const personalityStyle = traitsToPromptStyle(
       agent.personality as PersonalityTraits,
       agent.personalityPresetId ?? undefined,
+      (agent.personalityConfig as any) ?? null,
     )
 
     // Chief of Staff gets a special system prompt

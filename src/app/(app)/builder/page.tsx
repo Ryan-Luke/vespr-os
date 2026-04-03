@@ -44,8 +44,16 @@ import {
   TRAIT_LABELS,
   DEFAULT_TRAITS,
   CATEGORY_INFO,
+  COMMUNICATION_AXES,
+  TEMPERAMENT_OPTIONS,
+  SOCIAL_OPTIONS,
+  HUMOR_OPTIONS,
+  ENERGY_OPTIONS,
+  QUIRK_OPTIONS,
+  DEFAULT_CUSTOM_PERSONALITY,
   type PersonalityTraits,
   type PersonalityPreset,
+  type CustomPersonalityConfig,
 } from "@/lib/personality-presets"
 
 const skillOptions = [
@@ -90,6 +98,8 @@ export default function BuilderPage() {
   const [personalityMode, setPersonalityMode] = useState<"preset" | "custom">("preset")
   const [selectedPreset, setSelectedPreset] = useState<PersonalityPreset | null>(null)
   const [customTraits, setCustomTraits] = useState<PersonalityTraits>({ ...DEFAULT_TRAITS })
+  const [customConfig, setCustomConfig] = useState<CustomPersonalityConfig>({ ...DEFAULT_CUSTOM_PERSONALITY, temperament: [...DEFAULT_CUSTOM_PERSONALITY.temperament], social: [...DEFAULT_CUSTOM_PERSONALITY.social], humor: [...DEFAULT_CUSTOM_PERSONALITY.humor], quirks: [...DEFAULT_CUSTOM_PERSONALITY.quirks], catchphrases: [...DEFAULT_CUSTOM_PERSONALITY.catchphrases], communication: { ...DEFAULT_CUSTOM_PERSONALITY.communication } })
+  const [newCatchphrase, setNewCatchphrase] = useState("")
   const [presetSearch, setPresetSearch] = useState("")
   const [presetCategory, setPresetCategory] = useState<string>("all")
 
@@ -403,42 +413,231 @@ export default function BuilderPage() {
               </CardContent>
             </Card>
           ) : (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <SlidersHorizontal className="h-4 w-4" />
-                  Custom Personality
-                </CardTitle>
-                <p className="text-xs text-muted-foreground">
-                  Tune each trait to shape how your agent communicates — like building a character in The Sims
-                </p>
-              </CardHeader>
-              <CardContent className="space-y-5">
-                {(Object.entries(customTraits) as [keyof PersonalityTraits, number][]).map(([key, val]) => {
-                  const label = TRAIT_LABELS[key]
-                  return (
-                    <div key={key} className="space-y-2">
-                      <div className="flex items-center justify-between">
-                        <Label className="text-sm font-medium">{label.name}</Label>
-                        <span className="text-xs font-mono text-muted-foreground">{val}</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <span className="text-xs text-muted-foreground w-20 text-right">{label.low}</span>
-                        <input
-                          type="range"
-                          min={0}
-                          max={100}
-                          value={val}
-                          onChange={(e) => setCustomTraits((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
-                          className="flex-1 h-2 accent-primary cursor-pointer"
-                        />
-                        <span className="text-xs text-muted-foreground w-20">{label.high}</span>
+            <div className="space-y-4">
+              {/* Communication Style — pick one per axis */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Communication Style</CardTitle>
+                  <p className="text-xs text-muted-foreground">How your agent speaks — pick one per row</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  {(Object.entries(COMMUNICATION_AXES) as [keyof typeof COMMUNICATION_AXES, typeof COMMUNICATION_AXES[keyof typeof COMMUNICATION_AXES]][]).map(([key, axis]) => (
+                    <div key={key}>
+                      <Label className="text-xs text-muted-foreground mb-1.5 block">{axis.label}</Label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {axis.options.map((opt) => (
+                          <button
+                            key={opt.id}
+                            onClick={() => setCustomConfig((prev) => ({ ...prev, communication: { ...prev.communication, [key]: opt.id } }))}
+                            className={cn(
+                              "rounded-lg border p-2.5 text-sm text-left transition-all",
+                              customConfig.communication[key] === opt.id
+                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                                : "border-border hover:border-primary/40"
+                            )}
+                          >
+                            {opt.label}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                  )
-                })}
-              </CardContent>
-            </Card>
+                  ))}
+                </CardContent>
+              </Card>
+
+              {/* Temperament — pick 2-3 */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Temperament</CardTitle>
+                  <p className="text-xs text-muted-foreground">Their core emotional nature — pick 2-3</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {TEMPERAMENT_OPTIONS.map((opt) => {
+                      const selected = customConfig.temperament.includes(opt.id)
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setCustomConfig((prev) => {
+                            const next = selected ? prev.temperament.filter((t) => t !== opt.id) : prev.temperament.length < 3 ? [...prev.temperament, opt.id] : prev.temperament
+                            return { ...prev, temperament: next }
+                          })}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
+                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
+                          )}
+                        >
+                          <span>{opt.emoji}</span> {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Social Traits — pick 2-3 */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Social Traits</CardTitle>
+                  <p className="text-xs text-muted-foreground">How they interact with people — pick 2-3</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {SOCIAL_OPTIONS.map((opt) => {
+                      const selected = customConfig.social.includes(opt.id)
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setCustomConfig((prev) => {
+                            const next = selected ? prev.social.filter((s) => s !== opt.id) : prev.social.length < 3 ? [...prev.social, opt.id] : prev.social
+                            return { ...prev, social: next }
+                          })}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
+                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
+                          )}
+                        >
+                          <span>{opt.emoji}</span> {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Humor — pick 0-2 */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Humor Style</CardTitle>
+                  <p className="text-xs text-muted-foreground">How (or if) they use humor — pick 0-2</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {HUMOR_OPTIONS.map((opt) => {
+                      const selected = customConfig.humor.includes(opt.id)
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setCustomConfig((prev) => {
+                            let next: string[]
+                            if (opt.id === "none") {
+                              next = selected ? [] : ["none"]
+                            } else if (selected) {
+                              next = prev.humor.filter((h) => h !== opt.id)
+                            } else {
+                              next = prev.humor.filter((h) => h !== "none")
+                              next = next.length < 2 ? [...next, opt.id] : next
+                            }
+                            return { ...prev, humor: next }
+                          })}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
+                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
+                          )}
+                        >
+                          <span>{opt.emoji}</span> {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Energy — pick one */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Energy & Vibe</CardTitle>
+                  <p className="text-xs text-muted-foreground">Their overall energy — pick one</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-2 gap-2">
+                    {ENERGY_OPTIONS.map((opt) => (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCustomConfig((prev) => ({ ...prev, energy: opt.id }))}
+                        className={cn(
+                          "rounded-lg border p-2.5 text-sm text-left transition-all flex items-center gap-2",
+                          customConfig.energy === opt.id
+                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                            : "border-border hover:border-primary/40"
+                        )}
+                      >
+                        <span className="text-lg">{opt.emoji}</span> {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Quirks — pick 0-3 */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Communication Quirks</CardTitle>
+                  <p className="text-xs text-muted-foreground">Distinctive habits in how they communicate — pick 0-3</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex flex-wrap gap-2">
+                    {QUIRK_OPTIONS.map((opt) => {
+                      const selected = customConfig.quirks.includes(opt.id)
+                      return (
+                        <button
+                          key={opt.id}
+                          onClick={() => setCustomConfig((prev) => {
+                            const next = selected ? prev.quirks.filter((q) => q !== opt.id) : prev.quirks.length < 3 ? [...prev.quirks, opt.id] : prev.quirks
+                            return { ...prev, quirks: next }
+                          })}
+                          className={cn(
+                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
+                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
+                          )}
+                        >
+                          <span>{opt.emoji}</span> {opt.label}
+                        </button>
+                      )
+                    })}
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Catchphrases */}
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-base">Signature Expressions</CardTitle>
+                  <p className="text-xs text-muted-foreground">Custom catchphrases they'll use naturally — optional</p>
+                </CardHeader>
+                <CardContent className="space-y-3">
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="e.g., Let's get after it, Here's the play..."
+                      value={newCatchphrase}
+                      onChange={(e) => setNewCatchphrase(e.target.value)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" && newCatchphrase.trim()) {
+                          setCustomConfig((prev) => ({ ...prev, catchphrases: [...prev.catchphrases, newCatchphrase.trim()] }))
+                          setNewCatchphrase("")
+                        }
+                      }}
+                    />
+                    <Button variant="outline" size="sm" onClick={() => {
+                      if (newCatchphrase.trim()) {
+                        setCustomConfig((prev) => ({ ...prev, catchphrases: [...prev.catchphrases, newCatchphrase.trim()] }))
+                        setNewCatchphrase("")
+                      }
+                    }}>Add</Button>
+                  </div>
+                  {customConfig.catchphrases.length > 0 && (
+                    <div className="flex flex-wrap gap-1.5">
+                      {customConfig.catchphrases.map((phrase, i) => (
+                        <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                          &ldquo;{phrase}&rdquo;
+                          <button className="ml-1 h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center text-xs" onClick={() => setCustomConfig((prev) => ({ ...prev, catchphrases: prev.catchphrases.filter((_, j) => j !== i) }))}>x</button>
+                        </Badge>
+                      ))}
+                    </div>
+                  )}
+                </CardContent>
+              </Card>
+            </div>
           )}
 
           <div className="flex justify-between">
@@ -547,12 +746,23 @@ export default function BuilderPage() {
                     <span className="text-xs text-muted-foreground">{selectedPreset.description}</span>
                   </div>
                 ) : personalityMode === "custom" ? (
-                  <div className="flex flex-wrap gap-2">
-                    {(Object.entries(customTraits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
-                      <Badge key={key} variant="secondary" className="text-xs">
-                        {TRAIT_LABELS[key].name}: {val}
-                      </Badge>
-                    ))}
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-1.5">
+                      <Badge variant="secondary" className="text-xs">{customConfig.communication.formality === "formal" ? "Formal" : "Casual"}</Badge>
+                      <Badge variant="secondary" className="text-xs">{customConfig.communication.verbosity === "detailed" ? "Detailed" : "Brief"}</Badge>
+                      <Badge variant="secondary" className="text-xs">{customConfig.communication.directness === "blunt" ? "Blunt" : "Diplomatic"}</Badge>
+                      <Badge variant="secondary" className="text-xs">{customConfig.communication.vocabulary === "elevated" ? "Elevated" : "Plain"}</Badge>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5">
+                      {customConfig.temperament.map((t) => <Badge key={t} variant="outline" className="text-xs capitalize">{t}</Badge>)}
+                      {customConfig.social.map((s) => <Badge key={s} variant="outline" className="text-xs capitalize">{s.replace("-", " ")}</Badge>)}
+                      {customConfig.humor.map((h) => <Badge key={h} variant="outline" className="text-xs capitalize">{h}</Badge>)}
+                      <Badge variant="outline" className="text-xs capitalize">{customConfig.energy.replace("-", " ")}</Badge>
+                      {customConfig.quirks.map((q) => <Badge key={q} variant="outline" className="text-xs capitalize">{q.replace("-", " ")}</Badge>)}
+                    </div>
+                    {customConfig.catchphrases.length > 0 && (
+                      <p className="text-xs text-muted-foreground italic">Catchphrases: {customConfig.catchphrases.map((c) => `"${c}"`).join(", ")}</p>
+                    )}
                   </div>
                 ) : (
                   <p className="text-sm text-muted-foreground">Default personality</p>
@@ -599,6 +809,7 @@ export default function BuilderPage() {
                     skills: Array.from(selectedSkills).map((id) => skillOptions.find((s) => s.id === id)?.name || id),
                     personalityPresetId: selectedPreset?.id || null,
                     personality: selectedPreset ? selectedPreset.traits : customTraits,
+                    personalityConfig: personalityMode === "custom" ? customConfig : null,
                     autonomyLevel: agentAutonomy,
                   }),
                 })

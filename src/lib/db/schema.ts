@@ -35,6 +35,7 @@ export const agents = pgTable("agents", {
   skills: jsonb("skills").$type<string[]>().notNull().default([]),
   config: jsonb("config").$type<Record<string, unknown>>().notNull().default({}),
   personalityPresetId: text("personality_preset_id"), // null = custom personality
+  personalityConfig: jsonb("personality_config").$type<Record<string, unknown>>(), // expanded custom personality (CustomPersonalityConfig)
   personality: jsonb("personality").$type<{
     formality: number   // 0 = casual, 100 = formal
     humor: number       // 0 = dry, 100 = goofy
@@ -72,6 +73,7 @@ export const messages = pgTable("messages", {
   senderAvatar: text("sender_avatar").notNull(),
   content: text("content").notNull(),
   messageType: text("message_type").notNull().default("text"),
+  linkedTaskId: uuid("linked_task_id"), // bidirectional link to a task
   reactions: jsonb("reactions").$type<{ emoji: string; count: number; agentNames: string[] }[]>().notNull().default([]),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -83,10 +85,16 @@ export const tasks = pgTable("tasks", {
   title: text("title").notNull(),
   description: text("description"),
   assignedAgentId: uuid("assigned_agent_id").references(() => agents.id),
+  assignedToUser: boolean("assigned_to_user").notNull().default(false), // true = task for the human
   teamId: uuid("team_id").references(() => teams.id),
   status: text("status").notNull().default("backlog"), // backlog, todo, in_progress, review, done
   priority: text("priority").notNull().default("medium"), // urgent, high, medium, low
   parentTaskId: uuid("parent_task_id"),
+  linkedMessageIds: jsonb("linked_message_ids").$type<string[]>().notNull().default([]),
+  // Rich guidance for user-assigned tasks
+  instructions: text("instructions"), // step-by-step markdown
+  resources: jsonb("resources").$type<{ label: string; url: string }[]>(),
+  blockedReason: text("blocked_reason"), // what's waiting on this task
   result: jsonb("result").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
