@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { agents, teams } from "@/lib/mock-data"
 import {
@@ -13,10 +14,14 @@ import {
   CheckCircle2,
   Loader2,
   AlertCircle,
-  GripVertical,
-  Filter,
   ChevronRight,
   ChevronLeft,
+  Bell,
+  Upload,
+  Check,
+  MessageSquare,
+  User,
+  X,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -32,7 +37,10 @@ interface Task {
   status: TaskColumnStatus
   priority: TaskPriority
   createdAt: Date
-  dueAt?: Date
+  isOwnerTask?: boolean
+  ownerInstructions?: string
+  requestedBy?: string
+  resolved?: boolean
 }
 
 const columns: { id: TaskColumnStatus; label: string; icon: React.ReactNode; color: string }[] = [
@@ -69,6 +77,155 @@ const initialTasks: Task[] = [
   { id: "t16", title: "Process customer refund #4521", description: "Handle refund request for delayed shipment Order #ORD-8834", assignedAgentId: "a11", teamId: "t5", status: "review", priority: "urgent", createdAt: new Date(Date.now() - 86400000) },
 ]
 
+const ownerTasks: Task[] = [
+  {
+    id: "ot1",
+    title: "Upload March bank statement",
+    description: "I need the March bank statement to complete the Q1 P&L report. Please upload the PDF from your bank portal or grant me access to the banking integration.",
+    assignedAgentId: "owner",
+    teamId: "t4",
+    status: "todo",
+    priority: "urgent",
+    createdAt: new Date(Date.now() - 86400000),
+    isOwnerTask: true,
+    ownerInstructions: "Go to your bank portal → Statements → Download March 2026 → Upload here as PDF",
+    requestedBy: "Morgan",
+  },
+  {
+    id: "ot2",
+    title: "Approve ad creative variations",
+    description: "I've created 3 new ad copy variations for the Section 8 campaign. Need your approval before we can scale spend. Drafts are attached.",
+    assignedAgentId: "owner",
+    teamId: "t1",
+    status: "todo",
+    priority: "high",
+    createdAt: new Date(Date.now() - 86400000 * 0.5),
+    isOwnerTask: true,
+    ownerInstructions: "Review the 3 variations below and approve, request changes, or reject each one.",
+    requestedBy: "Maya",
+  },
+  {
+    id: "ot3",
+    title: "Confirm refund for Order #ORD-8834",
+    description: "Customer #4521 is requesting a full refund ($189) for a delayed shipment. The package was 5 days late due to weather. I recommend approving — customer has been with us for 2 years.",
+    assignedAgentId: "owner",
+    teamId: "t5",
+    status: "todo",
+    priority: "urgent",
+    createdAt: new Date(Date.now() - 86400000 * 0.3),
+    isOwnerTask: true,
+    ownerInstructions: "Approve full refund ($189), approve partial refund, or deny with reason.",
+    requestedBy: "Casey",
+  },
+  {
+    id: "ot4",
+    title: "Set daily ad spend budget",
+    description: "We're ready to scale the Section 8 ads. Current metrics support 4-5 calls/day at $140/call with 3-4X ROAS. Need you to confirm the daily spend limit so I can adjust the campaigns.",
+    assignedAgentId: "owner",
+    teamId: "t1",
+    status: "todo",
+    priority: "high",
+    createdAt: new Date(Date.now() - 86400000 * 0.2),
+    isOwnerTask: true,
+    ownerInstructions: "Reply with your preferred daily spend amount (e.g., $500/day, $1000/day).",
+    requestedBy: "Zara",
+  },
+  {
+    id: "ot5",
+    title: "Review and approve outreach sequences",
+    description: "I've drafted 5-step personalized email sequences for the 23 fintech prospects. Wanted you to review before we start sending — especially the value prop in email #1.",
+    assignedAgentId: "owner",
+    teamId: "t2",
+    status: "todo",
+    priority: "medium",
+    createdAt: new Date(Date.now() - 86400000 * 1.5),
+    isOwnerTask: true,
+    ownerInstructions: "Read through the 5 emails, approve or suggest edits. Pay attention to email #1 opening.",
+    requestedBy: "Riley",
+    resolved: true,
+  },
+]
+
+function OwnerTaskCard({ task, onResolve }: { task: Task; onResolve: (id: string) => void }) {
+  const requestedByAgent = agents.find((a) => a.name === task.requestedBy)
+  const priority = priorityConfig[task.priority]
+  const [response, setResponse] = useState("")
+  const [showResponse, setShowResponse] = useState(false)
+
+  return (
+    <Card className={cn("p-4 border-l-4 transition-colors", task.resolved ? "opacity-50 border-l-green-500" : priority.color.includes("red") ? "border-l-red-500" : priority.color.includes("orange") ? "border-l-orange-500" : "border-l-blue-500")}>
+      <div className="flex items-start gap-3">
+        {requestedByAgent && (
+          <PixelAvatar characterIndex={requestedByAgent.pixelAvatarIndex} size={36} className="rounded-lg border border-border shrink-0" />
+        )}
+        <div className="flex-1 min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
+            <h3 className="text-sm font-bold">{task.title}</h3>
+            <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>{priority.label}</Badge>
+            {task.resolved && <Badge variant="secondary" className="text-xs h-5 bg-green-500/10 text-green-400"><Check className="h-3 w-3 mr-0.5" />Resolved</Badge>}
+          </div>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            Requested by <span className="font-medium text-foreground">{task.requestedBy}</span>
+            {" · "}{Math.round((Date.now() - task.createdAt.getTime()) / 3600000)}h ago
+          </p>
+          <p className="text-sm mt-2 leading-relaxed">{task.description}</p>
+
+          {task.ownerInstructions && (
+            <div className="mt-3 p-2.5 rounded-md bg-primary/5 border border-primary/10">
+              <p className="text-xs font-medium text-primary mb-1">What's needed from you:</p>
+              <p className="text-xs text-foreground/80">{task.ownerInstructions}</p>
+            </div>
+          )}
+
+          {!task.resolved && (
+            <div className="mt-3 space-y-2">
+              {showResponse ? (
+                <div className="space-y-2">
+                  <Textarea
+                    placeholder="Type your response, instructions, or decision..."
+                    value={response}
+                    onChange={(e) => setResponse(e.target.value)}
+                    rows={2}
+                    className="text-sm"
+                  />
+                  <div className="flex items-center gap-2">
+                    <Button size="sm" className="h-7 text-xs" onClick={() => { onResolve(task.id); setShowResponse(false) }}>
+                      <Check className="h-3 w-3 mr-1" />
+                      Submit & Resolve
+                    </Button>
+                    <Button size="sm" variant="outline" className="h-7 text-xs">
+                      <Upload className="h-3 w-3 mr-1" />
+                      Attach File
+                    </Button>
+                    <Button size="sm" variant="ghost" className="h-7 text-xs" onClick={() => setShowResponse(false)}>
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              ) : (
+                <div className="flex items-center gap-2">
+                  <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => setShowResponse(true)}>
+                    <MessageSquare className="h-3 w-3 mr-1" />
+                    Respond
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs" onClick={() => onResolve(task.id)}>
+                    <Check className="h-3 w-3 mr-1" />
+                    Approve
+                  </Button>
+                  <Button size="sm" variant="outline" className="h-7 text-xs">
+                    <Upload className="h-3 w-3 mr-1" />
+                    Upload
+                  </Button>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+    </Card>
+  )
+}
+
 function TaskCard({ task, onMoveLeft, onMoveRight }: { task: Task; onMoveLeft?: () => void; onMoveRight?: () => void }) {
   const agent = agents.find((a) => a.id === task.assignedAgentId)
   const team = teams.find((t) => t.id === task.teamId)
@@ -76,21 +233,14 @@ function TaskCard({ task, onMoveLeft, onMoveRight }: { task: Task; onMoveLeft?: 
 
   return (
     <Card className="p-3 hover:border-primary/30 transition-colors group cursor-default">
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium leading-tight">{task.title}</p>
-          <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
-        </div>
+      <div className="flex-1 min-w-0">
+        <p className="text-sm font-medium leading-tight">{task.title}</p>
+        <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>
       </div>
-
       <div className="flex items-center justify-between mt-3">
         <div className="flex items-center gap-2">
-          <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>
-            {priority.label}
-          </Badge>
-          {team && (
-            <span className="text-xs text-muted-foreground">{team.icon}</span>
-          )}
+          <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>{priority.label}</Badge>
+          {team && <span className="text-xs text-muted-foreground">{team.icon}</span>}
         </div>
         {agent && (
           <div className="flex items-center gap-1.5" title={`${agent.name} — ${agent.role}`}>
@@ -99,16 +249,12 @@ function TaskCard({ task, onMoveLeft, onMoveRight }: { task: Task; onMoveLeft?: 
           </div>
         )}
       </div>
-
-      {/* Move buttons on hover */}
       <div className="flex items-center justify-between mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onMoveLeft} disabled={!onMoveLeft}>
-          <ChevronLeft className="h-3 w-3 mr-0.5" />
-          Move Left
+          <ChevronLeft className="h-3 w-3 mr-0.5" />Move
         </Button>
         <Button variant="ghost" size="sm" className="h-6 text-xs px-2" onClick={onMoveRight} disabled={!onMoveRight}>
-          Move Right
-          <ChevronRight className="h-3 w-3 ml-0.5" />
+          Move<ChevronRight className="h-3 w-3 ml-0.5" />
         </Button>
       </div>
     </Card>
@@ -117,9 +263,13 @@ function TaskCard({ task, onMoveLeft, onMoveRight }: { task: Task; onMoveLeft?: 
 
 export default function TasksPage() {
   const [tasks, setTasks] = useState(initialTasks)
+  const [myTasks, setMyTasks] = useState(ownerTasks)
   const [filterTeam, setFilterTeam] = useState<string | null>(null)
   const [filterAgent, setFilterAgent] = useState<string | null>(null)
   const [search, setSearch] = useState("")
+  const [showMyTasks, setShowMyTasks] = useState(true)
+
+  const unresolvedOwnerTasks = myTasks.filter((t) => !t.resolved)
 
   const filteredTasks = tasks.filter((t) => {
     if (filterTeam && t.teamId !== filterTeam) return false
@@ -129,104 +279,115 @@ export default function TasksPage() {
   })
 
   function moveTask(taskId: string, direction: "left" | "right") {
-    setTasks((prev) =>
-      prev.map((t) => {
-        if (t.id !== taskId) return t
-        const colIndex = columns.findIndex((c) => c.id === t.status)
-        const newIndex = direction === "left" ? colIndex - 1 : colIndex + 1
-        if (newIndex < 0 || newIndex >= columns.length) return t
-        return { ...t, status: columns[newIndex].id }
-      })
-    )
+    setTasks((prev) => prev.map((t) => {
+      if (t.id !== taskId) return t
+      const colIndex = columns.findIndex((c) => c.id === t.status)
+      const newIndex = direction === "left" ? colIndex - 1 : colIndex + 1
+      if (newIndex < 0 || newIndex >= columns.length) return t
+      return { ...t, status: columns[newIndex].id }
+    }))
+  }
+
+  function resolveOwnerTask(taskId: string) {
+    setMyTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, resolved: true } : t))
   }
 
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-4 border-b border-border shrink-0">
+      <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Task Board</h1>
-          <p className="text-sm text-muted-foreground">
-            {filteredTasks.length} tasks across {columns.length} stages
-          </p>
+          <p className="text-sm text-muted-foreground">{filteredTasks.length} tasks · {unresolvedOwnerTasks.length} assigned to you</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="relative w-48">
-            <Input
-              placeholder="Search tasks..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="h-8 text-xs"
-            />
-          </div>
-          <div className="flex gap-1">
-            <button
-              onClick={() => setFilterTeam(null)}
-              className={cn(
-                "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                !filterTeam ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-              )}
-            >
-              All Teams
-            </button>
-            {teams.map((team) => (
-              <button
-                key={team.id}
-                onClick={() => setFilterTeam(filterTeam === team.id ? null : team.id)}
-                className={cn(
-                  "px-2.5 py-1 rounded-full text-xs font-medium transition-colors",
-                  filterTeam === team.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
-                )}
-              >
-                {team.icon} {team.name}
-              </button>
-            ))}
-          </div>
-          <Button size="sm" className="h-8">
-            <Plus className="h-3.5 w-3.5 mr-1" />
-            New Task
-          </Button>
+        <div className="flex items-center gap-2">
+          <Input placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-xs w-40" />
+          <Button size="sm" className="h-8"><Plus className="h-3.5 w-3.5 mr-1" />New Task</Button>
         </div>
       </div>
 
-      {/* Kanban Board */}
-      <div className="flex-1 overflow-x-auto p-6">
-        <div className="flex gap-4 h-full min-w-max">
-          {columns.map((col) => {
-            const colTasks = filteredTasks.filter((t) => t.status === col.id)
-            const colIndex = columns.indexOf(col)
-            return (
-              <div key={col.id} className="w-72 flex flex-col min-h-0 shrink-0">
-                {/* Column Header */}
-                <div className="flex items-center justify-between mb-3 px-1">
-                  <div className="flex items-center gap-2">
-                    <span className={col.color}>{col.icon}</span>
-                    <h3 className="text-sm font-semibold">{col.label}</h3>
-                    <span className="text-xs text-muted-foreground font-mono bg-muted rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">
-                      {colTasks.length}
-                    </span>
+      {/* Filters */}
+      <div className="flex items-center gap-2 px-6 py-2 border-b border-border shrink-0 overflow-x-auto">
+        <span className="text-xs text-muted-foreground font-medium shrink-0">Team:</span>
+        <button onClick={() => { setFilterTeam(null); setFilterAgent(null) }} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0", !filterTeam && !filterAgent ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>All</button>
+        {teams.map((team) => (
+          <button key={team.id} onClick={() => { setFilterTeam(filterTeam === team.id ? null : team.id); setFilterAgent(null) }} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0", filterTeam === team.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>{team.icon} {team.name}</button>
+        ))}
+
+        <div className="w-px h-4 bg-border mx-1" />
+
+        <span className="text-xs text-muted-foreground font-medium shrink-0">Agent:</span>
+        {(filterTeam ? agents.filter((a) => a.teamId === filterTeam) : agents).map((agent) => (
+          <button key={agent.id} onClick={() => setFilterAgent(filterAgent === agent.id ? null : agent.id)} className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors shrink-0", filterAgent === agent.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>
+            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={14} className="rounded-sm" />
+            {agent.name}
+          </button>
+        ))}
+      </div>
+
+      <div className="flex-1 overflow-y-auto">
+        {/* My Tasks */}
+        {unresolvedOwnerTasks.length > 0 && showMyTasks && (
+          <div className="px-6 py-4 border-b border-border bg-red-500/[0.02]">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Bell className="h-4 w-4 text-red-400" />
+                <h2 className="text-sm font-bold">My Tasks</h2>
+                <Badge variant="destructive" className="text-xs h-5">{unresolvedOwnerTasks.length}</Badge>
+              </div>
+              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowMyTasks(false)}>
+                <X className="h-3 w-3 mr-1" />Hide
+              </Button>
+            </div>
+            <div className="space-y-3">
+              {myTasks.filter((t) => !t.resolved).map((task) => (
+                <OwnerTaskCard key={task.id} task={task} onResolve={resolveOwnerTask} />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {!showMyTasks && unresolvedOwnerTasks.length > 0 && (
+          <div className="px-6 py-2 border-b border-border">
+            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowMyTasks(true)}>
+              <Bell className="h-3 w-3 mr-1 text-red-400" />
+              {unresolvedOwnerTasks.length} items assigned to you — Show
+            </Button>
+          </div>
+        )}
+
+        {/* Kanban Board */}
+        <div className="p-6 overflow-x-auto">
+          <div className="flex gap-4 min-w-max">
+            {columns.map((col) => {
+              const colTasks = filteredTasks.filter((t) => t.status === col.id)
+              const colIndex = columns.indexOf(col)
+              return (
+                <div key={col.id} className="w-64 flex flex-col shrink-0">
+                  <div className="flex items-center justify-between mb-3 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className={col.color}>{col.icon}</span>
+                      <h3 className="text-sm font-semibold">{col.label}</h3>
+                      <span className="text-xs text-muted-foreground font-mono bg-muted rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">{colTasks.length}</span>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {colTasks.map((task) => (
+                      <TaskCard key={task.id} task={task}
+                        onMoveLeft={colIndex > 0 ? () => moveTask(task.id, "left") : undefined}
+                        onMoveRight={colIndex < columns.length - 1 ? () => moveTask(task.id, "right") : undefined}
+                      />
+                    ))}
+                    {colTasks.length === 0 && (
+                      <div className="rounded-lg border border-dashed border-border p-6 flex items-center justify-center text-muted-foreground">
+                        <p className="text-xs">No tasks</p>
+                      </div>
+                    )}
                   </div>
                 </div>
-
-                {/* Task Cards */}
-                <div className="flex-1 overflow-y-auto space-y-2 pr-1">
-                  {colTasks.map((task) => (
-                    <TaskCard
-                      key={task.id}
-                      task={task}
-                      onMoveLeft={colIndex > 0 ? () => moveTask(task.id, "left") : undefined}
-                      onMoveRight={colIndex < columns.length - 1 ? () => moveTask(task.id, "right") : undefined}
-                    />
-                  ))}
-                  {colTasks.length === 0 && (
-                    <div className="rounded-lg border border-dashed border-border p-6 flex flex-col items-center justify-center text-muted-foreground">
-                      <p className="text-xs">No tasks</p>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )
-          })}
+              )
+            })}
+          </div>
         </div>
       </div>
     </div>
