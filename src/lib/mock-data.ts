@@ -489,7 +489,7 @@ export const messages: Message[] = [
     senderAgentId: "a3",
     senderName: "Zara",
     senderAvatar: "SM",
-    content: "Looking at the numbers — if creatives hold and our metrics stay steady, we should be able to scale up to 4-5 calls a day by end of next week. The CPM is solid and CTR is above benchmark.",
+    content: "Looking at the numbers — if creatives hold and our metrics stay steady, we should be able to scale up to 4-5 calls a day by end of next week. The CPM is solid and CTR is above benchmark. Based on this we should be able to maintain a 3-4X ROAS and pace $120k months at your daily spend goal.",
     messageType: "text",
     timestamp: new Date(Date.now() - 1000 * 60 * 20),
     reactions: [
