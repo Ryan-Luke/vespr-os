@@ -5,16 +5,18 @@ import { Button } from "@/components/ui/button"
 import { StatusDot } from "@/components/status-dot"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
-import { teams as teamsTable, agents as agentsTable } from "@/lib/db/schema"
+import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
 import { Users, Target, Crown, Plus } from "lucide-react"
+import { Progress } from "@/components/ui/progress"
 import { CreateDepartmentButton } from "./create-department"
 
 export const dynamic = "force-dynamic"
 
 export default async function TeamsPage() {
-  const [allTeams, allAgents] = await Promise.all([
+  const [allTeams, allAgents, allGoals] = await Promise.all([
     db.select().from(teamsTable),
     db.select().from(agentsTable),
+    db.select().from(goalsTable),
   ])
 
   return (
@@ -49,6 +51,27 @@ export default async function TeamsPage() {
                 <p className="text-sm text-muted-foreground">{team.description}</p>
               </CardHeader>
               <CardContent className="space-y-3">
+                {/* Team Goals */}
+                {(() => {
+                  const goals = allGoals.filter((g) => g.teamId === team.id && g.status === "active")
+                  if (goals.length === 0) return null
+                  return (
+                    <div className="space-y-2 pb-3 border-b border-border">
+                      {goals.map((goal) => {
+                        const pct = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0
+                        return (
+                          <div key={goal.id}>
+                            <div className="flex items-center justify-between text-xs mb-1">
+                              <span className="flex items-center gap-1"><Target className="h-3 w-3 text-primary" />{goal.title}</span>
+                              <span className="text-muted-foreground font-mono">{goal.progress}/{goal.target} {goal.unit}</span>
+                            </div>
+                            <Progress value={pct} className="h-1.5" />
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )
+                })()}
                 {teamAgents.map((agent) => (
                   <Link
                     key={agent.id}

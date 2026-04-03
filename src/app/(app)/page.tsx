@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 import { MorningCheckin } from "@/components/morning-checkin"
+import { ApprovalQueue } from "@/components/approval-queue"
 
 export const dynamic = "force-dynamic"
 
@@ -62,6 +63,8 @@ export default async function DashboardPage() {
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Your AI workforce at a glance</p>
       </div>
+
+      <ApprovalQueue />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {kpis.map((kpi) => (

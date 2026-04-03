@@ -19,6 +19,18 @@ export const teams = pgTable("teams", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
+// ── Team Goals ─────────────────────────────────────────────
+export const teamGoals = pgTable("team_goals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  teamId: uuid("team_id").references(() => teams.id).notNull(),
+  title: text("title").notNull(),
+  target: integer("target").notNull(), // target number
+  progress: integer("progress").notNull().default(0),
+  unit: text("unit").notNull().default("tasks"), // "tasks", "leads", "posts", "%", "hrs", etc.
+  status: text("status").notNull().default("active"), // "active" | "completed" | "paused"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 // ── Agents ─────────────────────────────────────────────────
 export const agents = pgTable("agents", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -156,6 +168,24 @@ export const agentSchedules = pgTable("agent_schedules", {
   lastRunAt: timestamp("last_run_at"),
   nextRunAt: timestamp("next_run_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Approval Requests (Human-in-the-Loop Queue) ──────────
+export const approvalRequests = pgTable("approval_requests", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  agentName: text("agent_name").notNull(),
+  actionType: text("action_type").notNull(), // "send_email", "publish_content", "approve_spend", "launch_campaign", "external_action"
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  reasoning: text("reasoning"), // why the agent is asking
+  options: jsonb("options").$type<{ label: string; value: string }[]>(), // approve/reject/custom options
+  urgency: text("urgency").notNull().default("normal"), // "urgent" | "normal" | "low"
+  status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected" | "modified"
+  response: text("response"), // user's response/modification
+  channelId: uuid("channel_id").references(() => channels.id),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
 })
 
 // ── Approval Log & Progressive Autonomy ───────────────────
