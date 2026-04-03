@@ -505,7 +505,7 @@ export default function ChatPage() {
   }, [autonomousMode]) // eslint-disable-line react-hooks/exhaustive-deps
 
   return (
-    <div className="flex h-full overflow-hidden">
+    <div className="flex h-screen overflow-hidden">
       {/* Channel Sidebar */}
       <div className="w-56 border-r border-border flex flex-col bg-card/50 shrink-0">
         <div className="p-3 border-b border-border">
@@ -561,7 +561,7 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <ScrollArea className="flex-1">
+          <div className="flex-1 overflow-y-auto min-h-0">
             <div className="py-4 px-4">
               {channelMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
@@ -575,7 +575,7 @@ export default function ChatPage() {
                 </div>
               )}
             </div>
-          </ScrollArea>
+          </div>
 
           <div className="border-t border-border p-3 shrink-0">
             <div className="relative rounded-lg border border-border bg-card focus-within:ring-1 focus-within:ring-primary/50">
