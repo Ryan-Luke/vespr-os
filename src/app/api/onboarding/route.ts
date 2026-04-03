@@ -1,5 +1,6 @@
 import { db } from "@/lib/db"
-import { agents, teams, channels, messages } from "@/lib/db/schema"
+import { agents, teams, channels, messages, tasks, agentSops, agentFeedback, activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules, automations, knowledgeEntries } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 
 interface BusinessTemplate {
@@ -161,6 +162,24 @@ export async function POST(req: Request) {
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
 
+  // Clear existing data (onboarding replaces everything)
+
+  await db.delete(milestones)
+  await db.delete(approvalLog)
+  await db.delete(autoApprovals)
+  await db.delete(decisionLog)
+  await db.delete(activityLog)
+  await db.delete(agentFeedback)
+  await db.delete(knowledgeEntries)
+  await db.delete(agentSops)
+  await db.delete(messages)
+  await db.delete(tasks)
+  await db.delete(agentSchedules)
+  await db.delete(automations)
+  await db.delete(agents)
+  await db.delete(channels)
+  await db.delete(teams)
+
   // Create teams
   const insertedTeams = await db.insert(teams).values(
     template.teams.map((t) => ({ name: t.name, icon: t.icon, description: t.description }))
@@ -223,7 +242,7 @@ export async function POST(req: Request) {
   }]).returning()
 
   // Update teams with lead agent IDs
-  const { eq } = await import("drizzle-orm")
+
   for (const teamTemplate of template.teams) {
     const lead = teamTemplate.agents.find((a) => a.isTeamLead)
     if (lead) {
