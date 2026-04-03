@@ -215,6 +215,7 @@ export default function ChatPage() {
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
   const [mentionIndex, setMentionIndex] = useState(0)
   const [showEmojiInput, setShowEmojiInput] = useState(false)
+  const [showMembers, setShowMembers] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -446,8 +447,21 @@ export default function ChatPage() {
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0">
             {activeChannelData && channelIcon(activeChannelData.type)}
             <h2 className="font-bold text-sm">{activeChannelData?.name}</h2>
-            <span className="text-xs text-muted-foreground">{channelMessages.length} messages</span>
-            <div className="ml-auto">
+            {/* Channel member avatars */}
+            {(() => {
+              const members = activeChannelData?.teamId ? dbAgents.filter((a) => a.teamId === activeChannelData.teamId) : dbAgents.slice(0, 5)
+              return (
+                <button onClick={() => setShowMembers(!showMembers)} className="flex items-center gap-1.5 ml-1 hover:bg-accent rounded-md px-2 py-1 transition-colors">
+                  <div className="flex -space-x-1.5">
+                    {members.slice(0, 4).map((a) => (
+                      <PixelAvatar key={a.id} characterIndex={a.pixelAvatarIndex} size={20} className="rounded-full border-2 border-card" />
+                    ))}
+                  </div>
+                  <span className="text-xs text-muted-foreground">{members.length}</span>
+                </button>
+              )
+            })()}
+            <div className="ml-auto flex items-center gap-2">
               <Button variant={autonomousMode ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1.5" onClick={() => setAutonomousMode(!autonomousMode)}>
                 {autonomousMode ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                 {autonomousMode ? "Pause Agents" : "Run Autonomous"}
@@ -506,6 +520,37 @@ export default function ChatPage() {
               <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">@</kbd> to mention ·
               <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs ml-1">Shift+Enter</kbd> for new line
             </p>
+          </div>
+        </div>
+      )}
+
+      {/* Members Panel */}
+      {showMembers && !dmAgent && (
+        <div className="w-64 border-l border-border flex flex-col shrink-0 bg-card/30">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
+            <h3 className="font-bold text-sm">Members</h3>
+            <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent" onClick={() => setShowMembers(false)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2">
+            {(() => {
+              const members = activeChannelData?.teamId ? dbAgents.filter((a) => a.teamId === activeChannelData.teamId) : dbAgents
+              return (
+                <div className="space-y-0.5">
+                  {members.map((agent) => (
+                    <button key={agent.id} onClick={() => { setDmAgent(agent); setShowMembers(false) }} className="flex items-center gap-2.5 w-full rounded-md px-2 py-2 hover:bg-accent transition-colors text-left">
+                      <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={32} className="rounded-lg border border-border" />
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-sm font-medium truncate">{agent.name}</span>
+                          <StatusDot status={agent.status as AgentStatus} />
+                        </div>
+                        <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}
