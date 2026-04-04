@@ -31,6 +31,11 @@ export default function RootLayout({
       className={`${geistSans.variable} ${geistMono.variable} dark h-full antialiased`}
     >
       <body className="h-screen overflow-hidden">
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `(function(){try{var t=JSON.parse(localStorage.getItem("bos-theme"));if(!t)return;var c=[{p:"#2563eb",f:"#ffffff",r:"#2563eb"},{p:"#8b5cf6",f:"#ffffff",r:"#8b5cf6"},{p:"#10b981",f:"#ffffff",r:"#10b981"},{p:"#f59e0b",f:"#000000",r:"#f59e0b"},{p:"#f43f5e",f:"#ffffff",r:"#f43f5e"},{p:"#06b6d4",f:"#000000",r:"#06b6d4"},{p:"#f97316",f:"#000000",r:"#f97316"}];var a=c[t.accentIndex]||c[0];var s=document.documentElement.style;s.setProperty("--primary",a.p);s.setProperty("--primary-foreground",a.f);s.setProperty("--ring",a.r);s.setProperty("--sidebar-ring",a.r);s.setProperty("--chart-1",a.p);if(t.fontSize)document.documentElement.style.fontSize=t.fontSize;if(t.density==="compact")s.setProperty("--spacing","0.2rem")}catch(e){}})()`,
+          }}
+        />
         <TooltipProvider>
           <ToastProvider>
             {children}

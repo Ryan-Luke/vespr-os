@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback, useMemo } from "react"
+import { useState, useEffect, useCallback, useMemo, useRef } from "react"
 import {} from "@/components/ui/badge"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import {
@@ -8,7 +8,7 @@ import {
 } from "@/components/ui/select"
 import {
   Plus, Clock, CheckCircle2, Loader2, AlertCircle,
-  ChevronRight, ChevronLeft, Bell, Upload, Check,
+  ChevronRight, ChevronLeft, ChevronDown, Bell, Upload, Check,
   MessageSquare, X, Save, Search, ExternalLink,
   Link2, Lock, Unlink, Layout, FileText, Target, Bug, DollarSign, ClipboardList,
   Play, Square, CalendarDays, Columns3,
@@ -52,6 +52,18 @@ function formatTime(totalSeconds: number): string {
 function getElapsed(timer: { totalSeconds: number; startedAt: string | null }): number {
   if (!timer.startedAt) return timer.totalSeconds
   return timer.totalSeconds + Math.floor((Date.now() - new Date(timer.startedAt).getTime()) / 1000)
+}
+
+// --- Subtask helpers ---
+interface Subtask { id: string; title: string; done: boolean }
+type SubtasksMap = Record<string, Subtask[]>
+
+function loadSubtasks(): SubtasksMap {
+  if (typeof window === "undefined") return {}
+  try { return JSON.parse(localStorage.getItem("bos-subtasks") || "{}") } catch { return {} }
+}
+function saveSubtasks(subtasks: SubtasksMap) {
+  localStorage.setItem("bos-subtasks", JSON.stringify(subtasks))
 }
 
 interface DBAgent { id: string; name: string; role: string; pixelAvatarIndex: number; teamId: string | null; status: string }
@@ -216,9 +228,13 @@ interface TaskCardProps {
   isTimerRunning: boolean
   onToggleTimer: (taskId: string) => void
   now: number
+  // subtask props
+  subtasks: Subtask[]
+  onAddSubtask: (taskId: string, title: string) => void
+  onToggleSubtask: (taskId: string, subtaskId: string) => void
 }
 
-function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds, timerData, isTimerRunning, onToggleTimer, now }: TaskCardProps) {
+function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds, timerData, isTimerRunning, onToggleTimer, now, subtasks, onAddSubtask, onToggleSubtask }: TaskCardProps) {
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
@@ -227,6 +243,25 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
   const isBlocked = blockers.length > 0
   const isLinkSource = linkingFrom === task.id
   const isHighlighted = highlightedIds.has(task.id)
+
+  // Subtask state
+  const [showAddSubtask, setShowAddSubtask] = useState(false)
+  const [newSubtaskTitle, setNewSubtaskTitle] = useState("")
+  const [expanded, setExpanded] = useState(false)
+  const subtaskInputRef = useRef<HTMLInputElement>(null)
+
+  const doneCount = subtasks.filter((s) => s.done).length
+  const totalCount = subtasks.length
+  const COLLAPSE_THRESHOLD = 3
+  const VISIBLE_WHEN_COLLAPSED = 2
+  const visibleSubtasks = totalCount > COLLAPSE_THRESHOLD && !expanded ? subtasks.slice(0, VISIBLE_WHEN_COLLAPSED) : subtasks
+
+  function handleAddSubtask() {
+    if (!newSubtaskTitle.trim()) return
+    onAddSubtask(task.id, newSubtaskTitle.trim())
+    setNewSubtaskTitle("")
+    setShowAddSubtask(false)
+  }
 
   function titleForId(id: string) {
     return allTasks.find((t) => t.id === id)?.title ?? id.slice(0, 6)
@@ -268,6 +303,14 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
             >
               {isTimerRunning ? <Square className="h-2.5 w-2.5" /> : <Play className="h-2.5 w-2.5" />}
             </button>
+            {/* Add subtask button — visible on hover */}
+            <button
+              onClick={(e) => { e.stopPropagation(); setShowAddSubtask(true) }}
+              className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground shrink-0 transition-opacity opacity-0 group-hover:opacity-100"
+              title="Add subtask"
+            >
+              <Plus className="h-3 w-3" />
+            </button>
             {/* Link button — visible on hover */}
             <button
               onClick={(e) => { e.stopPropagation(); onStartLink(task.id) }}
@@ -301,6 +344,62 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
               <Unlink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 ml-0.5" />
             </button>
           ))}
+        </div>
+      )}
+
+      {/* Subtasks */}
+      {(totalCount > 0 || showAddSubtask) && (
+        <div className="mt-1.5 pl-3.5">
+          {/* Progress indicator */}
+          {totalCount > 0 && (
+            <div className="flex items-center gap-1.5 mb-1">
+              <span className="text-[10px] text-muted-foreground tabular-nums">{doneCount}/{totalCount}</span>
+              <div className="flex-1 h-0.5 rounded-full bg-border overflow-hidden">
+                <div className="h-full rounded-full bg-primary/50 transition-all duration-200" style={{ width: `${(doneCount / totalCount) * 100}%` }} />
+              </div>
+            </div>
+          )}
+          {/* Subtask list */}
+          {visibleSubtasks.map((sub) => (
+            <div key={sub.id} className="flex items-center gap-1.5 py-0.5">
+              <button
+                onClick={(e) => { e.stopPropagation(); onToggleSubtask(task.id, sub.id) }}
+                className={cn(
+                  "h-3.5 w-3.5 rounded border border-border shrink-0 flex items-center justify-center transition-colors",
+                  sub.done && "bg-primary/20 border-primary/40",
+                )}
+              >
+                {sub.done && <Check className="h-2.5 w-2.5 text-primary" />}
+              </button>
+              <span className={cn("text-[11px] leading-tight", sub.done ? "line-through text-muted-foreground/50" : "text-foreground/80")}>{sub.title}</span>
+            </div>
+          ))}
+          {/* Show more toggle */}
+          {totalCount > COLLAPSE_THRESHOLD && (
+            <button onClick={(e) => { e.stopPropagation(); setExpanded(!expanded) }} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors mt-0.5 flex items-center gap-0.5">
+              <ChevronDown className={cn("h-3 w-3 transition-transform", expanded && "rotate-180")} />
+              {expanded ? "Show less" : `Show ${totalCount - VISIBLE_WHEN_COLLAPSED} more`}
+            </button>
+          )}
+          {/* Inline add subtask input */}
+          {showAddSubtask && (
+            <div className="flex items-center gap-1 mt-0.5">
+              <input
+                ref={subtaskInputRef}
+                value={newSubtaskTitle}
+                onChange={(e) => setNewSubtaskTitle(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter") handleAddSubtask(); if (e.key === "Escape") { setShowAddSubtask(false); setNewSubtaskTitle("") } }}
+                onClick={(e) => e.stopPropagation()}
+                placeholder="Subtask title..."
+                className="flex-1 h-5 bg-transparent border-b border-border text-[11px] outline-none placeholder:text-muted-foreground/40"
+                autoFocus
+              />
+              <button onClick={(e) => { e.stopPropagation(); handleAddSubtask() }} className="text-[11px] text-muted-foreground hover:text-foreground px-1">Add</button>
+              <button onClick={(e) => { e.stopPropagation(); setShowAddSubtask(false); setNewSubtaskTitle("") }} className="text-[11px] text-muted-foreground hover:text-foreground">
+                <X className="h-3 w-3" />
+              </button>
+            </div>
+          )}
         </div>
       )}
 
@@ -530,6 +629,26 @@ export default function TasksPage() {
   // --- Timer state ---
   const [timers, setTimers] = useState<TimerMap>({})
   const [now, setNow] = useState(Date.now())
+
+  // --- Subtask state ---
+  const [subtasksMap, setSubtasksMap] = useState<SubtasksMap>({})
+
+  // Load subtasks from localStorage on mount
+  useEffect(() => { setSubtasksMap(loadSubtasks()) }, [])
+
+  function updateSubtasks(next: SubtasksMap) { setSubtasksMap(next); saveSubtasks(next) }
+
+  function handleAddSubtask(taskId: string, title: string) {
+    const current = subtasksMap[taskId] ?? []
+    const newSubtask: Subtask = { id: crypto.randomUUID(), title, done: false }
+    updateSubtasks({ ...subtasksMap, [taskId]: [...current, newSubtask] })
+  }
+
+  function handleToggleSubtask(taskId: string, subtaskId: string) {
+    const current = subtasksMap[taskId] ?? []
+    const updated = current.map((s) => s.id === subtaskId ? { ...s, done: !s.done } : s)
+    updateSubtasks({ ...subtasksMap, [taskId]: updated })
+  }
 
   // Load timers from localStorage on mount
   useEffect(() => { setTimers(loadTimers()) }, [])
@@ -996,6 +1115,9 @@ export default function TasksPage() {
                           isTimerRunning={timers[task.id]?.startedAt !== null && timers[task.id]?.startedAt !== undefined}
                           onToggleTimer={handleToggleTimer}
                           now={now}
+                          subtasks={subtasksMap[task.id] ?? []}
+                          onAddSubtask={handleAddSubtask}
+                          onToggleSubtask={handleToggleSubtask}
                         />
                       ))}
                       {colTasks.length === 0 && (

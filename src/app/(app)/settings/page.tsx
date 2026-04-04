@@ -3,6 +3,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Key, Building2, Bell, CreditCard, Shield, Download } from "lucide-react"
 import { DataExport } from "@/components/data-export"
 import ApiKeyManager from "@/components/api-key-manager"
+import { ThemeSettings } from "@/components/theme-settings"
 
 export default function SettingsPage() {
   return (
@@ -19,6 +20,8 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-4">
+          <ThemeSettings />
+
           <div className="bg-card border border-border rounded-md p-4 space-y-4">
             <p className="section-label">Business Profile</p>
             <div className="grid gap-3 md:grid-cols-2">

@@ -19,6 +19,7 @@ import { ActivityTicker } from "@/components/activity-ticker"
 import { GoalTracker } from "@/components/goal-tracker"
 import { ROICalculator } from "@/components/roi-calculator"
 import { WeeklyReportButton } from "@/components/weekly-report"
+import { DailyDigestButton } from "@/components/daily-digest"
 
 export const dynamic = "force-dynamic"
 
@@ -56,6 +57,7 @@ export default async function DashboardPage() {
           <h1 className="text-sm font-semibold text-muted-foreground">Dashboard</h1>
           <div className="flex items-center gap-2">
             <FocusModeToggle />
+            <DailyDigestButton />
             <WeeklyReportButton />
           </div>
         </div>

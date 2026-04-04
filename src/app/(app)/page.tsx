@@ -467,6 +467,23 @@ function DMChat({ agent }: { agent: DBAgent }) {
             <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md mb-3" />
             <p className="text-[13px] font-medium text-foreground">Chat with {agent.name}</p>
             <p className="text-xs mt-0.5">{agent.role}</p>
+            <div className="flex flex-col gap-1.5 mt-4 w-full max-w-xs">
+              {(() => {
+                const starters: Record<string, string[]> = {
+                  "Chief of Staff": ["What's the team status today?", "Any blockers I should know about?", "Give me a cross-team update", "What should I prioritize this week?"],
+                  "Marketing": ["How are the campaigns performing?", "What content is going out this week?", "Show me the latest metrics", "What's our social media growth looking like?"],
+                  "Sales": ["How's the pipeline looking?", "Any hot leads this week?", "What's our close rate?", "Who should I follow up with?"],
+                  "Finance": ["Give me a cost summary", "How's cash flow this month?", "Any invoices pending?", "Are we on budget?"],
+                  "Operations": ["What automations are running?", "Any system issues?", "What's the shipping status?", "Show me efficiency metrics"],
+                  "Fulfillment": ["How are response times?", "Any customer complaints?", "What's the support queue look like?", "Show me satisfaction scores"],
+                }
+                const roleKey = Object.keys(starters).find((k) => agent.role.includes(k)) || ""
+                const prompts = starters[roleKey] || [`What are you working on?`, `Give me a status update`, `What should I know today?`, `What's your top priority?`]
+                return prompts.slice(0, 3).map((prompt) => (
+                  <button key={prompt} onClick={() => { sendMessage({ text: prompt }) }} className="text-xs text-left px-3 py-2 rounded-md border border-border hover:bg-accent hover:border-muted-foreground/20 transition-colors text-muted-foreground">{prompt}</button>
+                ))
+              })()}
+            </div>
           </div>
         )}
         <div className="space-y-2.5">
