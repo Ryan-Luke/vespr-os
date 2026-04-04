@@ -5,6 +5,7 @@ import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } f
 import { Plus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BulkAgentActions } from "@/components/bulk-agent-actions"
+import { AddDepartmentButton } from "@/components/add-department-button"
 
 export const dynamic = "force-dynamic"
 
@@ -21,9 +22,7 @@ export default async function TeamsPage() {
         <h1 className="text-lg font-semibold tracking-tight">Teams</h1>
         <div className="flex items-center gap-2">
           <BulkAgentActions />
-          <Link href="/builder" className="h-7 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1.5 hover:bg-primary/90 transition-colors">
-            <Plus className="h-3.5 w-3.5" /> New Department
-          </Link>
+          <AddDepartmentButton />
         </div>
       </div>
 
