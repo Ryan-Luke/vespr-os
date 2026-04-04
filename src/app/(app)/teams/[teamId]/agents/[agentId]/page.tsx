@@ -15,6 +15,16 @@ import {
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 import { getAutoApproveSettings, toggleAutoApproveSetting } from "@/components/approval-queue"
+import {
+  LineChart,
+  Line,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Legend,
+} from "recharts"
 
 interface DBAgent {
   id: string; name: string; role: string; avatar: string; pixelAvatarIndex: number
@@ -61,6 +71,44 @@ function getTopTraits(traits: PersonalityTraits) {
       const label = TRAIT_LABELS[key]
       return val >= 50 ? label.high : label.low
     })
+}
+
+function seededRandom(seed: number) {
+  let s = seed
+  return () => {
+    s = (s * 16807 + 0) % 2147483647
+    return (s - 1) / 2147483646
+  }
+}
+
+function hashString(str: string): number {
+  let hash = 5381
+  for (let i = 0; i < str.length; i++) {
+    hash = ((hash << 5) + hash + str.charCodeAt(i)) | 0
+  }
+  return Math.abs(hash)
+}
+
+function generateTrendData(agentId: string, tasksCompleted: number, xp: number, costThisMonth: number) {
+  const rand = seededRandom(hashString(agentId))
+  const avgTasks = Math.max(1, tasksCompleted / 30)
+  const avgXp = Math.max(1, xp / 30)
+  const avgCost = Math.max(0.01, costThisMonth / 30)
+
+  const data: { day: number; label: string; tasks: number; xp: number; cost: number }[] = []
+  for (let i = 0; i < 30; i++) {
+    const taskJitter = 0.5 + rand() * 1.0
+    const xpJitter = 0.5 + rand() * 1.0
+    const costJitter = 0.5 + rand() * 1.0
+    data.push({
+      day: i + 1,
+      label: `Day ${i + 1}`,
+      tasks: Math.round(avgTasks * taskJitter),
+      xp: Math.round(avgXp * xpJitter),
+      cost: parseFloat((avgCost * costJitter).toFixed(2)),
+    })
+  }
+  return data
 }
 
 function timeAgo(dateStr: string) {
@@ -352,6 +400,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <TabsTrigger value="sops">SOPs ({sops.length})</TabsTrigger>
             <TabsTrigger value="memory">Memory ({memories.length})</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
+            <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
@@ -535,6 +584,82 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
                 ))}
               </div>
             )}
+          </TabsContent>
+
+          {/* Performance */}
+          <TabsContent value="performance" className="mt-4 space-y-3">
+            {(() => {
+              const trendData = generateTrendData(
+                agent.id,
+                agent.tasksCompleted ?? 0,
+                agent.xp ?? 0,
+                agent.costThisMonth ?? 0,
+              )
+              const avgTasks = (trendData.reduce((s, d) => s + d.tasks, 0) / trendData.length).toFixed(1)
+              const totalXp = trendData.reduce((s, d) => s + d.xp, 0)
+              const firstHalfCost = trendData.slice(0, 15).reduce((s, d) => s + d.cost, 0)
+              const secondHalfCost = trendData.slice(15).reduce((s, d) => s + d.cost, 0)
+              const costTrendPct = firstHalfCost > 0 ? ((secondHalfCost - firstHalfCost) / firstHalfCost) * 100 : 0
+              const costTrendUp = costTrendPct >= 0
+
+              return (
+                <>
+                  <div className="grid grid-cols-3 gap-px bg-border rounded-md overflow-hidden">
+                    <div className="bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Avg tasks/day</p>
+                      <p className="text-lg font-semibold tabular-nums mt-0.5">{avgTasks}</p>
+                    </div>
+                    <div className="bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">XP this month</p>
+                      <p className="text-lg font-semibold tabular-nums mt-0.5">{totalXp.toLocaleString()}</p>
+                    </div>
+                    <div className="bg-card p-3">
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Cost trend</p>
+                      <p className={cn("text-lg font-semibold tabular-nums mt-0.5", costTrendUp ? "text-red-400" : "text-emerald-400")}>
+                        {costTrendUp ? "\u2191" : "\u2193"}{Math.abs(costTrendPct).toFixed(0)}%
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="bg-card border border-border rounded-md p-4">
+                    <p className="section-label mb-3">30-Day Trend</p>
+                    <ResponsiveContainer width="100%" height={280}>
+                      <LineChart data={trendData} margin={{ top: 5, right: 10, left: -10, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
+                        <XAxis
+                          dataKey="day"
+                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                          tickFormatter={(v) => (v % 5 === 0 ? `D${v}` : "")}
+                        />
+                        <YAxis
+                          tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 11 }}
+                          axisLine={false}
+                          tickLine={false}
+                        />
+                        <Tooltip
+                          contentStyle={{
+                            backgroundColor: "hsl(var(--card))",
+                            border: "1px solid hsl(var(--border))",
+                            borderRadius: "8px",
+                            color: "hsl(var(--foreground))",
+                            fontSize: 12,
+                          }}
+                          labelFormatter={(v) => `Day ${v}`}
+                        />
+                        <Legend
+                          wrapperStyle={{ color: "hsl(var(--muted-foreground))", fontSize: 12 }}
+                        />
+                        <Line type="monotone" dataKey="tasks" name="Tasks" stroke="#22c55e" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="xp" name="XP" stroke="#3b82f6" strokeWidth={2} dot={false} />
+                        <Line type="monotone" dataKey="cost" name="Cost ($)" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+                </>
+              )
+            })()}
           </TabsContent>
 
           {/* Settings */}

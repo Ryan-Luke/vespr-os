@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Pin,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -203,7 +203,7 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
 
 // Message component
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -211,6 +211,8 @@ function MessageBubble({
   onDM?: (agent: DBAgent) => void
   onReply?: (messageId: string) => void
   threadCount?: number
+  isPinned?: boolean
+  onTogglePin?: (messageId: string) => void
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
@@ -233,7 +235,7 @@ function MessageBubble({
   const nameEl = <span className="text-[13px] font-semibold hover:underline">{message.senderName}</span>
 
   return (
-    <div className={cn("group relative flex items-start gap-2.5 px-4 py-1 -mx-4 transition-colors", hovered && "bg-accent/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div data-message-id={message.id} className={cn("group relative flex items-start gap-2.5 px-4 py-1 -mx-4 transition-colors", hovered && "bg-accent/40", isPinned && "border-l-2 border-l-primary/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="shrink-0 mt-0.5">
         {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}>{avatarEl}</AgentProfileCard> : avatarEl}
       </div>
@@ -247,6 +249,7 @@ function MessageBubble({
           {message.messageType === "approval_request" && <Badge variant="destructive" className="text-xs h-5"><AlertCircle className="h-3 w-3 mr-1" />Needs Approval</Badge>}
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
+          {isPinned && <Pin className="h-3 w-3 text-primary/60" />}
         </div>
         <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
           {renderMarkdown(message.content)}
@@ -296,6 +299,11 @@ function MessageBubble({
           <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground transition-colors" title="Bookmark">
             <Bookmark className="h-3 w-3" />
           </button>
+          {onTogglePin && (
+            <button className={cn("h-6 w-6 flex items-center justify-center rounded-sm transition-colors", isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground")} onClick={() => onTogglePin(message.id)} title={isPinned ? "Unpin message" : "Pin message"}>
+              <Pin className="h-3 w-3" />
+            </button>
+          )}
           {onReply && (
             <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => onReply(message.id)}>
               <MessageSquare className="h-3 w-3" />
@@ -407,6 +415,8 @@ export default function ChatPage() {
   const [chatSearch, setChatSearch] = useState("")
   const [chatSearchOpen, setChatSearchOpen] = useState(false)
   const [showShortcuts, setShowShortcuts] = useState(false)
+  const [pinnedIds, setPinnedIds] = useState<Record<string, Set<string>>>({})
+  const [showPinnedPanel, setShowPinnedPanel] = useState(false)
   const [activeThread, setActiveThread] = useState<string | null>(null) // parent message ID
   const [threadMessages, setThreadMessages] = useState<DBMessage[]>([])
   const [threadInput, setThreadInput] = useState("")
@@ -428,7 +438,7 @@ export default function ChatPage() {
   useEffect(() => {
     function handleKey(e: KeyboardEvent) {
       if (e.key === "/" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setShowShortcuts((s) => !s) }
-      if (e.key === "Escape") { setActiveThread(null); setChatSearchOpen(false); setChatSearch(""); setShowShortcuts(false); setShowMembers(false) }
+      if (e.key === "Escape") { setActiveThread(null); setChatSearchOpen(false); setChatSearch(""); setShowShortcuts(false); setShowMembers(false); setShowPinnedPanel(false) }
       if (e.key === "f" && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); setChatSearchOpen(true) }
       // Cmd+1-9 to switch channels
       if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "9") {
@@ -440,6 +450,32 @@ export default function ChatPage() {
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
   }, [])
+
+  // Load pinned messages from localStorage
+  useEffect(() => {
+    if (!activeChannel) return
+    const key = `bos-pinned-${activeChannel}`
+    try {
+      const stored = localStorage.getItem(key)
+      if (stored) {
+        setPinnedIds((prev) => ({ ...prev, [activeChannel]: new Set(JSON.parse(stored)) }))
+      }
+    } catch {}
+  }, [activeChannel])
+
+  const togglePin = useCallback((messageId: string) => {
+    if (!activeChannel) return
+    setPinnedIds((prev) => {
+      const current = new Set(prev[activeChannel] ?? [])
+      if (current.has(messageId)) current.delete(messageId)
+      else current.add(messageId)
+      localStorage.setItem(`bos-pinned-${activeChannel}`, JSON.stringify([...current]))
+      return { ...prev, [activeChannel]: current }
+    })
+  }, [activeChannel])
+
+  const currentPinnedSet = activeChannel ? (pinnedIds[activeChannel] ?? new Set<string>()) : new Set<string>()
+  const pinnedCount = currentPinnedSet.size
 
   // Fetch unread counts and poll
   useEffect(() => {
@@ -991,6 +1027,37 @@ export default function ChatPage() {
             </span>
 
             <div className="ml-auto flex items-center gap-1.5">
+              {pinnedCount > 0 && (
+                <div className="relative">
+                  <button onClick={() => setShowPinnedPanel(!showPinnedPanel)} className={cn("h-7 px-2 rounded-md text-xs font-medium transition-colors flex items-center gap-1", showPinnedPanel ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}>
+                    <Pin className="h-3 w-3" />
+                    {pinnedCount} pinned
+                  </button>
+                  {showPinnedPanel && (
+                    <div className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-md shadow-lg z-50">
+                      <div className="flex items-center justify-between px-3 py-2 border-b border-border">
+                        <span className="text-xs font-semibold">Pinned Messages</span>
+                        <button onClick={() => setShowPinnedPanel(false)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                      </div>
+                      <div className="divide-y divide-border">
+                        {channelMessages.filter((m) => currentPinnedSet.has(m.id)).map((m) => (
+                          <div key={m.id} className="px-3 py-2 hover:bg-accent/30 transition-colors">
+                            <div className="flex items-center justify-between gap-2">
+                              <span className="text-xs font-semibold truncate">{m.senderName}</span>
+                              <span className="text-[10px] text-muted-foreground shrink-0">{formatTime(m.createdAt)}</span>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.content}</p>
+                            <div className="flex items-center gap-2 mt-1.5">
+                              <button onClick={() => { setShowPinnedPanel(false); setTimeout(() => { const el = document.querySelector(`[data-message-id="${m.id}"]`); if (el) { el.scrollIntoView({ behavior: "smooth", block: "center" }); el.classList.add("bg-primary/10"); setTimeout(() => el.classList.remove("bg-primary/10"), 2000) } }, 100) }} className="text-[10px] text-primary hover:underline">Jump to message</button>
+                              <button onClick={() => togglePin(m.id)} className="text-[10px] text-muted-foreground hover:text-destructive">Unpin</button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              )}
               <button onClick={() => setShowMembers(!showMembers)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Members">
                 <Users className="h-3.5 w-3.5 text-muted-foreground" />
               </button>
@@ -1069,7 +1136,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} />
                         </div>
                       )
                     })
