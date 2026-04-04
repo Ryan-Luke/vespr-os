@@ -52,6 +52,7 @@ const navGroups = [
   {
     label: "Workspace",
     items: [
+      { href: "/business", label: "My Business", icon: Building2 },
       { href: "/teams", label: "Teams", icon: Users },
       { href: "/tasks", label: "Tasks", icon: ClipboardList },
       { href: "/knowledge", label: "Knowledge", icon: Brain },
