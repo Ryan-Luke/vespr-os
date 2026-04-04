@@ -1347,38 +1347,41 @@ export default function ChatPage() {
 
   useEffect(() => { if (inputRef.current) { inputRef.current.style.height = "auto"; inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + "px" } }, [inputValue])
 
-  // Autonomous mode
+  // Autonomous mode — structured agent cadence
   useEffect(() => { autonomousRef.current = autonomousMode }, [autonomousMode])
 
   useEffect(() => {
     if (!autonomousMode || dbChannels.length === 0 || dbAgents.length === 0) return
-    const teamChannels = dbChannels.filter((c) => c.teamId || c.name === "team-leaders")
-    const winsChannel = dbChannels.find((c) => c.name === "wins")
-    const watercoolerChannel = dbChannels.find((c) => c.name === "watercooler")
-    let idx = 0
-    let tickCount = 0
+    const teamChannels = dbChannels.filter((c) => c.teamId)
+    let channelIdx = 0
 
-    async function trigger() {
+    async function agentCadenceTick() {
       if (!autonomousRef.current) return
-      tickCount++
       const roll = Math.random()
 
-      // 20% chance: post in #watercooler (casual thoughts, questions, links)
-      if (roll < 0.2 && watercoolerChannel) {
-        const agent = dbAgents[Math.floor(Math.random() * dbAgents.length)]
-        try {
-          const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: agent.id, teamId: null, channelName: "watercooler", recentMessages: [] }) })
-          if (!res.ok) return
-          const { text } = await res.json()
-          if (!text || !autonomousRef.current) return
-          const saved = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: watercoolerChannel.id, senderAgentId: agent.id, senderName: agent.name, senderAvatar: agent.avatar, content: text }) }).then((r) => r.json())
-          if (watercoolerChannel.id === activeChannel) setChannelMessages((prev) => [...prev, saved])
-        } catch { /* silent */ }
-        return
+      // 10% chance: add a reaction to a recent message in active channel
+      if (roll < 0.10 && channelMessages.length > 0) {
+        const recentMsgs = channelMessages.filter((m) => !m.threadId).slice(-8)
+        if (recentMsgs.length > 0) {
+          const msg = recentMsgs[Math.floor(Math.random() * recentMsgs.length)]
+          const emojis = ["👍", "🔥", "����", "✅", "👀", "💪", "🚀", "❤️"]
+          const emoji = emojis[Math.floor(Math.random() * emojis.length)]
+          const agent = dbAgents[Math.floor(Math.random() * dbAgents.length)]
+          setChannelMessages((prev) => prev.map((m) => {
+            if (m.id !== msg.id) return m
+            const existing = m.reactions.find((r) => r.emoji === emoji)
+            if (existing) {
+              if (existing.agentNames.includes(agent.name)) return m
+              return { ...m, reactions: m.reactions.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, agentNames: [...r.agentNames, agent.name] } : r) }
+            }
+            return { ...m, reactions: [...m.reactions, { emoji, count: 1, agentNames: [agent.name] }] }
+          }))
+          return
+        }
       }
 
-      // 15% chance: reply in a thread on a recent message (any channel being viewed)
-      if (roll < 0.35 && activeChannel) {
+      // 5% chance: thread reply on active channel
+      if (roll < 0.15 && activeChannel) {
         const topLevel = channelMessages.filter((m) => !m.threadId && m.senderAgentId)
         if (topLevel.length > 0) {
           const parentMsg = topLevel[Math.floor(Math.random() * Math.min(topLevel.length, 5))]
@@ -1398,68 +1401,49 @@ export default function ChatPage() {
         }
       }
 
-      // 10% chance: celebrate in #wins
-      if (roll < 0.45 && winsChannel && tickCount % 3 === 0) {
-        const agent = dbAgents[Math.floor(Math.random() * dbAgents.length)]
-        const wins = [
-          `Just wrapped up a big task — feeling great about the progress! 🙌`,
-          `Another successful week for the team. The momentum is real 🔥`,
-          `Crushed my task list today. ${agent.tasksCompleted} and counting 💪`,
-          `Small win but it matters — streamlined a process that was taking forever ⚡`,
-        ]
+      // 10% chance: team-leaders cross-team update
+      if (roll < 0.25) {
+        const tlChannel = dbChannels.find((c) => c.name === "team-leaders")
+        if (tlChannel) {
+          const leads = dbAgents.filter((a: any) => a.isTeamLead || !a.teamId)
+          if (leads.length > 0) {
+            const lead = leads[Math.floor(Math.random() * leads.length)]
+            try {
+              const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: lead.id, teamId: null, channelName: "team-leaders", recentMessages: [] }) })
+              if (!res.ok) return
+              const { text } = await res.json()
+              if (!text || !autonomousRef.current) return
+              const saved = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: tlChannel.id, senderAgentId: lead.id, senderName: lead.name, senderAvatar: lead.avatar, content: text }) }).then((r) => r.json())
+              if (tlChannel.id === activeChannel) setChannelMessages((prev) => [...prev, saved])
+            } catch { /* silent */ }
+            return
+          }
+        }
+      }
+
+      // 40% chance: structured team channel update (agent wakes, checks tasks, posts)
+      if (roll < 0.65 && teamChannels.length > 0) {
+        const channel = teamChannels[channelIdx % teamChannels.length]
+        channelIdx++
+        const eligibleAgents = dbAgents.filter((a) => a.teamId === channel.teamId)
+        if (eligibleAgents.length === 0) return
+        const agent = eligibleAgents[Math.floor(Math.random() * eligibleAgents.length)]
         try {
-          const saved = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: winsChannel.id, senderAgentId: agent.id, senderName: agent.name, senderAvatar: agent.avatar, content: wins[Math.floor(Math.random() * wins.length)] }) }).then((r) => r.json())
-          if (winsChannel.id === activeChannel) setChannelMessages((prev) => [...prev, saved])
+          const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: agent.id, teamId: channel.teamId, channelName: channel.name, recentMessages: [] }) })
+          if (!res.ok) return
+          const { text } = await res.json()
+          if (!text || !autonomousRef.current) return
+          const saved = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: channel.id, senderAgentId: agent.id, senderName: agent.name, senderAvatar: agent.avatar, content: text }) }).then((r) => r.json())
+          if (channel.id === activeChannel) setChannelMessages((prev) => [...prev, saved])
         } catch { /* silent */ }
         return
       }
 
-      // 15% chance: add a reaction to a recent message
-      if (roll < 0.6) {
-        const recentMsgs = channelMessages.filter((m) => !m.threadId).slice(-8)
-        if (recentMsgs.length > 0) {
-          const msg = recentMsgs[Math.floor(Math.random() * recentMsgs.length)]
-          const emojis = ["👍", "🔥", "💯", "✅", "👀", "💪", "🚀", "❤️"]
-          const emoji = emojis[Math.floor(Math.random() * emojis.length)]
-          const agent = dbAgents[Math.floor(Math.random() * dbAgents.length)]
-          // Add reaction locally
-          setChannelMessages((prev) => prev.map((m) => {
-            if (m.id !== msg.id) return m
-            const existing = m.reactions.find((r) => r.emoji === emoji)
-            if (existing) {
-              if (existing.agentNames.includes(agent.name)) return m
-              return { ...m, reactions: m.reactions.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, agentNames: [...r.agentNames, agent.name] } : r) }
-            }
-            return { ...m, reactions: [...m.reactions, { emoji, count: 1, agentNames: [agent.name] }] }
-          }))
-          return
-        }
-      }
-
-      // Default: regular team channel message
-      const channel = teamChannels[idx % teamChannels.length]
-      idx++
-      let eligibleAgents: DBAgent[]
-      if (channel.name === "team-leaders") {
-        eligibleAgents = dbAgents.filter((a: any) => a.isTeamLead || !a.teamId)
-      } else {
-        eligibleAgents = dbAgents.filter((a) => a.teamId === channel.teamId)
-      }
-      if (eligibleAgents.length === 0) return
-      const agent = eligibleAgents[Math.floor(Math.random() * eligibleAgents.length)]
-
-      try {
-        const res = await fetch("/api/agent-converse", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId: agent.id, teamId: channel.teamId, channelName: channel.name, recentMessages: [] }) })
-        if (!res.ok) return
-        const { text } = await res.json()
-        if (!text || !autonomousRef.current) return
-        const saved = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: channel.id, senderAgentId: agent.id, senderName: agent.name, senderAvatar: agent.avatar, content: text }) }).then((r) => r.json())
-        if (channel.id === activeChannel) setChannelMessages((prev) => [...prev, saved])
-      } catch { /* silent */ }
+      // 35% chance: skip this tick — agent has nothing to report
     }
 
-    const t = setTimeout(trigger, 2000)
-    const i = setInterval(trigger, 8000 + Math.random() * 4000)
+    const t = setTimeout(agentCadenceTick, 3000)
+    const i = setInterval(agentCadenceTick, 15000 + Math.random() * 10000)
     return () => { clearTimeout(t); clearInterval(i) }
   }, [autonomousMode, dbChannels, dbAgents]) // eslint-disable-line react-hooks/exhaustive-deps
 

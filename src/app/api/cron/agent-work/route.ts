@@ -81,7 +81,7 @@ export async function GET(req: Request) {
 
     try {
       const result = await generateText({
-        model: anthropic("claude-haiku-4-5"),
+        model: anthropic("claude-haiku-4.5"),
         system: `You are ${agent.name}, ${agent.role}. You're posting in your team's Slack channel.
 Your teammates: ${teammates.map((t) => `${t.name} (${t.role})`).join(", ")}
 ${agent.currentTask ? `Currently working on: ${agent.currentTask}` : ""}${sopContext}${myTaskContext}${taskContext}${knowledgeContext}
@@ -116,6 +116,13 @@ CRITICAL RULES:
 
         conversationContext += `\n${agent.name}: ${result.text}`
         results.push({ agent: agent.name, message: result.text })
+
+        // Award XP for posting
+        await fetch(new URL("/api/gamification", req.url).toString(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: agent.id, xpAmount: 2, reason: "message_sent" }),
+        }).catch(() => {})
       }
     } catch (e) {
       results.push({ agent: agent.name, error: String(e) })
@@ -131,6 +138,16 @@ CRITICAL RULES:
       const task = inProgressTasks[Math.floor(Math.random() * inProgressTasks.length)]
       await db.update(tasksTable).set({ status: "review" }).where(eq(tasksTable.id, task.id))
       results.push({ action: "task_moved", task: task.title, from: "in_progress", to: "review" })
+
+      // Award XP for task progress
+      const taskAgent = allAgents.find((a) => a.id === task.assignedAgentId)
+      if (taskAgent) {
+        await fetch(new URL("/api/gamification", req.url).toString(), {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: taskAgent.id, xpAmount: 25, reason: "task_completed" }),
+        }).catch(() => {})
+      }
     }
   }
 
@@ -153,7 +170,7 @@ CRITICAL RULES:
 
         try {
           const tlResult = await generateText({
-            model: anthropic("claude-haiku-4-5"),
+            model: anthropic("claude-haiku-4.5"),
             system: `You are ${lead.name}, ${lead.role}. You're posting in #team-leaders — the executive coordination channel.
 Other leads: ${otherLeads.map((l) => `${l.name} (${l.role})`).join(", ")}
 ${lead.currentTask ? `Currently working on: ${lead.currentTask}` : ""}
