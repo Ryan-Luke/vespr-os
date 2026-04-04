@@ -302,19 +302,23 @@ export default function TasksPage() {
         )}
 
         {/* Kanban Board */}
-        <div className="px-6 py-4 overflow-x-auto">
-          <div className="flex gap-3 min-w-max">
+        <div className="flex-1 overflow-x-auto">
+          <div className="flex gap-px bg-border min-w-max h-full">
             {columns.map((col) => {
               const colTasks = filteredTasks.filter((t) => t.status === col.id)
               return (
-                <div key={col.id} className="w-60 flex flex-col shrink-0">
-                  <div className="flex items-center gap-2 mb-2 px-0.5">
+                <div key={col.id} className="w-60 flex flex-col shrink-0 bg-background">
+                  <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
                     <span className="section-label">{col.label}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums">{colTasks.length}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1 py-0.5">{colTasks.length}</span>
                   </div>
-                  <div className="space-y-2">
+                  <div className="flex-1 p-2 space-y-1.5 overflow-y-auto">
                     {colTasks.map((task) => <TaskCard key={task.id} task={task} agents={dbAgents} teams={dbTeams} onMove={moveTask} />)}
-                    {colTasks.length === 0 && <div className="rounded-lg border border-dashed border-border p-6 flex items-center justify-center text-muted-foreground"><p className="text-xs">No tasks</p></div>}
+                    {colTasks.length === 0 && (
+                      <div className="flex items-center justify-center py-8">
+                        <p className="text-[11px] text-muted-foreground/50">Empty</p>
+                      </div>
+                    )}
                   </div>
                 </div>
               )
