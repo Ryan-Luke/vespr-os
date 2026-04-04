@@ -158,8 +158,8 @@ function renderMarkdownLines(text: string, keyOffset: number): React.ReactNode[]
 }
 
 function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
-  // Combined regex: #TASK pills, inline code, links, bold, italic
-  const inlineRegex = /(#TASK-[a-f0-9]+)|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|(\*\*(.+?)\*\*)|(\*(.+?)\*)/gi
+  // Combined regex: #TASK pills, @mentions, inline code, links, bold, italic
+  const inlineRegex = /(#TASK-[a-f0-9]+)|(@\w+)|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|(\*\*(.+?)\*\*)|(\*(.+?)\*)/gi
   const parts: React.ReactNode[] = []
   let lastIdx = 0
   let match: RegExpExecArray | null
@@ -171,28 +171,34 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
     const key = `${keyPrefix}-${match.index}`
 
     if (match[1]) {
-      // #TASK-xxx pill — preserved from original
+      // #TASK-xxx pill
       parts.push(
         <Link key={key} href="/tasks" className="inline-flex items-center gap-1 rounded bg-blue-500/10 text-blue-400 px-1.5 py-0.5 text-xs font-medium hover:bg-blue-500/20 transition-colors mx-0.5">
           <ClipboardList className="h-3 w-3" />{match[1]}
         </Link>
       )
-    } else if (match[2] !== undefined) {
+    } else if (match[2]) {
+      // @mention — clickable blue link
+      const name = match[2].slice(1) // remove @
+      parts.push(
+        <span key={key} className="text-blue-400 font-medium cursor-pointer hover:underline">{match[2]}</span>
+      )
+    } else if (match[3] !== undefined) {
       // Inline code
       parts.push(
-        <code key={key} className="px-1 py-0.5 rounded bg-muted text-xs font-mono">{match[2]}</code>
+        <code key={key} className="px-1 py-0.5 rounded bg-muted text-xs font-mono">{match[3]}</code>
       )
-    } else if (match[3] !== undefined && match[4] !== undefined) {
+    } else if (match[4] !== undefined && match[5] !== undefined) {
       // Link [text](url)
       parts.push(
-        <a key={key} href={match[4]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{match[3]}</a>
+        <a key={key} href={match[5]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{match[4]}</a>
       )
-    } else if (match[6] !== undefined) {
+    } else if (match[7] !== undefined) {
       // Bold **text**
-      parts.push(<strong key={key}>{match[6]}</strong>)
-    } else if (match[8] !== undefined) {
+      parts.push(<strong key={key}>{match[7]}</strong>)
+    } else if (match[9] !== undefined) {
       // Italic *text*
-      parts.push(<em key={key}>{match[8]}</em>)
+      parts.push(<em key={key}>{match[9]}</em>)
     }
 
     lastIdx = match.index + match[0].length
