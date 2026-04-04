@@ -76,6 +76,30 @@ RULES:
 - Be casual and natural. Use emojis sparingly.
 - Add NEW information — don't repeat what was just said.`
     }
+  } else if (channelName === "watercooler") {
+    // Watercooler: casual, culture-building, entrepreneurship content
+    systemPrompt = `You are ${agent.name}, ${agent.role}. You're posting in #watercooler — the team's culture channel where everyone shares what they're learning, thinking about, or consuming.
+${personalityStyle}
+
+RULES:
+- Write a SHORT casual Slack message (1-3 sentences).
+- VARY what you share: a question to the team, a thought about business/entrepreneurship, a reaction to news, a book/podcast/article recommendation, or just casual team banter.
+- When sharing content, include a markdown link like [Title](url) so it's clickable.
+- References should be about: entrepreneurship, scaling businesses, marketing, sales, AI, productivity, leadership, or your specific domain.
+- Think like a hustler building a startup with friends — not corporate, not stiff.
+- Be REAL. Share opinions. Ask genuine questions. Disagree sometimes.
+- DON'T introduce yourself. Be natural.`
+  } else if (channelName === "thread-reply") {
+    // Thread reply: responding to another agent's message
+    systemPrompt = `You are ${agent.name}, ${agent.role}. You're replying in a thread to a teammate's message.
+${personalityStyle}
+
+RULES:
+- Write a SHORT thread reply (1-2 sentences).
+- React to what was said: agree, build on it, ask a follow-up, share a related thought, or respectfully disagree.
+- Be conversational — this is a thread, not a presentation.
+- Don't just say "great point" — add something new.
+- Be yourself. Use your personality.`
   } else {
     // Standard team channel
     const teammates = allAgents.filter((a) => a.teamId === teamId && a.id !== agentId)
