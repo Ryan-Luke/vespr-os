@@ -254,6 +254,9 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
             {task.description?.includes(TEMPLATE_TAG) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">📋 Template</span>
             )}
+            {task.description?.includes("[recurring:") && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 shrink-0">🔄 {task.description.match(/\[recurring:(\w+)\]/)?.[1]}</span>
+            )}
             {/* Timer button */}
             <button
               onClick={(e) => { e.stopPropagation(); onToggleTimer(task.id) }}
@@ -515,6 +518,7 @@ export default function TasksPage() {
   const [newTeamId, setNewTeamId] = useState("")
   const [saving, setSaving] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
+  const [newRecurrence, setNewRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none")
   const [templateLoading, setTemplateLoading] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"board" | "calendar">("board")
 
@@ -655,7 +659,7 @@ export default function TasksPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        title: newTitle, description: newDesc || null,
+        title: newTitle, description: newRecurrence !== "none" ? `${newDesc || ""}\n[recurring:${newRecurrence}]` : (newDesc || null),
         priority: newPriority, status: "todo",
         assignedAgentId: newAgentId || null, teamId: newTeamId || null,
       }),
@@ -917,7 +921,13 @@ export default function TasksPage() {
                   </SelectContent>
                 </Select>
               </div>
-              <div className="flex gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {(["none", "daily", "weekly", "monthly"] as const).map((r) => (
+                    <button key={r} onClick={() => setNewRecurrence(r)} className={cn("px-2 py-1 rounded-md text-[11px] transition-colors", newRecurrence === r ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>{r === "none" ? "Once" : r.charAt(0).toUpperCase() + r.slice(1)}</button>
+                  ))}
+                </div>
+                <div className="flex-1" />
                 <button onClick={createTask} disabled={!newTitle.trim() || saving} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
                   {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}Create
                 </button>

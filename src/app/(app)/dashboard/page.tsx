@@ -17,6 +17,7 @@ import { CollapsibleSection } from "@/components/collapsible-section"
 import { FocusModeToggle } from "@/components/focus-mode-toggle"
 import { ActivityTicker } from "@/components/activity-ticker"
 import { GoalTracker } from "@/components/goal-tracker"
+import { ROICalculator } from "@/components/roi-calculator"
 import { WeeklyReportButton } from "@/components/weekly-report"
 
 export const dynamic = "force-dynamic"
@@ -61,7 +62,10 @@ export default async function DashboardPage() {
         <ActivityTicker />
         <MorningCheckin />
         <OvernightSummary />
-        <GoalTracker />
+        <div className="grid gap-3 md:grid-cols-2">
+          <GoalTracker />
+          <ROICalculator />
+        </div>
         <ApprovalQueue />
 
         {/* ── PRIMARY ZONE: KPIs + Activity ────────────────── */}

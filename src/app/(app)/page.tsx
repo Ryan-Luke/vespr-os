@@ -215,6 +215,84 @@ function getQuickReplies(content: string): string[] {
   return ["Tell me more", "Good work", "What's the priority?"]
 }
 
+function PollCard({ message, agents }: { message: DBMessage; agents: DBAgent[] }) {
+  const [userVote, setUserVote] = useState<number | null>(() => {
+    if (typeof window === "undefined") return null
+    const stored = localStorage.getItem(`bos-polls-${message.id}`)
+    return stored !== null ? parseInt(stored, 10) : null
+  })
+
+  let pollData: { question: string; options: { text: string; votes: number; voters?: string[] }[] }
+  try {
+    pollData = JSON.parse(message.content)
+  } catch {
+    return <div className="text-[13px] text-destructive">Invalid poll data</div>
+  }
+
+  const totalVotes = pollData.options.reduce((sum, o) => sum + o.votes, 0)
+  const hasVoted = userVote !== null
+
+  function handleVote(idx: number) {
+    if (hasVoted) return
+    setUserVote(idx)
+    localStorage.setItem(`bos-polls-${message.id}`, String(idx))
+  }
+
+  return (
+    <div className="bg-card border border-border rounded-md p-4 mt-1 max-w-md">
+      <div className="flex items-center gap-2 mb-3">
+        <BarChart3 className="h-4 w-4 text-primary/70" />
+        <span className="text-[13px] font-semibold">{pollData.question}</span>
+      </div>
+      <div className="space-y-1.5">
+        {pollData.options.map((option, idx) => {
+          const votes = option.votes + (userVote === idx ? 1 : 0)
+          const adjustedTotal = totalVotes + (hasVoted ? 1 : 0)
+          const pct = adjustedTotal > 0 ? Math.round((votes / adjustedTotal) * 100) : 0
+          const isSelected = userVote === idx
+          return (
+            <button
+              key={idx}
+              onClick={() => handleVote(idx)}
+              disabled={hasVoted}
+              className={cn(
+                "relative w-full text-left rounded-md p-2 transition-colors overflow-hidden",
+                isSelected ? "border border-primary/30 bg-primary/5" : "border border-transparent hover:bg-accent",
+                hasVoted ? "cursor-default" : "cursor-pointer"
+              )}
+            >
+              {hasVoted && (
+                <div
+                  className="absolute inset-0 bg-primary/10 rounded-md transition-all duration-500"
+                  style={{ width: `${pct}%` }}
+                />
+              )}
+              <div className="relative flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  {isSelected && <span className="text-primary text-xs">&#10003;</span>}
+                  <span className="text-[13px] truncate">{option.text}</span>
+                </div>
+                {hasVoted && (
+                  <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{votes} ({pct}%)</span>
+                )}
+              </div>
+              {hasVoted && option.voters && option.voters.length > 0 && (
+                <div className="relative mt-1 text-[10px] text-muted-foreground truncate">
+                  {option.voters.join(", ")}
+                </div>
+              )}
+            </button>
+          )
+        })}
+      </div>
+      <div className="mt-2 text-[11px] text-muted-foreground">
+        {totalVotes + (hasVoted ? 1 : 0)} vote{totalVotes + (hasVoted ? 1 : 0) !== 1 ? "s" : ""}
+        {!hasVoted && " — click to vote"}
+      </div>
+    </div>
+  )
+}
+
 function MessageBubble({
   message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, isLastAgentMessage, onQuickReply,
 }: {
@@ -265,24 +343,31 @@ function MessageBubble({
           )}
           {message.messageType === "approval_request" && <Badge variant="destructive" className="text-xs h-5"><AlertCircle className="h-3 w-3 mr-1" />Needs Approval</Badge>}
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
+          {message.messageType === "standup" && <Badge variant="outline" className="text-xs h-5 text-muted-foreground"><ClipboardList className="h-3 w-3 mr-1" />Standup</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
           {isBookmarked && <Bookmark className="h-3 w-3 text-amber-400 fill-amber-400" />}
           {isPinned && <Pin className="h-3 w-3 text-primary/60" />}
         </div>
-        <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
-          {renderMarkdown(message.content)}
-        </div>
-        {message.linkedTaskId && (
-          <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
-            <ClipboardList className="h-3 w-3" />
-            Linked task
-          </Link>
-        )}
-        {message.messageType === "approval_request" && (
-          <div className="flex gap-2 mt-2">
-            <Button size="sm" variant="default" className="h-7 text-xs">Approve</Button>
-            <Button size="sm" variant="outline" className="h-7 text-xs">Dismiss</Button>
-          </div>
+        {message.messageType === "poll" ? (
+          <PollCard message={message} agents={agents} />
+        ) : (
+          <>
+            <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
+              {renderMarkdown(message.content)}
+            </div>
+            {message.linkedTaskId && (
+              <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                <ClipboardList className="h-3 w-3" />
+                Linked task
+              </Link>
+            )}
+            {message.messageType === "approval_request" && (
+              <div className="flex gap-2 mt-2">
+                <Button size="sm" variant="default" className="h-7 text-xs">Approve</Button>
+                <Button size="sm" variant="outline" className="h-7 text-xs">Dismiss</Button>
+              </div>
+            )}
+          </>
         )}
         {/* Reactions */}
         {message.reactions.length > 0 && (
@@ -755,6 +840,7 @@ export default function ChatPage() {
         "**Available Commands & Shortcuts**",
         "",
         "`/task [title]` — Create a new task",
+        "`/poll Question | Opt A | Opt B` — Create a poll",
         "`/help` — Show this help",
         "`@` — Mention an agent",
         "`Cmd+K` — Global search",
@@ -858,6 +944,66 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       }
       setChannelMessages((prev) => [...prev, statusMsg])
+      return
+    }
+
+    // Poll command: /poll Question? | Option A | Option B | Option C
+    if (text.startsWith("/poll ")) {
+      const pollBody = text.slice(6).trim()
+      const segments = pollBody.split("|").map((s) => s.trim()).filter(Boolean)
+      if (segments.length < 3) {
+        const errMsg: DBMessage = {
+          id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: null, senderUserId: null,
+          senderName: "System", senderAvatar: "⚠️",
+          content: "Poll needs a question and at least 2 options. Usage: `/poll Question? | Option A | Option B`",
+          messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString(),
+        }
+        setChannelMessages((prev) => [...prev, errMsg])
+        return
+      }
+      const question = segments[0]
+      const options = segments.slice(1).map((t) => ({ text: t, votes: 0, voters: [] as string[] }))
+      const pollData = JSON.stringify({ question, options })
+      try {
+        const pollMsg = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channelId: activeChannel,
+            senderName: "You",
+            senderAvatar: "YO",
+            content: pollData,
+            messageType: "poll",
+          }),
+        }).then((r) => r.json())
+        setChannelMessages((prev) => [...prev, pollMsg])
+
+        // Simulate agent votes after a short delay
+        const channelAgents = dbAgents.filter((a) => a.teamId === activeChannelData?.teamId && a.status !== "error")
+        const voterCount = Math.min(channelAgents.length, Math.floor(Math.random() * 3) + 3)
+        const shuffled = [...channelAgents].sort(() => Math.random() - 0.5).slice(0, voterCount)
+        for (let i = 0; i < shuffled.length; i++) {
+          const agent = shuffled[i]
+          const optionIdx = Math.floor(Math.random() * options.length)
+          const delay = (i + 1) * (800 + Math.random() * 1200)
+          setTimeout(() => {
+            setChannelMessages((prev) =>
+              prev.map((m) => {
+                if (m.id !== pollMsg.id) return m
+                try {
+                  const data = JSON.parse(m.content)
+                  const alreadyVoted = data.options.some((o: any) => o.voters?.includes(agent.name))
+                  if (alreadyVoted) return m
+                  const updated = { ...data, options: data.options.map((o: any, idx: number) => idx === optionIdx ? { ...o, votes: o.votes + 1, voters: [...(o.voters || []), agent.name] } : o) }
+                  return { ...m, content: JSON.stringify(updated) }
+                } catch { return m }
+              })
+            )
+          }, delay)
+        }
+      } catch (err) {
+        console.error("Failed to create poll:", err)
+      }
       return
     }
 
@@ -1594,7 +1740,17 @@ export default function ChatPage() {
         <div className="w-72 border-l border-border flex flex-col shrink-0 bg-sidebar">
           <div className="flex items-center justify-between h-12 px-3 border-b border-border shrink-0">
             <span className="text-[13px] font-medium">Thread</span>
-            <button className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent" onClick={() => setActiveThread(null)}><X className="h-3 w-3 text-muted-foreground" /></button>
+            <div className="flex items-center gap-1">
+              {threadMessages.length >= 5 && (
+                <button onClick={() => {
+                  const msgs = threadMessages.slice(-10).map((m) => `${m.senderName}: ${m.content.slice(0, 60)}`).join("; ")
+                  const summary = `Thread summary (${threadMessages.length} messages): ${msgs.slice(0, 200)}...`
+                  const summaryMsg: DBMessage = { id: `summary-${Date.now()}`, channelId: activeChannel!, threadId: activeThread, senderAgentId: null, senderUserId: null, senderName: "System", senderAvatar: "📝", content: `**Thread Summary**\n${threadMessages.map((m) => `• **${m.senderName}**: ${m.content.slice(0, 80)}${m.content.length > 80 ? "..." : ""}`).join("\n")}`, messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+                  setThreadMessages((prev) => [...prev, summaryMsg])
+                }} className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">Summarize</button>
+              )}
+              <button className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent" onClick={() => setActiveThread(null)}><X className="h-3 w-3 text-muted-foreground" /></button>
+            </div>
           </div>
 
           {/* Parent message */}

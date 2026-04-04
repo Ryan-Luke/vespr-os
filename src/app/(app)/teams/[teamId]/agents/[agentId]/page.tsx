@@ -272,6 +272,84 @@ const SKILL_CATALOG: SkillCategory[] = [
   },
 ]
 
+// ── Skill Proficiency Levels ──────────────────────────────────
+interface SkillLevel {
+  level: number
+  xp: number
+}
+
+type SkillLevelsMap = Record<string, SkillLevel>
+
+const LEVEL_NAMES = ["", "Beginner", "Intermediate", "Proficient", "Advanced", "Expert"]
+const XP_PER_LEVEL = [0, 0, 100, 250, 500, 900] // xp needed to reach each level
+
+function skillLevelStorageKey(agentId: string) {
+  return `bos-skill-levels-${agentId}`
+}
+
+function loadSkillLevels(agentId: string): SkillLevelsMap {
+  try {
+    const raw = localStorage.getItem(skillLevelStorageKey(agentId))
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return {}
+}
+
+function saveSkillLevels(agentId: string, levels: SkillLevelsMap) {
+  localStorage.setItem(skillLevelStorageKey(agentId), JSON.stringify(levels))
+}
+
+function seedSkillLevels(skills: string[], agentXp: number, taskCount: number, agentId: string): SkillLevelsMap {
+  const rand = seededRandomFromStr(agentId)
+  // Agents with more XP / tasks get higher skill levels
+  const power = Math.min(5, 1 + Math.floor((agentXp + taskCount * 20) / 400))
+  const levels: SkillLevelsMap = {}
+  for (const skillId of skills) {
+    const jitter = Math.floor(rand() * 2) - 1 // -1, 0
+    const level = Math.max(1, Math.min(5, power + jitter))
+    const xpBase = XP_PER_LEVEL[level] || 0
+    const xpNext = (XP_PER_LEVEL[level + 1] || XP_PER_LEVEL[5]) - xpBase
+    const xpProgress = Math.floor(rand() * Math.max(1, xpNext * 0.8))
+    levels[skillId] = { level, xp: xpBase + xpProgress }
+  }
+  return levels
+}
+
+function seededRandomFromStr(str: string) {
+  let s = 5381
+  for (let i = 0; i < str.length; i++) {
+    s = ((s << 5) + s + str.charCodeAt(i)) | 0
+  }
+  s = Math.abs(s)
+  return () => {
+    s = (s * 16807 + 0) % 2147483647
+    return (s - 1) / 2147483646
+  }
+}
+
+function getSkillLevelFromXp(xp: number): number {
+  for (let i = 5; i >= 1; i--) {
+    if (xp >= XP_PER_LEVEL[i]) return i
+  }
+  return 1
+}
+
+function skillLevelProgress(xp: number, level: number): number {
+  const currentThreshold = XP_PER_LEVEL[level] || 0
+  const nextThreshold = level < 5 ? XP_PER_LEVEL[level + 1] : XP_PER_LEVEL[5]
+  if (level >= 5) return 100
+  const range = nextThreshold - currentThreshold
+  if (range <= 0) return 100
+  return Math.min(100, Math.round(((xp - currentThreshold) / range) * 100))
+}
+
+function skillLevelColor(level: number): string {
+  if (level >= 5) return "bg-amber-500"
+  if (level >= 4) return "bg-emerald-500"
+  if (level >= 3) return "bg-blue-500"
+  return "bg-muted-foreground/40"
+}
+
 function getTopTraits(traits: PersonalityTraits) {
   return (Object.entries(traits) as [keyof PersonalityTraits, number][])
     .map(([key, val]) => ({ key, val, distance: Math.abs(val - 50) }))
@@ -339,6 +417,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [feedback, setFeedback] = useState<FeedbackStats | null>(null)
   const [decisions, setDecisions] = useState<DecisionEntry[]>([])
   const [memories, setMemories] = useState<{ id: string; memoryType: string; content: string; importance: number; createdAt: string }[]>([])
+  const [skillLevels, setSkillLevels] = useState<SkillLevelsMap>({})
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewData, setReviewData] = useState<{ rating: number; summary: string; strengths: string[]; improvements: string[]; recommendations: string } | null>(null)
   const [loading, setLoading] = useState(true)
@@ -376,6 +455,40 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
       saveOkrs(agentId, defaults)
     }
   }, [agent, agentId])
+
+  // ── Skill levels: load or seed ──
+  useEffect(() => {
+    if (!agent) return
+    const stored = loadSkillLevels(agentId)
+    const skills = agent.skills || []
+    if (Object.keys(stored).length > 0) {
+      // Ensure all equipped skills have entries
+      let updated = false
+      const next = { ...stored }
+      for (const sid of skills) {
+        if (!next[sid]) {
+          next[sid] = { level: 1, xp: 0 }
+          updated = true
+        }
+      }
+      if (updated) saveSkillLevels(agentId, next)
+      setSkillLevels(next)
+    } else if (skills.length > 0) {
+      const seeded = seedSkillLevels(skills, agent.xp ?? 0, agent.tasksCompleted ?? 0, agentId)
+      saveSkillLevels(agentId, seeded)
+      setSkillLevels(seeded)
+    }
+  }, [agent, agentId])
+
+  function trainSkill(skillId: string) {
+    const current = skillLevels[skillId] || { level: 1, xp: 0 }
+    const xpGain = 15 + Math.floor(Math.random() * 25) // 15-39 xp
+    const newXp = current.xp + xpGain
+    const newLevel = getSkillLevelFromXp(newXp)
+    const next = { ...skillLevels, [skillId]: { level: newLevel, xp: newXp } }
+    setSkillLevels(next)
+    saveSkillLevels(agentId, next)
+  }
 
   function addObjective() {
     if (!newObjTitle.trim()) return
@@ -482,10 +595,17 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   async function toggleSkill(skillId: string) {
     if (!agent) return
     const current = agent.skills || []
-    const next = current.includes(skillId)
+    const isRemoving = current.includes(skillId)
+    const next = isRemoving
       ? current.filter((s) => s !== skillId)
       : [...current, skillId]
     setAgent({ ...agent, skills: next })
+    // Initialize skill level for newly added skills
+    if (!isRemoving && !skillLevels[skillId]) {
+      const updated = { ...skillLevels, [skillId]: { level: 1, xp: 0 } }
+      setSkillLevels(updated)
+      saveSkillLevels(agentId, updated)
+    }
     await fetch(`/api/agents/${agentId}`, {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
@@ -691,16 +811,29 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
               {(agent.skills || []).length === 0 ? (
                 <p className="text-xs text-muted-foreground">No skills equipped. Browse below to add skills.</p>
               ) : (
-                <div className="flex flex-wrap gap-1.5">
+                <div className="flex flex-wrap gap-2">
                   {(agent.skills as string[]).map((skillId) => {
                     const def = SKILL_CATALOG.flatMap((c) => c.skills).find((s) => s.id === skillId)
                     const Icon = def?.icon || Wrench
+                    const sl = skillLevels[skillId] || { level: 1, xp: 0 }
+                    const pct = skillLevelProgress(sl.xp, sl.level)
                     return (
-                      <button key={skillId} onClick={() => toggleSkill(skillId)} className="flex items-center gap-1.5 text-xs bg-primary/10 border border-primary/20 text-foreground rounded-md px-2.5 py-1 hover:bg-primary/20 transition-colors">
-                        <Icon className="h-3 w-3" />
-                        {def?.name || skillId}
-                        <X className="h-3 w-3 text-muted-foreground ml-0.5" />
-                      </button>
+                      <div key={skillId} className="flex flex-col">
+                        <div className="flex items-center gap-1.5 text-xs bg-primary/10 border border-primary/20 text-foreground rounded-md px-2.5 py-1">
+                          <Icon className="h-3 w-3" />
+                          {def?.name || skillId}
+                          <button onClick={() => toggleSkill(skillId)} className="hover:text-destructive transition-colors ml-0.5">
+                            <X className="h-3 w-3 text-muted-foreground" />
+                          </button>
+                        </div>
+                        <div className="w-full h-0.5 rounded-full bg-muted mt-0.5 overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all", skillLevelColor(sl.level))} style={{ width: `${sl.level >= 5 ? 100 : pct}%` }} />
+                        </div>
+                        <div className="flex items-center justify-between mt-0.5">
+                          <span className="text-[10px] text-muted-foreground">Lv.{sl.level} {LEVEL_NAMES[sl.level]}</span>
+                          <button onClick={() => trainSkill(skillId)} className="text-[10px] text-primary hover:underline">Train</button>
+                        </div>
+                      </div>
                     )
                   })}
                 </div>
