@@ -625,6 +625,24 @@ export default function ChatPage() {
 
   if (!dataLoaded) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
 
+  // No workspace — redirect to onboarding
+  if (dbAgents.length === 0 && dbChannels.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <div className="text-center space-y-4 max-w-md">
+          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
+            <Bot className="h-8 w-8 text-primary" />
+          </div>
+          <h2 className="text-xl font-bold">Welcome to Business OS</h2>
+          <p className="text-muted-foreground">You don't have a team yet. Let's set up your AI workforce.</p>
+          <Link href="/onboarding">
+            <Button size="lg" className="mt-2">Get Started</Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
@@ -733,7 +751,35 @@ export default function ChatPage() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {channelMessages.filter((m) => !m.threadId).map((msg) => <MessageBubble key={msg.id} message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} />)}
+                  {(() => {
+                    const topLevel = channelMessages.filter((m) => !m.threadId)
+                    let lastDate = ""
+                    return topLevel.map((msg) => {
+                      const msgDate = new Date(msg.createdAt)
+                      const today = new Date()
+                      const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1)
+                      let dateLabel = ""
+                      const dateKey = msgDate.toDateString()
+                      if (dateKey !== lastDate) {
+                        lastDate = dateKey
+                        if (dateKey === today.toDateString()) dateLabel = "Today"
+                        else if (dateKey === yesterday.toDateString()) dateLabel = "Yesterday"
+                        else dateLabel = msgDate.toLocaleDateString([], { weekday: "long", month: "long", day: "numeric" })
+                      }
+                      return (
+                        <div key={msg.id}>
+                          {dateLabel && (
+                            <div className="flex items-center gap-3 my-3">
+                              <div className="flex-1 h-px bg-border" />
+                              <span className="text-xs font-medium text-muted-foreground px-2">{dateLabel}</span>
+                              <div className="flex-1 h-px bg-border" />
+                            </div>
+                          )}
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} />
+                        </div>
+                      )
+                    })
+                  })()}
                   {typingAgent && (
                     <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground animate-pulse">
                       <div className="flex gap-0.5">
