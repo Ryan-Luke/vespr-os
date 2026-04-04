@@ -84,57 +84,57 @@
 }
 
 .dark {
-  /* Premium deep dark — not pure black, rich and warm */
-  --background: oklch(0.115 0.008 270);
-  --foreground: oklch(0.95 0.005 270);
+  /* Deep charcoal — warm, not cold */
+  --background: oklch(0.13 0.005 60);
+  --foreground: oklch(0.93 0.005 60);
 
-  /* Glass-morphism cards — slightly lighter than bg, semi-transparent feel */
-  --card: oklch(0.16 0.01 270);
-  --card-foreground: oklch(0.95 0.005 270);
-  --popover: oklch(0.17 0.012 270);
-  --popover-foreground: oklch(0.95 0.005 270);
+  /* Cards — slightly elevated, warm tint */
+  --card: oklch(0.17 0.006 60);
+  --card-foreground: oklch(0.93 0.005 60);
+  --popover: oklch(0.18 0.007 60);
+  --popover-foreground: oklch(0.93 0.005 60);
 
-  /* Primary — vibrant purple-blue gradient accent */
-  --primary: oklch(0.65 0.25 270);
-  --primary-foreground: oklch(0.98 0 0);
+  /* Primary — warm emerald-green accent (like the $ signs in Ofinans) */
+  --primary: oklch(0.7 0.19 155);
+  --primary-foreground: oklch(0.13 0 0);
 
-  /* Secondary — subtle elevated surfaces */
-  --secondary: oklch(0.2 0.015 270);
-  --secondary-foreground: oklch(0.9 0.005 270);
+  /* Secondary — elevated surface */
+  --secondary: oklch(0.21 0.006 60);
+  --secondary-foreground: oklch(0.9 0.005 60);
 
-  /* Muted — for backgrounds and disabled states */
-  --muted: oklch(0.19 0.01 270);
-  --muted-foreground: oklch(0.55 0.02 270);
+  /* Muted */
+  --muted: oklch(0.2 0.005 60);
+  --muted-foreground: oklch(0.55 0.01 60);
 
-  /* Accent — hover/focus states */
-  --accent: oklch(0.22 0.02 270);
-  --accent-foreground: oklch(0.95 0.005 270);
+  /* Accent */
+  --accent: oklch(0.23 0.008 60);
+  --accent-foreground: oklch(0.93 0.005 60);
 
   --destructive: oklch(0.65 0.22 25);
 
-  /* Borders — very subtle, glass-like */
-  --border: oklch(1 0 0 / 8%);
-  --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.65 0.25 270);
+  /* Borders — barely visible */
+  --border: oklch(1 0 0 / 6%);
+  --input: oklch(1 0 0 / 8%);
+  --ring: oklch(0.7 0.19 155);
 
-  /* Charts — vibrant gradient palette */
-  --chart-1: oklch(0.7 0.25 270);
-  --chart-2: oklch(0.65 0.22 170);
-  --chart-3: oklch(0.72 0.2 80);
-  --chart-4: oklch(0.68 0.22 330);
-  --chart-5: oklch(0.6 0.2 200);
+  /* Charts — warm palette: pink, coral, emerald, amber, teal */
+  --chart-1: oklch(0.7 0.22 350);
+  --chart-2: oklch(0.7 0.19 155);
+  --chart-3: oklch(0.75 0.15 65);
+  --chart-4: oklch(0.65 0.2 25);
+  --chart-5: oklch(0.6 0.18 200);
 
-  --radius: 0.75rem;
+  --radius: 0.875rem;
 
-  /* Sidebar — slightly darker than main bg */
-  --sidebar: oklch(0.1 0.008 270);
-  --sidebar-foreground: oklch(0.9 0.005 270);
-  --sidebar-primary: oklch(0.65 0.25 270);
-  --sidebar-primary-foreground: oklch(0.98 0 0);
-  --sidebar-accent: oklch(0.18 0.015 270);
-  --sidebar-accent-foreground: oklch(0.95 0.005 270);
-  --sidebar-border: oklch(1 0 0 / 6%);
-  --sidebar-ring: oklch(0.65 0.25 270);
+  /* Sidebar — darker than main */
+  --sidebar: oklch(0.11 0.005 60);
+  --sidebar-foreground: oklch(0.85 0.005 60);
+  --sidebar-primary: oklch(0.7 0.19 155);
+  --sidebar-primary-foreground: oklch(0.13 0 0);
+  --sidebar-accent: oklch(0.17 0.006 60);
+  --sidebar-accent-foreground: oklch(0.93 0.005 60);
+  --sidebar-border: oklch(1 0 0 / 5%);
+  --sidebar-ring: oklch(0.7 0.19 155);
 }
 
 @layer base {
@@ -154,47 +154,71 @@
 /* Glass-morphism card effect */
 .dark [data-slot="card"],
 .dark .glass-card {
-  background: oklch(0.16 0.01 270 / 60%);
+  background: oklch(0.17 0.006 60 / 70%);
   backdrop-filter: blur(12px);
-  border: 1px solid oklch(1 0 0 / 6%);
+  border: 1px solid oklch(1 0 0 / 5%);
 }
 
-/* Glow effect on primary elements */
+/* Glow effects */
 .dark .glow-primary {
-  box-shadow: 0 0 20px oklch(0.65 0.25 270 / 20%), 0 0 60px oklch(0.65 0.25 270 / 5%);
+  box-shadow: 0 0 20px oklch(0.7 0.19 155 / 20%), 0 0 60px oklch(0.7 0.19 155 / 5%);
 }
 
 .dark .glow-green {
-  box-shadow: 0 0 20px oklch(0.65 0.22 155 / 20%);
+  box-shadow: 0 0 20px oklch(0.65 0.22 155 / 25%);
 }
 
 .dark .glow-amber {
-  box-shadow: 0 0 20px oklch(0.7 0.18 80 / 20%);
+  box-shadow: 0 0 20px oklch(0.7 0.18 65 / 25%);
 }
 
-/* Gradient text */
+.dark .glow-pink {
+  box-shadow: 0 0 20px oklch(0.7 0.22 350 / 25%);
+}
+
+/* Gradient text — warm gold/orange */
 .gradient-text {
-  background: linear-gradient(135deg, oklch(0.75 0.2 270), oklch(0.7 0.22 300));
+  background: linear-gradient(135deg, oklch(0.85 0.12 60), oklch(0.75 0.15 35));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background-clip: text;
 }
 
-/* Gradient background accents */
+/* Gradient backgrounds */
 .gradient-bg-primary {
-  background: linear-gradient(135deg, oklch(0.65 0.25 270), oklch(0.6 0.22 300));
+  background: linear-gradient(135deg, oklch(0.7 0.19 155), oklch(0.6 0.17 180));
 }
 
 .gradient-bg-success {
-  background: linear-gradient(135deg, oklch(0.6 0.2 155), oklch(0.55 0.18 180));
+  background: linear-gradient(135deg, oklch(0.65 0.19 155), oklch(0.6 0.17 170));
 }
 
-/* Subtle animated gradient background for hero sections */
+.gradient-bg-warm {
+  background: linear-gradient(135deg, oklch(0.7 0.18 40), oklch(0.65 0.2 20));
+}
+
+/* Hero gradient mesh — warm amber/coral/orange like Ofinans top bar */
 .gradient-mesh {
   background:
-    radial-gradient(ellipse at 20% 50%, oklch(0.65 0.25 270 / 8%) 0%, transparent 50%),
-    radial-gradient(ellipse at 80% 20%, oklch(0.6 0.22 300 / 6%) 0%, transparent 50%),
-    radial-gradient(ellipse at 50% 80%, oklch(0.65 0.22 170 / 4%) 0%, transparent 50%);
+    radial-gradient(ellipse at 30% 0%, oklch(0.65 0.2 30 / 15%) 0%, transparent 50%),
+    radial-gradient(ellipse at 70% 0%, oklch(0.6 0.18 50 / 12%) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 0%, oklch(0.55 0.22 350 / 8%) 0%, transparent 40%);
+}
+
+/* Hero banner gradient — the warm top bar from Ofinans */
+.hero-gradient {
+  background: linear-gradient(135deg, oklch(0.35 0.12 30), oklch(0.3 0.1 350), oklch(0.25 0.08 300));
+  position: relative;
+  overflow: hidden;
+}
+.hero-gradient::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(ellipse at 20% 50%, oklch(0.7 0.2 40 / 30%) 0%, transparent 60%),
+    radial-gradient(ellipse at 80% 30%, oklch(0.6 0.22 350 / 20%) 0%, transparent 50%),
+    radial-gradient(ellipse at 60% 70%, oklch(0.5 0.15 30 / 15%) 0%, transparent 50%);
 }
 
 /* Premium scrollbar */

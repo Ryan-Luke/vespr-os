@@ -7,7 +7,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
 import { Users, Target, Crown, Plus } from "lucide-react"
-import { Progress } from "@/components/ui/progress"
+// Progress bars rendered inline with gradient fills
 import { CreateDepartmentButton } from "./create-department"
 
 export const dynamic = "force-dynamic"
@@ -23,7 +23,7 @@ export default async function TeamsPage() {
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Teams</h1>
+          <h1 className="text-2xl font-bold tracking-tight">Teams</h1>
           <p className="text-sm text-muted-foreground">
             Your AI workforce organized by business function
           </p>
@@ -65,7 +65,9 @@ export default async function TeamsPage() {
                               <span className="flex items-center gap-1"><Target className="h-3 w-3 text-primary" />{goal.title}</span>
                               <span className="text-muted-foreground font-mono">{goal.progress}/{goal.target} {goal.unit}</span>
                             </div>
-                            <Progress value={pct} className="h-1.5" />
+                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
+                              <div className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-gradient-to-r from-green-500 to-emerald-400" : "bg-gradient-to-r from-primary to-violet-400"}`} style={{ width: `${pct}%` }} />
+                            </div>
                           </div>
                         )
                       })}
