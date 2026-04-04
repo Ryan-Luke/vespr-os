@@ -171,80 +171,49 @@ export default function OnboardingPage() {
   // ── Step 2: Business Details ──
   if (step === 2) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="max-w-2xl w-full space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {lane === "new" ? "Tell us about your idea" : "Tell us about your business"}
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-md w-full space-y-5">
+          <div className="text-center space-y-1">
+            <h1 className="text-lg font-semibold tracking-tight">
+              {lane === "new" ? "Tell us about your idea" : "About your business"}
             </h1>
-            <p className="text-muted-foreground">
-              {lane === "new"
-                ? "Even a rough concept is fine — your R&D team will help sharpen it."
-                : "We'll map your existing operations so agents can hit the ground running."}
+            <p className="text-xs text-muted-foreground">
+              {lane === "new" ? "Even a rough concept works." : "We'll map your operations."}
             </p>
           </div>
 
-          <Card>
-            <CardContent className="pt-6 space-y-4">
-              <div className="space-y-2">
-                <Label>Business Name</Label>
-                <Input
-                  placeholder={lane === "new" ? "e.g., My Side Hustle, Project Nova" : "e.g., Fontaine Enterprises"}
-                  value={businessName}
-                  onChange={(e) => setBusinessName(e.target.value)}
-                  className="h-11"
-                />
-              </div>
+          <div className="bg-card border border-border rounded-md p-4 space-y-4">
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Business Name</label>
+              <input placeholder={lane === "new" ? "e.g., Project Nova" : "e.g., Fontaine Enterprises"} value={businessName} onChange={(e) => setBusinessName(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+            </div>
 
-              {lane === "new" ? (
-                <div className="space-y-2">
-                  <Label>What's the idea? <span className="text-muted-foreground font-normal">(optional — your R&D team will help develop it)</span></Label>
-                  <Textarea
-                    placeholder="Describe your idea in a few sentences. It can be rough — that's what your team is for. e.g., 'An AI-powered service that helps real estate investors find Section 8 properties...'"
-                    value={businessIdea}
-                    onChange={(e) => setBusinessIdea(e.target.value)}
-                    rows={4}
-                  />
+            {lane === "new" ? (
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium">What's the idea? <span className="text-muted-foreground font-normal">(optional)</span></label>
+                <textarea placeholder="Describe briefly..." value={businessIdea} onChange={(e) => setBusinessIdea(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+              </div>
+            ) : (
+              <>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-medium">Team size</label>
+                  <input placeholder="e.g., Just me, 5 people" value={teamSize} onChange={(e) => setTeamSize(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
                 </div>
-              ) : (
-                <>
-                  <div className="space-y-2">
-                    <Label>Current team size</Label>
-                    <Input
-                      placeholder="e.g., Just me, 3 people, 15 employees"
-                      value={teamSize}
-                      onChange={(e) => setTeamSize(e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Tools you're currently using</Label>
-                    <Textarea
-                      placeholder="e.g., QuickBooks for accounting, HubSpot CRM, Mailchimp for email, Shopify store, Slack for team chat..."
-                      value={existingTools}
-                      onChange={(e) => setExistingTools(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Biggest pain points</Label>
-                    <Textarea
-                      placeholder="e.g., Can't keep up with content creation, spending too much on payroll, inconsistent customer support response times..."
-                      value={existingPainPoints}
-                      onChange={(e) => setExistingPainPoints(e.target.value)}
-                      rows={3}
-                    />
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-medium">Current tools</label>
+                  <textarea placeholder="QuickBooks, HubSpot, Shopify..." value={existingTools} onChange={(e) => setExistingTools(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                </div>
+                <div className="space-y-1.5">
+                  <label className="text-[13px] font-medium">Biggest pain points</label>
+                  <textarea placeholder="What's not working..." value={existingPainPoints} onChange={(e) => setExistingPainPoints(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                </div>
+              </>
+            )}
+          </div>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>
-              Next: Choose Template
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <button onClick={() => setStep(1)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+            <button onClick={() => setStep(3)} className="h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">Next <ArrowRight className="h-3 w-3" /></button>
           </div>
         </div>
       </div>
@@ -254,48 +223,36 @@ export default function OnboardingPage() {
   // ── Step 3: Template Selection ──
   if (step === 3) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="max-w-2xl w-full space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">
-              {lane === "new" ? "What type of business?" : "Match your business type"}
-            </h1>
-            <p className="text-muted-foreground">
-              Pick the closest match — we'll set up the right teams and agents. You can customize everything later.
-            </p>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-lg w-full space-y-5">
+          <div className="text-center space-y-1">
+            <h1 className="text-lg font-semibold tracking-tight">Choose a template</h1>
+            <p className="text-xs text-muted-foreground">Pick the closest match. You can customize later.</p>
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-2 sm:grid-cols-2">
             {templates.map((t) => (
               <button
                 key={t.id}
                 onClick={() => setSelectedTemplate(t.id)}
                 className={cn(
-                  "flex flex-col gap-2 rounded-xl border p-4 text-left transition-all",
-                  selectedTemplate === t.id
-                    ? "border-primary bg-primary/5 ring-2 ring-primary/20"
-                    : "border-border hover:border-primary/40"
+                  "flex flex-col gap-1.5 rounded-md border p-3 text-left transition-all hover:border-muted-foreground/30",
+                  selectedTemplate === t.id ? "border-primary" : "border-border"
                 )}
               >
-                <div className="flex items-center gap-2">
-                  <span className="text-2xl">{t.icon}</span>
-                  <h3 className="font-semibold">{t.name}</h3>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-sm">{t.icon}</span>
+                  <span className="text-[13px] font-semibold">{t.name}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{t.description}</p>
-                <div className="flex gap-2 mt-1">
-                  <Badge variant="secondary" className="text-xs">{t.teamCount} teams</Badge>
-                  <Badge variant="secondary" className="text-xs">{t.agentCount} agents</Badge>
-                </div>
+                <p className="text-xs text-muted-foreground">{t.description}</p>
+                <p className="text-[11px] text-muted-foreground tabular-nums">{t.teamCount} teams · {t.agentCount} agents</p>
               </button>
             ))}
           </div>
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>Back</Button>
-            <Button size="lg" disabled={!selectedTemplate} onClick={() => setStep(4)}>
-              Review Setup
-              <ArrowRight className="h-4 w-4 ml-2" />
-            </Button>
+            <button onClick={() => setStep(2)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+            <button disabled={!selectedTemplate} onClick={() => setStep(4)} className={cn("h-8 px-3 rounded-md text-xs font-medium flex items-center gap-1 transition-colors", selectedTemplate ? "bg-primary text-primary-foreground hover:bg-primary/90" : "bg-muted text-muted-foreground cursor-not-allowed")}>Review <ArrowRight className="h-3 w-3" /></button>
           </div>
         </div>
       </div>
@@ -305,20 +262,15 @@ export default function OnboardingPage() {
   // ── Creating... ──
   if (creating) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="max-w-md w-full text-center space-y-6">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto animate-pulse">
-            <Sparkles className="h-8 w-8 text-primary" />
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-xs w-full text-center space-y-4">
+          <Loader2 className="h-5 w-5 animate-spin text-primary mx-auto" />
+          <div>
+            <p className="text-[13px] font-medium">Setting up</p>
+            <p className="text-xs text-muted-foreground mt-0.5">{progress}</p>
           </div>
-          <div className="space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Setting up your business</h1>
-            <div className="flex items-center justify-center gap-2 text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              <p>{progress}</p>
-            </div>
-          </div>
-          <div className="h-2 rounded-full bg-muted overflow-hidden">
-            <div className="h-full rounded-full bg-primary transition-all duration-1000 ease-out animate-pulse" style={{ width: "75%" }} />
+          <div className="h-1 rounded-full bg-border overflow-hidden">
+            <div className="h-full rounded-full bg-primary transition-all duration-1000 ease-out" style={{ width: "75%" }} />
           </div>
         </div>
       </div>
@@ -329,76 +281,71 @@ export default function OnboardingPage() {
   const selectedTemplateData = templates.find((t) => t.id === selectedTemplate)
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-      <div className="max-w-lg w-full space-y-8">
-        <div className="text-center space-y-2">
-          <h1 className="text-2xl font-bold tracking-tight">Ready to launch?</h1>
-          <p className="text-muted-foreground">Here's what we're setting up for you.</p>
+    <div className="min-h-screen flex items-center justify-center p-6">
+      <div className="max-w-md w-full space-y-5">
+        <div className="text-center space-y-1">
+          <h1 className="text-lg font-semibold tracking-tight">Ready to launch</h1>
         </div>
 
-        <Card>
-          <CardContent className="pt-6 space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              {businessName && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Business</p>
-                  <p className="font-semibold">{businessName}</p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground">Template</p>
-                <p className="font-semibold">{selectedTemplateData?.icon} {selectedTemplateData?.name}</p>
+        <div className="bg-card border border-border rounded-md divide-y divide-border">
+          {/* Summary */}
+          <div className="p-4 space-y-2">
+            {businessName && (
+              <div className="flex justify-between text-[13px]">
+                <span className="text-muted-foreground">Business</span>
+                <span className="font-medium">{businessName}</span>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Mode</p>
-                <Badge variant={lane === "new" ? "default" : "secondary"}>
-                  {lane === "new" ? "New Build" : "Existing Business"}
-                </Badge>
-              </div>
+            )}
+            <div className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">Template</span>
+              <span className="font-medium">{selectedTemplateData?.icon} {selectedTemplateData?.name}</span>
             </div>
-
-            <div className="grid grid-cols-3 gap-4 pt-2 border-t border-border">
-              <div className="text-center">
-                <p className="text-2xl font-bold">{selectedTemplateData?.teamCount}</p>
-                <p className="text-xs text-muted-foreground">Teams</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">{(selectedTemplateData?.agentCount ?? 0) + 1}</p>
-                <p className="text-xs text-muted-foreground">Agents</p>
-              </div>
-              <div className="text-center">
-                <p className="text-2xl font-bold">1</p>
-                <p className="text-xs text-muted-foreground">Chief of Staff</p>
-              </div>
+            <div className="flex justify-between text-[13px]">
+              <span className="text-muted-foreground">Mode</span>
+              <span className="font-medium">{lane === "new" ? "New Build" : "Migration"}</span>
             </div>
+          </div>
 
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs text-muted-foreground mb-2">What happens next</p>
+          {/* Counts */}
+          <div className="grid grid-cols-3 gap-px bg-border">
+            {[
+              { label: "Teams", value: selectedTemplateData?.teamCount ?? 0 },
+              { label: "Agents", value: (selectedTemplateData?.agentCount ?? 0) + 1 },
+              { label: "Chief of Staff", value: 1 },
+            ].map((s) => (
+              <div key={s.label} className="bg-card text-center py-3">
+                <p className="text-lg font-semibold tabular-nums">{s.value}</p>
+                <p className="text-[11px] text-muted-foreground">{s.label}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* What happens */}
+          <div className="p-4">
+            <p className="section-label mb-2">What happens next</p>
+            <div className="space-y-1.5 text-xs text-muted-foreground">
               {lane === "new" ? (
-                <ul className="text-sm space-y-1.5">
-                  <li className="flex items-start gap-2"><Target className="h-4 w-4 text-violet-500 shrink-0 mt-0.5" /> R&D activates first — your Product Strategist will help validate your idea</li>
-                  <li className="flex items-start gap-2"><Users className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Other departments are visible but await activation as you progress</li>
-                  <li className="flex items-start gap-2"><MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Nova (Chief of Staff) coordinates the team in #team-leaders</li>
-                  <li className="flex items-start gap-2"><Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Agents guide you step-by-step — no experience needed</li>
-                </ul>
+                <>
+                  <p>R&D activates first to validate your idea</p>
+                  <p>Other departments activate as you progress</p>
+                  <p>Nova coordinates everything in #team-leaders</p>
+                </>
               ) : (
-                <ul className="text-sm space-y-1.5">
-                  <li className="flex items-start gap-2"><Building2 className="h-4 w-4 text-amber-500 shrink-0 mt-0.5" /> All departments activate immediately — ready for your context</li>
-                  <li className="flex items-start gap-2"><Wrench className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Agents start by mapping your existing processes and tools</li>
-                  <li className="flex items-start gap-2"><MessageSquare className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> Each lead runs an intake to understand your current operations</li>
-                  <li className="flex items-start gap-2"><Sparkles className="h-4 w-4 text-muted-foreground shrink-0 mt-0.5" /> They replicate what works and suggest improvements</li>
-                </ul>
+                <>
+                  <p>All departments activate immediately</p>
+                  <p>Each lead runs an intake on your operations</p>
+                  <p>They replicate what works and improve the rest</p>
+                </>
               )}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
         <div className="flex justify-between">
-          <Button variant="outline" onClick={() => setStep(3)}>Back</Button>
-          <Button size="lg" onClick={handleCreate}>
-            <Rocket className="h-4 w-4 mr-2" />
-            Launch My Team
-          </Button>
+          <button onClick={() => setStep(3)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+          <button onClick={handleCreate} className="h-8 px-4 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+            <Rocket className="h-3 w-3" /> Launch
+          </button>
         </div>
       </div>
     </div>
