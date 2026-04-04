@@ -9,6 +9,7 @@ import {
   Link2, FileText, X, ChevronRight, Save, Edit3,
   Loader2, ArrowLeft, Tag, Building2, User, Target,
   DollarSign, Megaphone, Database, Trash2, Sparkles,
+  Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -229,6 +230,232 @@ function NewEntryForm({ onSave, onCancel, saving }: { onSave: (entry: { title: s
   )
 }
 
+// Auto-tag: suggest tags from content keywords
+function suggestTags(text: string): string[] {
+  const keywords: Record<string, string[]> = {
+    marketing: ["marketing", "campaign", "ads", "seo", "social media", "brand"],
+    sales: ["sales", "revenue", "pipeline", "deal", "prospect", "conversion"],
+    product: ["product", "feature", "roadmap", "launch", "release", "ux"],
+    engineering: ["api", "code", "deploy", "bug", "server", "database"],
+    finance: ["budget", "cost", "invoice", "payment", "profit", "expense"],
+    operations: ["process", "workflow", "sop", "automation", "onboarding"],
+    design: ["design", "figma", "ui", "mockup", "prototype", "brand"],
+    hiring: ["hire", "candidate", "interview", "role", "team"],
+    client: ["client", "customer", "account", "support", "feedback"],
+    strategy: ["strategy", "goal", "okr", "kpi", "metric", "growth"],
+  }
+  const lower = text.toLowerCase()
+  const found: string[] = []
+  for (const [tag, words] of Object.entries(keywords)) {
+    if (words.some((w) => lower.includes(w))) found.push(tag)
+  }
+  return found.slice(0, 5)
+}
+
+// Import panel
+function ImportPanel({ onSave, onCancel, saving }: { onSave: (entry: { title: string; content: string; category: string; tags: string[]; createdByName: string }) => void; onCancel: () => void; saving: boolean }) {
+  const [mode, setMode] = useState<"url" | "paste">("url")
+  const [url, setUrl] = useState("")
+  const [pastedContent, setPastedContent] = useState("")
+  const [fetching, setFetching] = useState(false)
+  const [preview, setPreview] = useState<{ title: string; content: string; tags: string[] } | null>(null)
+  const [category, setCategory] = useState("business")
+  const [editableTitle, setEditableTitle] = useState("")
+  const [editableTags, setEditableTags] = useState<string[]>([])
+
+  // Handle URL import
+  const handleUrlImport = async () => {
+    if (!url.trim()) return
+    setFetching(true)
+    await new Promise((r) => setTimeout(r, 1200))
+    try {
+      const hostname = new URL(url.trim()).hostname.replace("www.", "")
+      const title = `Import from ${hostname}`
+      const content = `Imported from [${url.trim()}](${url.trim()}) — content pending review.`
+      const tags = suggestTags(url + " " + hostname)
+      setPreview({ title, content, tags })
+      setEditableTitle(title)
+      setEditableTags(tags)
+    } catch {
+      const title = "Imported content"
+      const content = `Imported from ${url.trim()} — content pending review.`
+      setPreview({ title, content, tags: [] })
+      setEditableTitle(title)
+      setEditableTags([])
+    } finally {
+      setFetching(false)
+    }
+  }
+
+  // Handle paste import
+  const handlePasteProcess = () => {
+    if (!pastedContent.trim()) return
+    const lines = pastedContent.trim().split("\n")
+    const firstLine = lines[0].trim()
+    // Detect title from heading-like first line
+    let title = "Pasted content"
+    let content = pastedContent.trim()
+    if (firstLine.startsWith("#")) {
+      title = firstLine.replace(/^#+\s*/, "")
+      content = lines.slice(1).join("\n").trim()
+    } else if (firstLine.length < 80 && firstLine.length > 2 && !firstLine.includes(". ")) {
+      title = firstLine
+      content = lines.slice(1).join("\n").trim() || firstLine
+    }
+    const tags = suggestTags(pastedContent)
+    setPreview({ title, content, tags })
+    setEditableTitle(title)
+    setEditableTags(tags)
+  }
+
+  const toggleTag = (tag: string) => {
+    setEditableTags((prev) => prev.includes(tag) ? prev.filter((t) => t !== tag) : [...prev, tag])
+  }
+
+  const handleSave = () => {
+    if (!preview || !editableTitle.trim()) return
+    onSave({
+      title: editableTitle.trim(),
+      content: preview.content,
+      category,
+      tags: editableTags,
+      createdByName: "You",
+    })
+  }
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
+        <h2 className="text-[13px] font-semibold flex items-center gap-1.5"><Upload className="h-3.5 w-3.5 text-muted-foreground" />Import</h2>
+        <button onClick={onCancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
+        {/* Tab toggle */}
+        <div className="flex gap-3">
+          <button onClick={() => { setMode("url"); setPreview(null) }} className={cn("text-xs font-medium pb-1 border-b-2 transition-colors flex items-center gap-1", mode === "url" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            <Link2 className="h-3 w-3" />URL
+          </button>
+          <button onClick={() => { setMode("paste"); setPreview(null) }} className={cn("text-xs font-medium pb-1 border-b-2 transition-colors flex items-center gap-1", mode === "paste" ? "border-foreground text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}>
+            <FileText className="h-3 w-3" />Paste
+          </button>
+        </div>
+
+        {/* URL input */}
+        {mode === "url" && !preview && (
+          <div className="space-y-3">
+            <div>
+              <label className="section-label mb-1 block">URL</label>
+              <input
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                placeholder="https://..."
+                className="h-8 w-full rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring"
+                onKeyDown={(e) => { if (e.key === "Enter") handleUrlImport() }}
+              />
+            </div>
+            <button
+              disabled={!url.trim() || fetching}
+              onClick={handleUrlImport}
+              className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1 disabled:opacity-50"
+            >
+              {fetching ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
+              {fetching ? "Fetching..." : "Import"}
+            </button>
+          </div>
+        )}
+
+        {/* Paste input */}
+        {mode === "paste" && !preview && (
+          <div className="space-y-3">
+            <div>
+              <label className="section-label mb-1 block">Paste content</label>
+              <textarea
+                value={pastedContent}
+                onChange={(e) => setPastedContent(e.target.value)}
+                rows={12}
+                placeholder="Paste text, markdown, notes..."
+                className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:ring-1 focus:ring-ring font-mono leading-relaxed"
+              />
+              <p className="text-[11px] text-muted-foreground mt-1">First line used as title if it looks like a heading.</p>
+            </div>
+            <button
+              disabled={!pastedContent.trim()}
+              onClick={handlePasteProcess}
+              className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1 disabled:opacity-50"
+            >
+              <FileText className="h-3.5 w-3.5" />Process
+            </button>
+          </div>
+        )}
+
+        {/* Preview */}
+        {preview && (
+          <div className="space-y-4">
+            <button onClick={() => setPreview(null)} className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1">
+              <ArrowLeft className="h-3 w-3" />Back
+            </button>
+
+            <div className="bg-muted/30 rounded-md p-3 space-y-3">
+              <div>
+                <label className="section-label mb-1 block">Title</label>
+                <input
+                  value={editableTitle}
+                  onChange={(e) => setEditableTitle(e.target.value)}
+                  className="h-8 w-full rounded-md border border-border bg-background px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+
+              <div>
+                <label className="section-label mb-1 block">Content preview</label>
+                <div className="text-xs text-foreground/70 leading-relaxed max-h-40 overflow-y-auto whitespace-pre-wrap">
+                  {preview.content.slice(0, 500)}{preview.content.length > 500 ? "..." : ""}
+                </div>
+              </div>
+
+              <div>
+                <label className="section-label mb-1 block">Category</label>
+                <div className="flex gap-1 flex-wrap">
+                  {categories.filter((c) => c.id !== "all").map((cat) => (
+                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="section-label mb-1 block flex items-center gap-1"><Tag className="h-3 w-3" />Suggested tags</label>
+                {preview.tags.length > 0 ? (
+                  <div className="flex gap-1.5 flex-wrap">
+                    {preview.tags.map((tag) => (
+                      <button key={tag} onClick={() => toggleTag(tag)} className={cn("text-[11px] px-2 py-0.5 rounded-full transition-colors", editableTags.includes(tag) ? "bg-purple-500/20 text-purple-400" : "bg-muted/60 text-muted-foreground/60 hover:text-muted-foreground")}>
+                        #{tag}
+                      </button>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground/60">No tags detected.</p>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2">
+              <button
+                disabled={!editableTitle.trim() || saving}
+                onClick={handleSave}
+                className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1 disabled:opacity-50"
+              >
+                {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}
+                Save Entry
+              </button>
+              <button onClick={onCancel} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
+            </div>
+          </div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export default function KnowledgePage() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
   const [loading, setLoading] = useState(true)
@@ -241,6 +468,7 @@ export default function KnowledgePage() {
   const [editTitle, setEditTitle] = useState("")
   const [saving, setSaving] = useState(false)
   const [showNewForm, setShowNewForm] = useState(false)
+  const [showImport, setShowImport] = useState(false)
   const [knowledgeTab, setKnowledgeTab] = useState<"wiki" | "memory">("wiki")
   const [companyMemories, setCompanyMemories] = useState<{ id: string; category: string; title: string; content: string; importance: number; source: string | null; tags: string[]; createdAt: string }[]>([])
   const [memoryCategory, setMemoryCategory] = useState("all")
@@ -286,6 +514,7 @@ export default function KnowledgePage() {
         const created = await res.json()
         setEntries((prev) => [...prev, created])
         setShowNewForm(false)
+        setShowImport(false)
         setSelectedEntry(created.id)
       }
     } catch (err) {
@@ -362,7 +591,8 @@ export default function KnowledgePage() {
                   <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><List className="h-3.5 w-3.5" /></button>
                   <button onClick={() => setViewMode("graph")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "graph" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Network className="h-3.5 w-3.5" /></button>
                 </div>
-                <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5" />New Entry</button>
+                <button className="h-7 px-2.5 rounded-md text-xs font-medium inline-flex items-center gap-1 text-muted-foreground hover:text-foreground hover:bg-accent border border-border" onClick={() => { setShowImport(true); setShowNewForm(false); setSelectedEntry(null); setEditing(false) }}><Upload className="h-3.5 w-3.5" />Import</button>
+                <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => { setShowNewForm(true); setShowImport(false); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5" />New Entry</button>
               </>
             )}
             {knowledgeTab === "memory" && (
@@ -386,13 +616,13 @@ export default function KnowledgePage() {
             </div>
 
             {viewMode === "graph" ? (
-              <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={(id) => { setSelectedEntry(id); setShowNewForm(false); setEditing(false) }} /></div>
+              <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={(id) => { setSelectedEntry(id); setShowNewForm(false); setShowImport(false); setEditing(false) }} /></div>
             ) : (
               <div className="flex-1 overflow-y-auto p-4 space-y-2">
                 {filtered.map((entry) => {
                   const agent = agents.find((a) => a.id === entry.createdByAgentId)
                   return (
-                    <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-md border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
+                    <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setShowImport(false); setEditing(false) }} className={cn("w-full text-left rounded-md border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
                       <div className="flex items-start gap-3">
                         {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                         <div className="flex-1 min-w-0">
@@ -506,6 +736,13 @@ export default function KnowledgePage() {
         )}
       </div>
 
+      {/* Right -- Import Panel */}
+      {showImport && !showNewForm && (
+        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
+          <ImportPanel onSave={handleCreate} onCancel={() => setShowImport(false)} saving={saving} />
+        </div>
+      )}
+
       {/* Right -- New Entry Form */}
       {showNewForm && (
         <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
@@ -514,7 +751,7 @@ export default function KnowledgePage() {
       )}
 
       {/* Right -- Detail */}
-      {selected && !showNewForm && (
+      {selected && !showNewForm && !showImport && (
         <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h2 className="text-[13px] font-semibold truncate flex-1 mr-2">{selected.title}</h2>

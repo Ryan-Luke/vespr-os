@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { Flame, Trophy, TrendingUp, Star } from "lucide-react"
-import { levelTitle, levelProgress, xpForLevel, MILESTONE_DEFINITIONS } from "@/lib/gamification"
-import { Sparkline } from "@/components/sparkline"
+import { Trophy, TrendingUp, Star } from "lucide-react"
+import { levelProgress, MILESTONE_DEFINITIONS } from "@/lib/gamification"
+
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 
@@ -41,26 +41,19 @@ export function AgentLeaderboard() {
 
       {/* Top agent highlight */}
       {topAgent && (
-        <Link href={`/teams/${topAgent.teamId}/agents/${topAgent.id}`} className="block mb-3 rounded-md bg-amber-500/5 border border-amber-500/10 p-3 hover:bg-amber-500/10 transition-colors">
+        <Link href={`/teams/${topAgent.teamId}/agents/${topAgent.id}`} className="block mb-3 rounded-md bg-accent/40 border border-border p-3 hover:bg-accent/60 transition-colors">
           <div className="flex items-center gap-2.5">
-            <div className="relative">
-              <PixelAvatar characterIndex={topAgent.pixelAvatarIndex} size={28} className="rounded-sm" />
-              <span className="absolute -top-1 -right-1 text-[10px]">👑</span>
-            </div>
+            <PixelAvatar characterIndex={topAgent.pixelAvatarIndex} size={28} className="rounded-sm" />
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-1.5">
                 <span className="text-[13px] font-semibold">{topAgent.name}</span>
-                <span className="text-[11px] text-amber-400 font-medium">{levelTitle(topAgent.level ?? 1)}</span>
-                {(topAgent.streak ?? 0) >= 3 && (
-                  <span className="text-[11px] text-orange-400 flex items-center gap-0.5"><Flame className="h-3 w-3" />{topAgent.streak}d</span>
-                )}
+                <span className="text-[11px] text-muted-foreground/50">Lv.{topAgent.level ?? 1}</span>
               </div>
               <div className="flex items-center gap-2 mt-0.5">
-                <span className="text-[11px] text-muted-foreground">Lv.{topAgent.level ?? 1}</span>
                 <div className="flex-1 h-1 rounded-full bg-border overflow-hidden max-w-[80px]">
-                  <div className="h-full rounded-full bg-amber-500/50 transition-all" style={{ width: `${levelProgress(topAgent.xp ?? 0)}%` }} />
+                  <div className="h-full rounded-full bg-foreground/20 transition-all" style={{ width: `${levelProgress(topAgent.xp ?? 0)}%` }} />
                 </div>
-                <span className="text-[11px] text-muted-foreground tabular-nums">{(topAgent.xp ?? 0).toLocaleString()} XP</span>
+                <span className="text-[11px] text-muted-foreground/50 tabular-nums">{(topAgent.xp ?? 0).toLocaleString()} XP</span>
               </div>
             </div>
           </div>
@@ -77,17 +70,14 @@ export function AgentLeaderboard() {
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-1.5">
                   <span className="text-[13px] font-medium">{agent.name}</span>
-                  <span className="text-[11px] text-muted-foreground">Lv.{agent.level ?? 1}</span>
-                  {(agent.streak ?? 0) >= 7 && (
-                    <span className="text-[10px] text-orange-400 flex items-center"><Flame className="h-2.5 w-2.5" />{agent.streak}</span>
-                  )}
+                  <span className="text-[11px] text-muted-foreground/50">Lv.{agent.level ?? 1}</span>
                 </div>
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <div className="w-12 h-1 rounded-full bg-border overflow-hidden">
-                  <div className="h-full rounded-full bg-primary/50 transition-all" style={{ width: `${progress}%` }} />
+                  <div className="h-full rounded-full bg-foreground/15 transition-all" style={{ width: `${progress}%` }} />
                 </div>
-                <span className="text-[11px] text-muted-foreground tabular-nums w-12 text-right">{(agent.xp ?? 0).toLocaleString()}</span>
+                <span className="text-[11px] text-muted-foreground/50 tabular-nums w-12 text-right">{(agent.xp ?? 0).toLocaleString()}</span>
               </div>
             </Link>
           )
@@ -135,10 +125,10 @@ export function CompanyAchievements() {
 
       <div className="grid grid-cols-2 gap-px bg-border rounded-md overflow-hidden mb-4">
         {[
-          { label: "Tasks Done", value: totalTasks.toLocaleString(), icon: <Star className="h-3 w-3 text-amber-400" /> },
-          { label: "Total XP", value: totalXP.toLocaleString(), icon: <TrendingUp className="h-3 w-3 text-emerald-400" /> },
+          { label: "Tasks Done", value: totalTasks.toLocaleString(), icon: <Star className="h-3 w-3 text-muted-foreground/40" /> },
+          { label: "Total XP", value: totalXP.toLocaleString(), icon: <TrendingUp className="h-3 w-3 text-muted-foreground/40" /> },
           { label: "Agents", value: String(agents.length), icon: null },
-          { label: "Best Streak", value: longestStreak > 0 ? `${longestStreak}d` : "—", icon: longestStreak >= 7 ? <Flame className="h-3 w-3 text-orange-400" /> : null },
+          { label: "Best Streak", value: longestStreak > 0 ? `${longestStreak}d` : "—", icon: null },
         ].map((s) => (
           <div key={s.label} className="bg-card p-3">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">{s.icon}{s.label}</p>
@@ -150,11 +140,11 @@ export function CompanyAchievements() {
       {/* Milestone progress bar */}
       <div className="mb-4">
         <div className="flex items-center justify-between text-[11px] mb-1">
-          <span className="text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3 text-amber-400" />Milestones</span>
+          <span className="text-muted-foreground/50 flex items-center gap-1"><Trophy className="h-3 w-3" />Milestones</span>
           <span className="text-muted-foreground tabular-nums">{unlockedCount}/{totalMilestoneDefs}</span>
         </div>
         <div className="h-1.5 rounded-full bg-border overflow-hidden">
-          <div className="h-full rounded-full bg-amber-500/60 transition-all" style={{ width: `${totalMilestoneDefs > 0 ? (unlockedCount / totalMilestoneDefs) * 100 : 0}%` }} />
+          <div className="h-full rounded-full bg-foreground/15 transition-all" style={{ width: `${totalMilestoneDefs > 0 ? (unlockedCount / totalMilestoneDefs) * 100 : 0}%` }} />
         </div>
       </div>
 

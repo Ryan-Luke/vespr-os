@@ -26,12 +26,12 @@ const filterChips: { label: string; value: FilterType }[] = [
 ]
 
 const eventConfig: Record<string, { icon: typeof CheckCircle2; color: string; dotColor: string }> = {
-  task:      { icon: CheckCircle2, color: "text-emerald-500", dotColor: "bg-emerald-500" },
-  hire:      { icon: UserPlus,     color: "text-blue-500",    dotColor: "bg-blue-500" },
-  milestone: { icon: Trophy,       color: "text-amber-500",   dotColor: "bg-amber-500" },
-  sop:       { icon: FileText,     color: "text-violet-500",  dotColor: "bg-violet-500" },
-  decision:  { icon: Brain,        color: "text-purple-500",  dotColor: "bg-purple-500" },
-  system:    { icon: Zap,          color: "text-muted-foreground", dotColor: "bg-muted-foreground" },
+  task:      { icon: CheckCircle2, color: "text-muted-foreground",     dotColor: "bg-muted-foreground" },
+  hire:      { icon: UserPlus,     color: "text-muted-foreground",     dotColor: "bg-muted-foreground" },
+  milestone: { icon: Trophy,       color: "text-amber-500",           dotColor: "bg-amber-500" },
+  sop:       { icon: FileText,     color: "text-muted-foreground",     dotColor: "bg-muted-foreground" },
+  decision:  { icon: Brain,        color: "text-muted-foreground",     dotColor: "bg-muted-foreground" },
+  system:    { icon: Zap,          color: "text-muted-foreground/50",  dotColor: "bg-muted-foreground/50" },
 }
 
 function formatDateHeader(dateStr: string): string {
@@ -179,7 +179,7 @@ export default function TimelinePage() {
       ) : filtered.length === 0 ? (
         <div className="text-xs text-muted-foreground text-center py-16">No events found</div>
       ) : (
-        <div className="relative border-l-2 border-border ml-1.5 space-y-6">
+        <div className="relative border-l-2 border-border ml-1.5 space-y-8">
           {grouped.map((group) => (
             <div key={group.date} className="space-y-2">
               {/* Date header */}
@@ -226,12 +226,7 @@ export default function TimelinePage() {
 
                           <div className="flex-1 min-w-0">
                             <p className="text-[13px] font-medium">{event.title}</p>
-                            <p className="text-xs text-muted-foreground truncate">{event.description}</p>
-                            {isHire && event.agentRole && (
-                              <span className="inline-block mt-1 text-[10px] text-blue-500 bg-blue-500/10 px-1.5 py-0.5 rounded-full font-medium">
-                                {event.agentRole}
-                              </span>
-                            )}
+                            <p className="text-xs text-muted-foreground/50 truncate">{event.description}</p>
                           </div>
 
                           <span className="text-[11px] text-muted-foreground shrink-0 tabular-nums mt-0.5">

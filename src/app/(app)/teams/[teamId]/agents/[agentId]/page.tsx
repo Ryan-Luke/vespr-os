@@ -17,11 +17,13 @@ import {
   Users, PenTool, Send, GitBranch, Package, Truck,
   Receipt, CreditCard, PieChart, BookOpen, Wallet,
   Terminal, Server, TestTube, Rocket, Check,
+  MoreHorizontal,
   type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { getAutoApproveSettings, toggleAutoApproveSetting } from "@/components/approval-queue"
 import {
   LineChart,
@@ -508,7 +510,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-6 space-y-5 max-w-3xl">
+      <div className="p-6 space-y-6 max-w-3xl">
         <Link href="/teams" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
           <ArrowLeft className="h-3 w-3" />Teams
         </Link>
@@ -536,93 +538,35 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
               </div>
             </div>
           </div>
-          <div className="flex gap-1.5 shrink-0">
-            <Link href="/" className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors"><MessageSquare className="h-3 w-3" />Chat</Link>
-            <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { const res = await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }); const data = await res.json(); if (data.review) setReviewData(data.review) } catch {} setReviewLoading(false) }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors">
-              {reviewLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trophy className="h-3 w-3" />}Review
-            </button>
-            <button onClick={() => {
-              const params = new URLSearchParams()
-              params.set("clone", "true")
-              params.set("name", `Copy of ${agent.name}`)
-              params.set("role", agent.role)
-              if (agent.teamId) params.set("teamId", agent.teamId)
-              if (agent.skills?.length) params.set("skills", agent.skills.join(","))
-              if (agent.personalityPresetId) params.set("personality", agent.personalityPresetId)
-              if (agent.autonomyLevel) params.set("autonomy", agent.autonomyLevel)
-              router.push(`/builder?${params.toString()}`)
-            }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors"><Copy className="h-3 w-3" />Clone</button>
-          </div>
+          <Popover>
+            <PopoverTrigger className="h-7 w-7 rounded-md hover:bg-accent flex items-center justify-center text-muted-foreground transition-colors shrink-0">
+              <MoreHorizontal className="h-4 w-4" />
+            </PopoverTrigger>
+            <PopoverContent align="end" className="w-40 p-1">
+              <Link href="/" className="flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"><MessageSquare className="h-3.5 w-3.5" />Chat</Link>
+              <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { const res = await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }); const data = await res.json(); if (data.review) setReviewData(data.review) } catch {} setReviewLoading(false) }} className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">
+                {reviewLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trophy className="h-3.5 w-3.5" />}Review
+              </button>
+              <button onClick={() => {
+                const params = new URLSearchParams()
+                params.set("clone", "true")
+                params.set("name", `Copy of ${agent.name}`)
+                params.set("role", agent.role)
+                if (agent.teamId) params.set("teamId", agent.teamId)
+                if (agent.skills?.length) params.set("skills", agent.skills.join(","))
+                if (agent.personalityPresetId) params.set("personality", agent.personalityPresetId)
+                if (agent.autonomyLevel) params.set("autonomy", agent.autonomyLevel)
+                router.push(`/builder?${params.toString()}`)
+              }} className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"><Copy className="h-3.5 w-3.5" />Clone</button>
+            </PopoverContent>
+          </Popover>
         </div>
 
-        <div className="bg-card border border-border rounded-md px-4 py-3">
-          <div className="flex items-center justify-between mb-1">
-            <p className="section-label">Status</p>
-            <button onClick={() => { const s = prompt(`Set status for ${agent.name}:`, agent.currentTask || ""); if (s !== null) { fetch(`/api/agents/${agent.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentTask: s || null }) }); setAgent({ ...agent, currentTask: s || null }) } }} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Edit</button>
+        {agent.currentTask && (
+          <div className="px-1">
+            <p className="text-[13px] text-muted-foreground">{agent.currentTask}</p>
           </div>
-          <p className="text-[13px]">{agent.currentTask || <span className="text-muted-foreground italic">No status set</span>}</p>
-        </div>
-
-        {/* Autonomy */}
-        <div className="bg-card border border-border rounded-md p-4">
-          <div className="flex items-center justify-between mb-2">
-            <p className="section-label">Autonomy</p>
-            <span className={cn("text-[11px] px-2 py-0.5 rounded-full font-medium", agent.autonomyLevel === "full_auto" ? "bg-emerald-500/10 text-emerald-400" : agent.autonomyLevel === "supervised" ? "bg-amber-500/10 text-amber-400" : "bg-muted text-muted-foreground")}>{agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}</span>
-          </div>
-          <p className="text-xs text-muted-foreground mb-3">{agent.autonomyLevel === "full_auto" ? "This agent acts independently without approval." : agent.autonomyLevel === "supervised" ? "This agent requests approval for important decisions." : "All actions require manual approval."}</p>
-          {(() => {
-            const settings = getAutoApproveSettings()
-            const actionTypes = ["task_completed", "message_sent", "sop_updated", "approval_requested", "decision_made", "integration_call"]
-            const actionLabels: Record<string, string> = { task_completed: "Task completion", message_sent: "Send messages", sop_updated: "Update SOPs", approval_requested: "Sub-approvals", decision_made: "Decisions", integration_call: "Integration calls" }
-            const agentRules = actionTypes.filter((t) => settings[`${agent.id}:${t}`] === true)
-            return (
-              <div className="space-y-1.5">
-                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Auto-approved actions</p>
-                {agentRules.length === 0 ? (
-                  <p className="text-xs text-muted-foreground">No auto-approve rules set. These build up as you approve actions in the queue.</p>
-                ) : (
-                  <div className="space-y-1">
-                    {agentRules.map((type) => (
-                      <div key={type} className="flex items-center justify-between py-1">
-                        <span className="text-[13px] flex items-center gap-1.5"><Zap className="h-3 w-3 text-amber-400" />{actionLabels[type] || type}</span>
-                        <button onClick={() => { toggleAutoApproveSetting(agent.id, type, false); setAgent({ ...agent }) }} className="text-[11px] text-red-400 hover:text-red-300 transition-colors">Remove</button>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )
-          })()}
-        </div>
-
-        {/* Personality */}
-        <div className="bg-card border border-border rounded-md p-4">
-          <p className="section-label mb-2">Personality</p>
-            {preset ? (
-              <div>
-                <p className="text-[13px] font-medium">{preset.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5 italic">{preset.speechStyle}</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-                  {(Object.entries(preset.traits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
-                    <div key={key} className="flex items-center gap-2">
-                      <span className="text-[11px] text-muted-foreground w-16">{TRAIT_LABELS[key].name}</span>
-                      <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-                        <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : agent.personality ? (
-              <div className="flex flex-wrap gap-1.5">
-                {getTopTraits(agent.personality).map((trait) => (
-                  <span key={trait} className="text-xs text-muted-foreground">{trait}</span>
-                ))}
-              </div>
-            ) : (
-              <p className="text-xs text-muted-foreground">Default</p>
-            )}
-        </div>
+        )}
 
         {/* Stats */}
         <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-4">
@@ -632,9 +576,9 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             { label: "Feedback", value: feedback ? `${feedback.positive}/${feedback.total}` : "—" },
             { label: "Streak", value: (agent.streak ?? 0) > 0 ? `${agent.streak}d` : "—" },
           ].map((s) => (
-            <div key={s.label} className="bg-card p-4">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
-              <p className="text-lg font-semibold tabular-nums mt-0.5">{s.value}</p>
+            <div key={s.label} className="bg-card px-3 py-2.5">
+              <p className="text-[11px] text-muted-foreground">{s.label}</p>
+              <p className="text-sm font-medium tabular-nums mt-0.5">{s.value}</p>
             </div>
           ))}
         </div>

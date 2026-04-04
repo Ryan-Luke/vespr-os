@@ -104,6 +104,38 @@ RULES:
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     maxOutputTokens: 500,
+    async onFinish({ text }) {
+      // Auto-save conversation memories for emotional continuity
+      if (!agent || !text) return
+      const lastUserMsg = messages[messages.length - 1]
+      const textPart = lastUserMsg?.parts?.find((p: any) => p.type === "text") as any
+      const userText: string = textPart?.text || ""
+
+      // Detect memory-worthy moments
+      const memoryTriggers = [
+        { pattern: /prefer|like|want|always|never|don't like/i, type: "preference", importance: 0.8 },
+        { pattern: /decided|decision|going with|chose|picking/i, type: "observation", importance: 0.7 },
+        { pattern: /deadline|by\s+(monday|tuesday|wednesday|thursday|friday|tomorrow|next week)/i, type: "observation", importance: 0.9 },
+        { pattern: /client|customer|partner|vendor/i, type: "relationship", importance: 0.6 },
+        { pattern: /learned|realized|turns out|discovered/i, type: "learning", importance: 0.8 },
+      ]
+
+      for (const trigger of memoryTriggers) {
+        if (trigger.pattern.test(userText) || trigger.pattern.test(text)) {
+          const content = `[${new Date().toLocaleDateString()}] User said: "${userText.slice(0, 100)}${userText.length > 100 ? "..." : ""}" — Agent responded about: ${text.slice(0, 80)}...`
+          try {
+            await db.insert(agentMemories).values({
+              agentId: agent.id,
+              memoryType: trigger.type,
+              content,
+              importance: trigger.importance,
+              source: "conversation",
+            })
+          } catch { /* silent — memory saving is best-effort */ }
+          break // one memory per exchange
+        }
+      }
+    },
   })
 
   return result.toUIMessageStreamResponse()

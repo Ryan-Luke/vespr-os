@@ -11,7 +11,7 @@ import {
   ChevronRight, ChevronLeft, Bell, Upload, Check,
   MessageSquare, X, Save, Search, ExternalLink,
   Link2, Lock, Unlink, Layout, FileText, Target, Bug, DollarSign, ClipboardList,
-  Play, Square,
+  Play, Square, CalendarDays, Columns3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -338,6 +338,165 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
   )
 }
 
+// --- Calendar View ---
+function CalendarView({ tasks, agents, priorityDots: dots }: { tasks: DBTask[]; agents: DBAgent[]; priorityDots: Record<string, string> }) {
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1)
+  })
+  const [hoveredTask, setHoveredTask] = useState<DBTask | null>(null)
+  const [popoverPos, setPopoverPos] = useState<{ x: number; y: number } | null>(null)
+
+  const year = currentMonth.getFullYear()
+  const month = currentMonth.getMonth()
+  const today = new Date()
+
+  // Build calendar grid
+  const firstDay = new Date(year, month, 1)
+  const lastDay = new Date(year, month + 1, 0)
+  // Monday = 0, Sunday = 6
+  const startOffset = (firstDay.getDay() + 6) % 7
+  const totalDays = lastDay.getDate()
+  const totalCells = Math.ceil((startOffset + totalDays) / 7) * 7
+
+  const cells: { date: Date; inMonth: boolean }[] = []
+  for (let i = 0; i < totalCells; i++) {
+    const d = new Date(year, month, 1 - startOffset + i)
+    cells.push({ date: d, inMonth: d.getMonth() === month })
+  }
+
+  // Group tasks by date string (YYYY-MM-DD)
+  const tasksByDate = useMemo(() => {
+    const map: Record<string, DBTask[]> = {}
+    for (const task of tasks) {
+      const dateStr = task.createdAt ? task.createdAt.slice(0, 10) : null
+      if (dateStr) {
+        if (!map[dateStr]) map[dateStr] = []
+        map[dateStr].push(task)
+      }
+    }
+    return map
+  }, [tasks])
+
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"]
+  const dayHeaders = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"]
+
+  function prevMonth() { setCurrentMonth(new Date(year, month - 1, 1)) }
+  function nextMonth() { setCurrentMonth(new Date(year, month + 1, 1)) }
+
+  function isToday(d: Date) {
+    return d.getFullYear() === today.getFullYear() && d.getMonth() === today.getMonth() && d.getDate() === today.getDate()
+  }
+
+  function dateKey(d: Date) {
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`
+  }
+
+  function handleDotEnter(e: React.MouseEvent, task: DBTask) {
+    const rect = (e.target as HTMLElement).getBoundingClientRect()
+    setPopoverPos({ x: rect.left + rect.width / 2, y: rect.top })
+    setHoveredTask(task)
+  }
+
+  function handleDotLeave() {
+    setHoveredTask(null)
+    setPopoverPos(null)
+  }
+
+  return (
+    <div className="px-6 py-5">
+      {/* Month header */}
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center gap-3">
+          <h2 className="text-sm font-medium">{monthNames[month]} {year}</h2>
+        </div>
+        <div className="flex items-center gap-1">
+          <button onClick={prevMonth} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <ChevronLeft className="h-3.5 w-3.5" />
+          </button>
+          <button onClick={() => setCurrentMonth(new Date(today.getFullYear(), today.getMonth(), 1))} className="h-7 px-2 rounded-md text-[11px] text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            Today
+          </button>
+          <button onClick={nextMonth} className="h-7 w-7 rounded-md flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-accent transition-colors">
+            <ChevronRight className="h-3.5 w-3.5" />
+          </button>
+        </div>
+      </div>
+
+      {/* Day headers */}
+      <div className="grid grid-cols-7 gap-px bg-border rounded-t-md overflow-hidden">
+        {dayHeaders.map((d) => (
+          <div key={d} className="bg-muted/30 py-2 text-center">
+            <span className="text-[11px] font-medium text-muted-foreground">{d}</span>
+          </div>
+        ))}
+      </div>
+
+      {/* Calendar grid */}
+      <div className="grid grid-cols-7 gap-px bg-border rounded-b-md overflow-hidden">
+        {cells.map((cell, i) => {
+          const key = dateKey(cell.date)
+          const dayTasks = tasksByDate[key] ?? []
+          const isCurrentDay = isToday(cell.date)
+          return (
+            <div
+              key={i}
+              className={cn(
+                "bg-card p-2 min-h-[80px] transition-colors",
+                !cell.inMonth && "opacity-30",
+                isCurrentDay && "bg-primary/5",
+              )}
+            >
+              <span className={cn(
+                "text-xs text-muted-foreground inline-flex items-center justify-center",
+                isCurrentDay && "h-5 w-5 rounded-full bg-primary text-primary-foreground text-[11px] font-medium",
+              )}>
+                {cell.date.getDate()}
+              </span>
+              {dayTasks.length > 0 && (
+                <div className="flex flex-wrap gap-1 mt-1.5">
+                  {dayTasks.slice(0, 6).map((task) => (
+                    <span
+                      key={task.id}
+                      className={cn("h-1.5 w-1.5 rounded-full cursor-default transition-transform hover:scale-150", dots[task.priority] || "bg-zinc-500")}
+                      onMouseEnter={(e) => handleDotEnter(e, task)}
+                      onMouseLeave={handleDotLeave}
+                    />
+                  ))}
+                  {dayTasks.length > 6 && (
+                    <span className="text-[9px] text-muted-foreground leading-none">+{dayTasks.length - 6}</span>
+                  )}
+                </div>
+              )}
+            </div>
+          )
+        })}
+      </div>
+
+      {/* Hover popover */}
+      {hoveredTask && popoverPos && (
+        <div
+          className="fixed z-50 pointer-events-none"
+          style={{ left: popoverPos.x, top: popoverPos.y - 8, transform: "translate(-50%, -100%)" }}
+        >
+          <div className="bg-card border border-border rounded-md shadow-lg px-3 py-2 max-w-[200px]">
+            <p className="text-[12px] font-medium leading-snug">{hoveredTask.title}</p>
+            <div className="flex items-center gap-2 mt-1">
+              <span className={cn("h-1.5 w-1.5 rounded-full", dots[hoveredTask.priority] || "bg-zinc-500")} />
+              <span className="text-[10px] text-muted-foreground capitalize">{hoveredTask.priority}</span>
+              <span className="text-[10px] text-muted-foreground capitalize">{hoveredTask.status.replace("_", " ")}</span>
+            </div>
+            {hoveredTask.assignedAgentId && (() => {
+              const a = agents.find((ag) => ag.id === hoveredTask.assignedAgentId)
+              return a ? <p className="text-[10px] text-muted-foreground mt-0.5">{a.name}</p> : null
+            })()}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<DBTask[]>([])
   const [dbAgents, setDbAgents] = useState<DBAgent[]>([])
@@ -357,6 +516,7 @@ export default function TasksPage() {
   const [saving, setSaving] = useState(false)
   const [showTemplates, setShowTemplates] = useState(false)
   const [templateLoading, setTemplateLoading] = useState<string | null>(null)
+  const [viewMode, setViewMode] = useState<"board" | "calendar">("board")
 
   // --- Dependency state ---
   const [deps, setDeps] = useState<DepsMap>({})
@@ -555,6 +715,14 @@ export default function TasksPage() {
           <span className="text-xs text-muted-foreground tabular-nums">{filteredTasks.length} tasks</span>
         </div>
         <div className="flex items-center gap-2">
+          <div className="flex items-center h-7 rounded-md border border-border bg-muted/30 p-0.5">
+            <button onClick={() => setViewMode("board")} className={cn("h-6 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-colors", viewMode === "board" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              <Columns3 className="h-3 w-3" />Board
+            </button>
+            <button onClick={() => setViewMode("calendar")} className={cn("h-6 px-2 rounded text-[11px] font-medium flex items-center gap-1 transition-colors", viewMode === "calendar" ? "bg-card text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground")}>
+              <CalendarDays className="h-3 w-3" />Calendar
+            </button>
+          </div>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-32 rounded-md border border-border bg-muted/50 pl-7 pr-2 text-xs outline-none focus:border-muted-foreground/30 transition-colors" />
@@ -785,51 +953,55 @@ export default function TasksPage() {
           </div>
         )}
 
-        {/* Kanban Board */}
-        <div className={cn("flex-1 overflow-x-auto", linkingFrom && "cursor-crosshair")}>
-          <div className="flex gap-px bg-border min-w-max h-full">
-            {columns.map((col) => {
-              const colTasks = filteredTasks.filter((t) => t.status === col.id)
-              return (
-                <div key={col.id} className="w-60 flex flex-col shrink-0 bg-background">
-                  <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
-                    <span className="section-label">{col.label}</span>
-                    <span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1 py-0.5">{colTasks.length}</span>
+        {/* View: Board or Calendar */}
+        {viewMode === "board" ? (
+          <div className={cn("flex-1 overflow-x-auto", linkingFrom && "cursor-crosshair")}>
+            <div className="flex gap-px bg-border min-w-max h-full">
+              {columns.map((col) => {
+                const colTasks = filteredTasks.filter((t) => t.status === col.id)
+                return (
+                  <div key={col.id} className="w-60 flex flex-col shrink-0 bg-background">
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
+                      <span className="section-label">{col.label}</span>
+                      <span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1 py-0.5">{colTasks.length}</span>
+                    </div>
+                    <div className="flex-1 p-2 space-y-1.5 overflow-y-auto">
+                      {colTasks.map((task) => (
+                        <TaskCard
+                          key={task.id}
+                          task={task}
+                          agents={dbAgents}
+                          teams={dbTeams}
+                          allTasks={filteredTasks}
+                          onMove={moveTask}
+                          deps={deps}
+                          linkingFrom={linkingFrom}
+                          onStartLink={handleStartLink}
+                          onCompleteLink={handleCompleteLink}
+                          onRemoveDep={handleRemoveDep}
+                          hoveredTaskId={hoveredTaskId}
+                          onHover={setHoveredTaskId}
+                          highlightedIds={highlightedIds}
+                          timerData={timers[task.id]}
+                          isTimerRunning={timers[task.id]?.startedAt !== null && timers[task.id]?.startedAt !== undefined}
+                          onToggleTimer={handleToggleTimer}
+                          now={now}
+                        />
+                      ))}
+                      {colTasks.length === 0 && (
+                        <div className="flex items-center justify-center py-8">
+                          <p className="text-[11px] text-muted-foreground/50">Empty</p>
+                        </div>
+                      )}
+                    </div>
                   </div>
-                  <div className="flex-1 p-2 space-y-1.5 overflow-y-auto">
-                    {colTasks.map((task) => (
-                      <TaskCard
-                        key={task.id}
-                        task={task}
-                        agents={dbAgents}
-                        teams={dbTeams}
-                        allTasks={filteredTasks}
-                        onMove={moveTask}
-                        deps={deps}
-                        linkingFrom={linkingFrom}
-                        onStartLink={handleStartLink}
-                        onCompleteLink={handleCompleteLink}
-                        onRemoveDep={handleRemoveDep}
-                        hoveredTaskId={hoveredTaskId}
-                        onHover={setHoveredTaskId}
-                        highlightedIds={highlightedIds}
-                        timerData={timers[task.id]}
-                        isTimerRunning={timers[task.id]?.startedAt !== null && timers[task.id]?.startedAt !== undefined}
-                        onToggleTimer={handleToggleTimer}
-                        now={now}
-                      />
-                    ))}
-                    {colTasks.length === 0 && (
-                      <div className="flex items-center justify-center py-8">
-                        <p className="text-[11px] text-muted-foreground/50">Empty</p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
-        </div>
+        ) : (
+          <CalendarView tasks={filteredTasks} agents={dbAgents} priorityDots={priorityDots} />
+        )}
       </div>
     </div>
   )

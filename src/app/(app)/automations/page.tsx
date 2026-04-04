@@ -1,9 +1,9 @@
 import { PixelAvatar } from "@/components/pixel-avatar"
+import { AutomationsTabs } from "@/components/automations-tabs"
 import { db } from "@/lib/db"
 import { automations as automationsTable, agents as agentsTable } from "@/lib/db/schema"
 import {
-  Zap, Clock, Play, Pause, AlertCircle, CheckCircle2,
-  Calendar, RotateCcw, Plus,
+  Zap, Play, Pause, RotateCcw,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -33,19 +33,14 @@ export default async function AutomationsPage() {
   const totalRuns = allAutomations.reduce((sum, a) => sum + (a.runCount ?? 0), 0)
   const pausedCount = allAutomations.filter((a) => a.status === "paused").length
 
-  return (
-    <div className="p-6 space-y-5 h-full overflow-y-auto">
-      <div className="flex items-center justify-between">
-        <h1 className="text-lg font-semibold tracking-tight">Automations</h1>
-        <button className="h-7 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1 hover:bg-primary/90 transition-colors"><Plus className="h-3 w-3" />New</button>
-      </div>
-
+  const listContent = (
+    <>
       {/* Stats */}
       <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-3">
         {[
-          { label: "Active", value: activeCount, icon: <Zap className="h-3.5 w-3.5 text-emerald-500" /> },
-          { label: "Total Runs", value: totalRuns.toLocaleString(), icon: <RotateCcw className="h-3.5 w-3.5 text-muted-foreground" /> },
-          { label: "Paused", value: pausedCount, icon: <Pause className="h-3.5 w-3.5 text-amber-500" /> },
+          { label: "Active", value: activeCount, icon: <Zap className="h-3.5 w-3.5 text-muted-foreground/50" /> },
+          { label: "Total Runs", value: totalRuns.toLocaleString(), icon: <RotateCcw className="h-3.5 w-3.5 text-muted-foreground/50" /> },
+          { label: "Paused", value: pausedCount, icon: <Pause className="h-3.5 w-3.5 text-muted-foreground/50" /> },
         ].map((s) => (
           <div key={s.label} className="bg-card p-4">
             <div className="flex items-center gap-1.5">{s.icon}<span className="section-label">{s.label}</span></div>
@@ -75,9 +70,9 @@ export default async function AutomationsPage() {
                     {automation.status === "active" ? <Pause className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                   </button>
                 </div>
-                <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground">
-                  <span className="flex items-center gap-1"><Calendar className="h-3 w-3" />{cronToHuman(automation.schedule)}</span>
-                  <span className="flex items-center gap-1"><Clock className="h-3 w-3" />{automation.lastRunAt ? new Date(automation.lastRunAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "Never"}</span>
+                <div className="flex items-center gap-4 mt-2 text-[11px] text-muted-foreground/50">
+                  <span>{cronToHuman(automation.schedule)}</span>
+                  <span>{automation.lastRunAt ? new Date(automation.lastRunAt).toLocaleDateString([], { month: "short", day: "numeric" }) : "Never"}</span>
                   <span className="tabular-nums">{automation.runCount ?? 0} runs</span>
                   {managedBy && (
                     <span className="flex items-center gap-1">
@@ -91,6 +86,16 @@ export default async function AutomationsPage() {
           })}
         </div>
       )}
+    </>
+  )
+
+  return (
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold tracking-tight">Automations</h1>
+      </div>
+
+      <AutomationsTabs listContent={listContent} />
     </div>
   )
 }

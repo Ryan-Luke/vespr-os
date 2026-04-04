@@ -16,6 +16,7 @@ import Link from "next/link"
 import { CollapsibleSection } from "@/components/collapsible-section"
 import { FocusModeToggle } from "@/components/focus-mode-toggle"
 import { ActivityTicker } from "@/components/activity-ticker"
+import { GoalTracker } from "@/components/goal-tracker"
 import { WeeklyReportButton } from "@/components/weekly-report"
 
 export const dynamic = "force-dynamic"
@@ -60,6 +61,7 @@ export default async function DashboardPage() {
         <ActivityTicker />
         <MorningCheckin />
         <OvernightSummary />
+        <GoalTracker />
         <ApprovalQueue />
 
         {/* ── PRIMARY ZONE: KPIs + Activity ────────────────── */}

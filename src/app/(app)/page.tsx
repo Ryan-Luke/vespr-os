@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Pin, Code,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Mic, MicOff, Pin, Code,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -452,6 +452,8 @@ export default function ChatPage() {
   const [scheduledMessages, setScheduledMessages] = useState<{ id: string; channelId: string; content: string; sendAt: string }[]>([])
   const [showSchedulePicker, setShowSchedulePicker] = useState(false)
   const [showChannelStats, setShowChannelStats] = useState(false)
+  const [isRecording, setIsRecording] = useState(false)
+  const [recordingTime, setRecordingTime] = useState(0)
   const [attachments, setAttachments] = useState<{ name: string; size: number; type: string; preview?: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -1487,6 +1489,30 @@ export default function ChatPage() {
               <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
               <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
                 <button onClick={() => fileInputRef.current?.click()} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Attach file"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                {/* Voice recording */}
+                <button onClick={() => {
+                  if (isRecording) {
+                    setIsRecording(false)
+                    // Simulate saving a voice message
+                    const duration = recordingTime
+                    setRecordingTime(0)
+                    const mins = Math.floor(duration / 60)
+                    const secs = duration % 60
+                    setInputValue(`🎤 Voice message (${mins}:${secs.toString().padStart(2, "0")})`)
+                  } else {
+                    setIsRecording(true)
+                    setRecordingTime(0)
+                    // Start timer
+                    const start = Date.now()
+                    const tick = setInterval(() => {
+                      if (!document.querySelector("[data-recording]")) { clearInterval(tick); return }
+                      setRecordingTime(Math.floor((Date.now() - start) / 1000))
+                    }, 1000)
+                  }
+                }} data-recording={isRecording || undefined} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", isRecording ? "bg-red-500/20 text-red-400" : "hover:bg-accent text-muted-foreground")} title={isRecording ? "Stop recording" : "Record voice message"}>
+                  {isRecording ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+                </button>
+                {isRecording && <span className="text-[11px] text-red-400 tabular-nums animate-pulse">{Math.floor(recordingTime / 60)}:{(recordingTime % 60).toString().padStart(2, "0")}</span>}
                 <Popover open={showEmojiInput} onOpenChange={setShowEmojiInput}>
                   <PopoverTrigger className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors"><Smile className="h-3.5 w-3.5 text-muted-foreground" /></PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="start" side="top">
