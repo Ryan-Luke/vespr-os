@@ -186,6 +186,9 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
           <LogOut className="h-4 w-4 shrink-0 opacity-60" />
           <span>Log out</span>
         </button>
+        <div className="px-2 pt-2 border-t border-border mt-1">
+          <p className="text-[10px] text-muted-foreground/40">v0.1.0 · 55 commits</p>
+        </div>
       </div>
     </aside>
   )
