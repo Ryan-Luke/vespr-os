@@ -13,7 +13,7 @@ import {
 import {
   Plus, Clock, CheckCircle2, Loader2, AlertCircle,
   ChevronRight, ChevronLeft, Bell, Upload, Check,
-  MessageSquare, X, Save,
+  MessageSquare, X, Save, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -36,11 +36,18 @@ const columns = [
   { id: "done", label: "Done", icon: <CheckCircle2 className="h-3.5 w-3.5" />, color: "text-green-400" },
 ]
 
-const priorityConfig: Record<string, { label: string; color: string }> = {
-  urgent: { label: "Urgent", color: "bg-red-500/15 text-red-400 border-red-500/30" },
-  high: { label: "High", color: "bg-orange-500/15 text-orange-400 border-orange-500/30" },
-  medium: { label: "Medium", color: "bg-blue-500/15 text-blue-400 border-blue-500/30" },
-  low: { label: "Low", color: "bg-zinc-500/15 text-zinc-400 border-zinc-500/30" },
+const priorityColors: Record<string, string> = {
+  urgent: "text-red-400",
+  high: "text-amber-400",
+  medium: "text-blue-400",
+  low: "text-muted-foreground",
+}
+
+const priorityDots: Record<string, string> = {
+  urgent: "bg-red-400",
+  high: "bg-amber-400",
+  medium: "bg-blue-400",
+  low: "bg-zinc-500",
 }
 
 // Owner tasks (agents delegate to you)
@@ -53,42 +60,37 @@ const ownerTasks = [
 
 function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAgent[]; teams: DBTeam[]; onMove: (id: string, status: string) => void }) {
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null
-  const team = task.teamId ? teams.find((t) => t.id === task.teamId) : null
-  const priority = priorityConfig[task.priority] || priorityConfig.medium
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
   return (
-    <Card className={cn("p-3 hover:border-primary/30 transition-colors group cursor-default", task.assignedToUser && "border-amber-500/30 bg-amber-500/5")}>
-      <div className="flex items-center gap-1.5">
-        {task.assignedToUser && <Badge variant="outline" className="text-xs h-5 border-amber-500/40 text-amber-500 bg-amber-500/10">You</Badge>}
-        <p className="text-sm font-medium leading-tight">{task.title}</p>
-      </div>
-      {task.description && <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{task.description}</p>}
-      {task.blockedReason && <p className="text-xs text-red-400 mt-1">Blocks: {task.blockedReason}</p>}
-      <div className="flex items-center justify-between mt-3">
-        <div className="flex items-center gap-2">
-          <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>{priority.label}</Badge>
-          {team && <span className="text-xs text-muted-foreground">{team.icon}</span>}
-          {task.linkedMessageIds?.length > 0 && (
-            <span className="text-xs text-muted-foreground flex items-center gap-0.5"><MessageSquare className="h-3 w-3" />{task.linkedMessageIds.length}</span>
-          )}
+    <div className={cn("bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-colors", task.assignedToUser && "border-l-2 border-l-amber-500")}>
+      <div className="flex items-start gap-2">
+        <span className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0", priorityDots[task.priority] || "bg-zinc-500")} />
+        <div className="flex-1 min-w-0">
+          <p className="text-[13px] font-medium leading-snug">{task.title}</p>
+          {task.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>}
         </div>
-        {agent && !task.assignedToUser && (
-          <div className="flex items-center gap-1.5">
-            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded" />
-            <span className="text-xs text-muted-foreground">{agent.name}</span>
-          </div>
-        )}
       </div>
-      <div className="flex items-center justify-between mt-2 opacity-0 group-hover:opacity-100 transition-opacity">
-        <Button variant="ghost" size="sm" className="h-6 text-xs px-2" disabled={colIndex <= 0} onClick={() => colIndex > 0 && onMove(task.id, columns[colIndex - 1].id)}>
-          <ChevronLeft className="h-3 w-3 mr-0.5" />Move
-        </Button>
-        <Button variant="ghost" size="sm" className="h-6 text-xs px-2" disabled={colIndex >= columns.length - 1} onClick={() => colIndex < columns.length - 1 && onMove(task.id, columns[colIndex + 1].id)}>
-          Move<ChevronRight className="h-3 w-3 ml-0.5" />
-        </Button>
+      <div className="flex items-center justify-between mt-2 pl-3.5">
+        <div className="flex items-center gap-2">
+          {agent && (
+            <div className="flex items-center gap-1">
+              <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={14} className="rounded-sm" />
+              <span className="text-[11px] text-muted-foreground">{agent.name}</span>
+            </div>
+          )}
+          {task.assignedToUser && <span className="text-[11px] text-amber-400 font-medium">You</span>}
+        </div>
+        <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+          <button disabled={colIndex <= 0} onClick={() => colIndex > 0 && onMove(task.id, columns[colIndex - 1].id)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
+            <ChevronLeft className="h-3 w-3" />
+          </button>
+          <button disabled={colIndex >= columns.length - 1} onClick={() => colIndex < columns.length - 1 && onMove(task.id, columns[colIndex + 1].id)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
+            <ChevronRight className="h-3 w-3" />
+          </button>
+        </div>
       </div>
-    </Card>
+    </div>
   )
 }
 
@@ -176,14 +178,17 @@ export default function TasksPage() {
   return (
     <div className="flex flex-col h-full overflow-hidden">
       {/* Header */}
-      <div className="flex items-center justify-between px-6 py-3 border-b border-border shrink-0">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Task Board</h1>
-          <p className="text-sm text-muted-foreground">{filteredTasks.length} tasks · {unresolvedOwner.length} assigned to you</p>
+      <div className="flex items-center justify-between px-6 h-12 border-b border-border shrink-0">
+        <div className="flex items-center gap-3">
+          <h1 className="text-[13px] font-semibold">Tasks</h1>
+          <span className="text-xs text-muted-foreground tabular-nums">{filteredTasks.length} tasks</span>
         </div>
         <div className="flex items-center gap-2">
-          <Input placeholder="Search tasks..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 text-xs w-40" />
-          <Button size="sm" className="h-8" onClick={() => setShowNewTask(true)}><Plus className="h-3.5 w-3.5 mr-1" />New Task</Button>
+          <div className="relative">
+            <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
+            <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-32 rounded-md border border-border bg-muted/50 pl-7 pr-2 text-xs outline-none focus:border-muted-foreground/30 transition-colors" />
+          </div>
+          <button onClick={() => setShowNewTask(true)} className="h-7 px-2 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1 hover:bg-primary/90 transition-colors"><Plus className="h-3 w-3" />New</button>
         </div>
       </div>
 
@@ -218,7 +223,7 @@ export default function TasksPage() {
             <div className="space-y-3">
               {myTasks.filter((t) => !t.resolved).map((task) => {
                 const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
-                const priority = priorityConfig[task.priority] || priorityConfig.medium
+                const priorityColor = priorityColors[task.priority] || "text-muted-foreground"
                 return (
                   <Card key={task.id} className={cn("p-4 border-l-4", task.priority === "urgent" ? "border-l-red-500" : "border-l-orange-500")}>
                     <div className="flex items-start gap-3">
@@ -226,7 +231,7 @@ export default function TasksPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
                           <h3 className="text-sm font-bold">{task.title}</h3>
-                          <Badge variant="outline" className={cn("text-xs h-5 border", priority.color)}>{priority.label}</Badge>
+                          <span className={cn("text-[11px] font-medium capitalize", priorityColor)}>{task.priority}</span>
                         </div>
                         <p className="text-xs text-muted-foreground mt-0.5">Requested by <span className="font-medium text-foreground">{task.requestedBy}</span></p>
                         <p className="text-sm mt-2">{task.description}</p>
@@ -297,18 +302,15 @@ export default function TasksPage() {
         )}
 
         {/* Kanban Board */}
-        <div className="p-6 overflow-x-auto">
-          <div className="flex gap-4 min-w-max">
+        <div className="px-6 py-4 overflow-x-auto">
+          <div className="flex gap-3 min-w-max">
             {columns.map((col) => {
               const colTasks = filteredTasks.filter((t) => t.status === col.id)
               return (
-                <div key={col.id} className="w-64 flex flex-col shrink-0">
-                  <div className="flex items-center justify-between mb-3 px-1">
-                    <div className="flex items-center gap-2">
-                      <span className={col.color}>{col.icon}</span>
-                      <h3 className="text-sm font-semibold">{col.label}</h3>
-                      <span className="text-xs text-muted-foreground font-mono bg-muted rounded-full h-5 min-w-5 flex items-center justify-center px-1.5">{colTasks.length}</span>
-                    </div>
+                <div key={col.id} className="w-60 flex flex-col shrink-0">
+                  <div className="flex items-center gap-2 mb-2 px-0.5">
+                    <span className="section-label">{col.label}</span>
+                    <span className="text-[10px] text-muted-foreground tabular-nums">{colTasks.length}</span>
                   </div>
                   <div className="space-y-2">
                     {colTasks.map((task) => <TaskCard key={task.id} task={task} agents={dbAgents} teams={dbTeams} onMove={moveTask} />)}
