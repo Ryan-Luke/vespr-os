@@ -363,7 +363,7 @@ export default function KnowledgePage() {
             {filtered.map((entry) => {
               const agent = agents.find((a) => a.id === entry.createdByAgentId)
               return (
-                <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-lg border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
+                <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-md border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
                   <div className="flex items-start gap-3">
                     {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                     <div className="flex-1 min-w-0">

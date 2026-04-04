@@ -78,7 +78,7 @@ export default function OfficePage() {
           </div>
 
           <div className="flex items-center gap-3">
-            <PixelAvatar characterIndex={selectedAgent.pixelAvatarIndex} size={48} className="rounded-xl border border-border" />
+            <PixelAvatar characterIndex={selectedAgent.pixelAvatarIndex} size={48} className="rounded-md border border-border" />
             <div>
               <div className="flex items-center gap-2">
                 <p className="font-medium">{selectedAgent.name}</p>
@@ -96,9 +96,9 @@ export default function OfficePage() {
 
           {/* Personality */}
           {(preset || selectedAgent.personalityPresetId) && (
-            <div className="p-2.5 rounded-lg bg-violet-500/5 border border-violet-500/20">
+            <div className="p-2.5 rounded-md bg-muted border border-border">
               <div className="flex items-center gap-1.5 text-xs">
-                <Sparkles className="h-3 w-3 text-violet-500" />
+                <Sparkles className="h-3 w-3 text-muted-foreground" />
                 {preset ? (
                   <span><span className="font-medium">{preset.name}</span> <span className="text-muted-foreground">— {preset.description}</span></span>
                 ) : (
