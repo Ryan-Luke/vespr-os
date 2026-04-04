@@ -149,82 +149,61 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-6 space-y-6 max-w-4xl">
-        <Link href="/teams" className="inline-flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground transition-colors">
-          <ArrowLeft className="h-4 w-4" />Back to Teams
+      <div className="p-6 space-y-5 max-w-3xl">
+        <Link href="/teams" className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors">
+          <ArrowLeft className="h-3 w-3" />Teams
         </Link>
 
         {/* Header */}
-        <div className="flex items-start gap-4">
-          <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={72} className="rounded-xl border border-border" />
-          <div className="flex-1">
-            <div className="flex items-center gap-3 flex-wrap">
-              <h1 className="text-2xl font-semibold">{agent.name}</h1>
-              <StatusDot status={agent.status as AgentStatus} showLabel />
-              {agent.isTeamLead && <Badge className="bg-amber-500/15 text-amber-400 border-amber-500/30"><Crown className="h-3 w-3 mr-1" />Team Lead</Badge>}
-              <Badge variant="secondary" className={cn("text-xs", agent.autonomyLevel === "full_auto" && "bg-green-500/10 text-green-600", agent.autonomyLevel === "manual" && "bg-orange-500/10 text-orange-600")}>
-                {agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}
-              </Badge>
+        <div className="flex items-start gap-3">
+          <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md" />
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <h1 className="text-lg font-semibold">{agent.name}</h1>
+              <span className={cn("h-1.5 w-1.5 rounded-full", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
+              {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
             </div>
-            <p className="text-muted-foreground">{agent.role}</p>
-
-            {/* Level bar */}
-            <div className="mt-2 max-w-xs">
-              <div className="flex items-center justify-between text-xs mb-0.5">
-                <span className="font-medium">Lv.{agent.level ?? 1} {levelTitle(agent.level ?? 1)}</span>
-                <span className="text-muted-foreground">{agent.xp ?? 0} / {nextLevelXp} XP</span>
+            <p className="text-xs text-muted-foreground">{agent.role} · {agent.model} · {agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}</p>
+            {/* Level */}
+            <div className="mt-2 max-w-[200px]">
+              <div className="flex items-center justify-between text-[11px] mb-0.5">
+                <span className="text-muted-foreground">Lv.{agent.level ?? 1} {levelTitle(agent.level ?? 1)}</span>
+                <span className="text-muted-foreground tabular-nums">{agent.xp ?? 0}/{nextLevelXp}</span>
               </div>
-              <div className="h-2 rounded-full bg-muted overflow-hidden">
+              <div className="h-1 rounded-full bg-border overflow-hidden">
                 <div className="h-full rounded-full bg-primary transition-all" style={{ width: `${progress}%` }} />
               </div>
             </div>
           </div>
-          <div className="flex gap-2 shrink-0">
-            <Link href="/chat"><Button variant="outline" size="sm"><MessageSquare className="h-4 w-4 mr-1" />Chat</Button></Link>
-            <Button variant="outline" size="sm" disabled={reviewLoading} onClick={async () => {
-              setReviewLoading(true)
-              try {
-                await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) })
-              } catch { /* */ }
-              setReviewLoading(false)
-            }}>
-              {reviewLoading ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : <Trophy className="h-4 w-4 mr-1" />}Review
-            </Button>
-            <Button variant="outline" size="sm">
-              {agent.status === "paused" ? <><Play className="h-4 w-4 mr-1" />Resume</> : <><Pause className="h-4 w-4 mr-1" />Pause</>}
-            </Button>
+          <div className="flex gap-1.5 shrink-0">
+            <Link href="/" className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors"><MessageSquare className="h-3 w-3" />Chat</Link>
+            <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }) } catch {} setReviewLoading(false) }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors">
+              {reviewLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trophy className="h-3 w-3" />}Review
+            </button>
           </div>
         </div>
 
         {agent.currentTask && (
-          <Card><CardHeader className="pb-2"><CardTitle className="text-sm font-medium text-muted-foreground">Current Task</CardTitle></CardHeader>
-            <CardContent><p className="text-sm">{agent.currentTask}</p></CardContent></Card>
+          <div className="bg-card border border-border rounded-md px-4 py-3">
+            <p className="section-label mb-1">Current Task</p>
+            <p className="text-[13px]">{agent.currentTask}</p>
+          </div>
         )}
 
         {/* Personality */}
-        <Card className="border-violet-500/20 bg-violet-500/5">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <Sparkles className="h-4 w-4 text-violet-500" />
-              Personality
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+        <div className="bg-card border border-border rounded-md p-4">
+          <p className="section-label mb-2">Personality</p>
             {preset ? (
               <div>
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="font-semibold text-sm">{preset.name}</span>
-                  <Badge variant="secondary" className="text-xs">{preset.category}</Badge>
-                </div>
-                <p className="text-xs text-muted-foreground italic">&ldquo;{preset.speechStyle}&rdquo;</p>
-                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-3">
+                <p className="text-[13px] font-medium">{preset.name}</p>
+                <p className="text-xs text-muted-foreground mt-0.5 italic">{preset.speechStyle}</p>
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
                   {(Object.entries(preset.traits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
                     <div key={key} className="flex items-center gap-2">
-                      <span className="text-xs text-muted-foreground w-20">{TRAIT_LABELS[key].name}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
-                        <div className="h-full rounded-full bg-violet-500" style={{ width: `${val}%` }} />
+                      <span className="text-[11px] text-muted-foreground w-16">{TRAIT_LABELS[key].name}</span>
+                      <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
                       </div>
-                      <span className="text-xs font-mono w-6 text-right">{val}</span>
                     </div>
                   ))}
                 </div>
@@ -232,39 +211,36 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             ) : agent.personality ? (
               <div className="flex flex-wrap gap-1.5">
                 {getTopTraits(agent.personality).map((trait) => (
-                  <Badge key={trait} variant="secondary" className="text-xs">{trait}</Badge>
+                  <span key={trait} className="text-xs text-muted-foreground">{trait}</span>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground">Default personality</p>
+              <p className="text-xs text-muted-foreground">Default</p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* Stats grid */}
-        <div className="grid gap-4 md:grid-cols-4">
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-2"><CheckCircle2 className="h-4 w-4 text-green-500" /><span className="text-sm text-muted-foreground">Tasks</span></div><p className="text-2xl font-bold mt-1">{(agent.tasksCompleted ?? 0).toLocaleString()}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-2"><DollarSign className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Cost/mo</span></div><p className="text-2xl font-bold mt-1">${(agent.costThisMonth ?? 0).toFixed(2)}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-2"><ThumbsUp className="h-4 w-4 text-green-500" /><span className="text-sm text-muted-foreground">Feedback</span></div><p className="text-2xl font-bold mt-1">{feedback ? `${feedback.positive}/${feedback.total}` : "—"}</p></CardContent></Card>
-          <Card><CardContent className="pt-6"><div className="flex items-center gap-2"><Cpu className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Model</span></div><p className="text-lg font-bold mt-1">{agent.model}</p><p className="text-xs text-muted-foreground capitalize">{agent.provider}</p></CardContent></Card>
         </div>
 
-        {/* Milestones */}
+        {/* Stats */}
+        <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-4">
+          {[
+            { label: "Tasks", value: (agent.tasksCompleted ?? 0).toLocaleString() },
+            { label: "Cost/mo", value: `$${(agent.costThisMonth ?? 0).toFixed(2)}` },
+            { label: "Feedback", value: feedback ? `${feedback.positive}/${feedback.total}` : "—" },
+            { label: "Streak", value: (agent.streak ?? 0) > 0 ? `${agent.streak}d` : "—" },
+          ].map((s) => (
+            <div key={s.label} className="bg-card p-4">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
+              <p className="text-lg font-semibold tabular-nums mt-0.5">{s.value}</p>
+            </div>
+          ))}
+        </div>
+
         {milestones.length > 0 && (
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-sm font-medium flex items-center gap-2"><Trophy className="h-4 w-4 text-amber-500" />Milestones ({milestones.length})</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="flex flex-wrap gap-2">
-                {milestones.map((m) => (
-                  <Badge key={m.id} variant="secondary" className="text-xs h-7 gap-1.5 px-3">
-                    <span>{m.icon}</span> {m.name}
-                  </Badge>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
+          <div className="flex items-center gap-3 flex-wrap">
+            <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Milestones</span>
+            {milestones.map((m) => (
+              <span key={m.id} className="text-xs text-muted-foreground">{m.icon} {m.name}</span>
+            ))}
+          </div>
         )}
 
         {/* Tabs */}
