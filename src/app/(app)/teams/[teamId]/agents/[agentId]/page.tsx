@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits } from "@/lib/personality-presets"
 import { levelProgress, levelTitle, xpForLevel } from "@/lib/gamification"
+import { getMood, MOOD_EMOJI, MOOD_LABEL, type AgentMood } from "@/lib/agent-mood"
 import {
   ArrowLeft, Brain, DollarSign, CheckCircle2, Pause, Play,
   MessageSquare, Cpu, Plus, FileText, Trash2, Save, Loader2,
@@ -390,6 +391,14 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const progress = levelProgress(agent.xp ?? 0)
   const nextLevelXp = xpForLevel((agent.level ?? 1) + 1)
 
+  const mood: AgentMood = getMood({
+    streak: agent.streak ?? 0,
+    tasksCompleted: agent.tasksCompleted ?? 0,
+    status: agent.status,
+    feedbackPositive: feedback?.positive,
+    feedbackTotal: feedback?.total,
+  })
+
   return (
     <div className="h-full overflow-y-auto">
       <div className="p-6 space-y-5 max-w-3xl">
@@ -398,11 +407,13 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
         </Link>
 
         {/* Header */}
-        <div className="flex items-start gap-3">
+        <div className={cn("flex items-start gap-3", mood === "thriving" ? "border-l-2 border-emerald-500/50 pl-3" : mood === "stressed" ? "border-l-2 border-red-500/50 pl-3" : "")}>
           <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
               <h1 className="text-lg font-semibold">{agent.name}</h1>
+              <span className="text-sm" title={MOOD_LABEL[mood]}>{MOOD_EMOJI[mood]}</span>
+              <span className="text-[11px] text-muted-foreground">{MOOD_LABEL[mood]}</span>
               <span className={cn("h-1.5 w-1.5 rounded-full", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
               {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
             </div>

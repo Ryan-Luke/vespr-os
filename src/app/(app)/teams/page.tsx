@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
 import { Plus, Crown, Flame } from "lucide-react"
 import { levelTitle } from "@/lib/gamification"
+import { getMood, MOOD_EMOJI } from "@/lib/agent-mood"
 import { cn } from "@/lib/utils"
 import { Sparkline } from "@/components/sparkline"
 import { BulkAgentActions } from "@/components/bulk-agent-actions"
@@ -80,6 +81,7 @@ export default async function TeamsPage() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <span className="text-[13px] font-medium">{agent.name}</span>
+                        <span className="text-sm">{MOOD_EMOJI[getMood({ streak: agent.streak ?? 0, tasksCompleted: agent.tasksCompleted ?? 0, status: agent.status })]}</span>
                         {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
                         <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                       </div>

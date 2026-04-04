@@ -4,6 +4,7 @@ import { useState } from "react"
 import { Sidebar, MobileMenuButton } from "@/components/sidebar"
 import { GlobalSearch } from "@/components/global-search"
 import { TutorialOverlay } from "@/components/tutorial-overlay"
+import { ShortcutsOverlay } from "@/components/shortcuts-overlay"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -36,6 +37,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
       <GlobalSearch />
       <TutorialOverlay />
+      <ShortcutsOverlay />
     </div>
   )
 }

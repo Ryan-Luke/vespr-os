@@ -14,6 +14,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { CollapsibleSection } from "@/components/collapsible-section"
+import { ActivityTicker } from "@/components/activity-ticker"
 import { WeeklyReportButton } from "@/components/weekly-report"
 
 export const dynamic = "force-dynamic"
@@ -52,6 +53,7 @@ export default async function DashboardPage() {
           <h1 className="text-sm font-semibold text-muted-foreground">Dashboard</h1>
           <WeeklyReportButton />
         </div>
+        <ActivityTicker />
         <MorningCheckin />
         <OvernightSummary />
         <ApprovalQueue />

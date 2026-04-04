@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useCallback } from "react"
+import { useState, useEffect, useCallback, useMemo } from "react"
 import {} from "@/components/ui/badge"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import {
@@ -10,8 +10,28 @@ import {
   Plus, Clock, CheckCircle2, Loader2, AlertCircle,
   ChevronRight, ChevronLeft, Bell, Upload, Check,
   MessageSquare, X, Save, Search, ExternalLink,
+  Link2, Lock, Unlink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+
+// --- Dependency helpers ---
+type DepsMap = Record<string, string[]> // taskId → array of taskIds that block it
+
+function loadDeps(): DepsMap {
+  if (typeof window === "undefined") return {}
+  try { return JSON.parse(localStorage.getItem("bos-task-deps") || "{}") } catch { return {} }
+}
+function saveDeps(deps: DepsMap) {
+  localStorage.setItem("bos-task-deps", JSON.stringify(deps))
+}
+/** Return set of taskIds that block the given task */
+function getBlockers(deps: DepsMap, taskId: string): string[] {
+  return deps[taskId] ?? []
+}
+/** Return set of taskIds that the given task blocks */
+function getBlocking(deps: DepsMap, taskId: string): string[] {
+  return Object.entries(deps).filter(([, blockers]) => blockers.includes(taskId)).map(([id]) => id)
+}
 
 interface DBAgent { id: string; name: string; role: string; pixelAvatarIndex: number; teamId: string | null; status: string }
 interface DBTeam { id: string; name: string; icon: string }
@@ -114,19 +134,92 @@ const ownerTasks = [
   },
 ]
 
-function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAgent[]; teams: DBTeam[]; onMove: (id: string, status: string) => void }) {
+interface TaskCardProps {
+  task: DBTask
+  agents: DBAgent[]
+  teams: DBTeam[]
+  allTasks: DBTask[]
+  onMove: (id: string, status: string) => void
+  // dependency props
+  deps: DepsMap
+  linkingFrom: string | null
+  onStartLink: (taskId: string) => void
+  onCompleteLink: (taskId: string) => void
+  onRemoveDep: (blockedId: string, blockerId: string) => void
+  hoveredTaskId: string | null
+  onHover: (taskId: string | null) => void
+  highlightedIds: Set<string>
+}
+
+function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds }: TaskCardProps) {
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
+  const blockers = getBlockers(deps, task.id)
+  const blocking = getBlocking(deps, task.id)
+  const isBlocked = blockers.length > 0
+  const isLinkSource = linkingFrom === task.id
+  const isHighlighted = highlightedIds.has(task.id)
+
+  function titleForId(id: string) {
+    return allTasks.find((t) => t.id === id)?.title ?? id.slice(0, 6)
+  }
+
   return (
-    <div className={cn("bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-colors", task.assignedToUser && "border-l-2 border-l-amber-500")}>
+    <div
+      className={cn(
+        "bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-all relative",
+        task.assignedToUser && !isBlocked && "border-l-2 border-l-amber-500",
+        isBlocked && "border-l-2 border-l-red-500 opacity-60",
+        isLinkSource && "ring-2 ring-blue-500",
+        linkingFrom && !isLinkSource && "cursor-pointer",
+        isHighlighted && "ring-1 ring-blue-400/60 shadow-[0_0_8px_rgba(96,165,250,0.25)]",
+      )}
+      onClick={() => { if (linkingFrom && linkingFrom !== task.id) onCompleteLink(task.id) }}
+      onMouseEnter={() => onHover(task.id)}
+      onMouseLeave={() => onHover(null)}
+    >
       <div className="flex items-start gap-2">
         <span className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0", priorityDots[task.priority] || "bg-zinc-500")} />
         <div className="flex-1 min-w-0">
-          <p className="text-[13px] font-medium leading-snug">{task.title}</p>
+          <div className="flex items-center gap-1">
+            <p className="text-[13px] font-medium leading-snug flex-1">{task.title}</p>
+            {/* Link button — visible on hover */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onStartLink(task.id) }}
+              className={cn(
+                "h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground shrink-0 transition-opacity",
+                isLinkSource ? "opacity-100 text-blue-400" : "opacity-0 group-hover:opacity-100",
+              )}
+              title={isLinkSource ? "Cancel linking" : "Link dependency"}
+            >
+              <Link2 className="h-3 w-3" />
+            </button>
+          </div>
           {task.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>}
         </div>
       </div>
+
+      {/* Dependency indicators */}
+      {(blockers.length > 0 || blocking.length > 0) && (
+        <div className="mt-1.5 pl-3.5 space-y-0.5">
+          {blockers.map((bid) => (
+            <button key={bid} onClick={(e) => { e.stopPropagation(); onRemoveDep(task.id, bid) }} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-red-400 transition-colors" title="Click to remove">
+              <Lock className="text-red-400 h-3 w-3" />
+              <span>Blocked by {titleForId(bid)}</span>
+              <Unlink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 ml-0.5" />
+            </button>
+          ))}
+          {blocking.map((bid) => (
+            <button key={bid} onClick={(e) => { e.stopPropagation(); onRemoveDep(bid, task.id) }} className="flex items-center gap-1 text-[11px] text-muted-foreground hover:text-blue-400 transition-colors" title="Click to remove">
+              <Link2 className="text-blue-400 h-3 w-3" />
+              <span>Blocks {titleForId(bid)}</span>
+              <Unlink className="h-2.5 w-2.5 opacity-0 group-hover:opacity-60 ml-0.5" />
+            </button>
+          ))}
+        </div>
+      )}
+
       <div className="flex items-center justify-between mt-2 pl-3.5">
         <div className="flex items-center gap-2">
           {agent && (
@@ -137,17 +230,17 @@ function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAge
           )}
           {task.assignedToUser && <span className="text-[11px] text-amber-400 font-medium">You</span>}
           {task.linkedMessageIds.length > 0 && (
-            <a href={`/?message=${task.linkedMessageIds[0]}`} className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors">
+            <a href={`/?message=${task.linkedMessageIds[0]}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors">
               <MessageSquare className="h-3 w-3" />
               <span>{task.linkedMessageIds.length}</span>
             </a>
           )}
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button disabled={colIndex <= 0} onClick={() => colIndex > 0 && onMove(task.id, columns[colIndex - 1].id)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
+          <button disabled={colIndex <= 0} onClick={(e) => { e.stopPropagation(); colIndex > 0 && onMove(task.id, columns[colIndex - 1].id) }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
             <ChevronLeft className="h-3 w-3" />
           </button>
-          <button disabled={colIndex >= columns.length - 1} onClick={() => colIndex < columns.length - 1 && onMove(task.id, columns[colIndex + 1].id)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
+          <button disabled={colIndex >= columns.length - 1} onClick={(e) => { e.stopPropagation(); colIndex < columns.length - 1 && onMove(task.id, columns[colIndex + 1].id) }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
             <ChevronRight className="h-3 w-3" />
           </button>
         </div>
@@ -173,6 +266,56 @@ export default function TasksPage() {
   const [newAgentId, setNewAgentId] = useState("")
   const [newTeamId, setNewTeamId] = useState("")
   const [saving, setSaving] = useState(false)
+
+  // --- Dependency state ---
+  const [deps, setDeps] = useState<DepsMap>({})
+  const [linkingFrom, setLinkingFrom] = useState<string | null>(null)
+  const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
+
+  // Load deps from localStorage on mount
+  useEffect(() => { setDeps(loadDeps()) }, [])
+
+  function updateDeps(next: DepsMap) { setDeps(next); saveDeps(next) }
+
+  function handleStartLink(taskId: string) {
+    setLinkingFrom((prev) => prev === taskId ? null : taskId)
+  }
+
+  function handleCompleteLink(targetId: string) {
+    if (!linkingFrom || linkingFrom === targetId) return
+    // linkingFrom blocks targetId
+    const current = deps[targetId] ?? []
+    if (current.includes(linkingFrom)) { setLinkingFrom(null); return } // already exists
+    updateDeps({ ...deps, [targetId]: [...current, linkingFrom] })
+    setLinkingFrom(null)
+  }
+
+  function handleRemoveDep(blockedId: string, blockerId: string) {
+    const current = deps[blockedId] ?? []
+    const next = current.filter((id) => id !== blockerId)
+    const copy = { ...deps }
+    if (next.length === 0) { delete copy[blockedId] } else { copy[blockedId] = next }
+    updateDeps(copy)
+  }
+
+  // Compute highlighted task IDs when hovering a task with dependencies
+  const highlightedIds = useMemo(() => {
+    const set = new Set<string>()
+    if (!hoveredTaskId) return set
+    const blockers = getBlockers(deps, hoveredTaskId)
+    const blocking = getBlocking(deps, hoveredTaskId)
+    for (const id of blockers) set.add(id)
+    for (const id of blocking) set.add(id)
+    return set
+  }, [hoveredTaskId, deps])
+
+  // Cancel linking mode on Escape
+  useEffect(() => {
+    if (!linkingFrom) return
+    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setLinkingFrom(null) }
+    window.addEventListener("keydown", onKey)
+    return () => window.removeEventListener("keydown", onKey)
+  }, [linkingFrom])
 
   const fetchData = useCallback(async () => {
     const [tasksRes, chatData] = await Promise.all([
@@ -421,8 +564,21 @@ export default function TasksPage() {
           </div>
         )}
 
+        {/* Linking mode banner */}
+        {linkingFrom && (
+          <div className="px-6 py-1.5 bg-blue-500/10 border-b border-blue-500/20 flex items-center gap-2">
+            <Link2 className="h-3 w-3 text-blue-400" />
+            <span className="text-[11px] text-blue-400 font-medium">
+              Linking mode — click a task to mark it as blocked by &ldquo;{filteredTasks.find((t) => t.id === linkingFrom)?.title ?? "selected task"}&rdquo;
+            </span>
+            <button onClick={() => setLinkingFrom(null)} className="ml-auto text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
+              <X className="h-3 w-3" />Cancel
+            </button>
+          </div>
+        )}
+
         {/* Kanban Board */}
-        <div className="flex-1 overflow-x-auto">
+        <div className={cn("flex-1 overflow-x-auto", linkingFrom && "cursor-crosshair")}>
           <div className="flex gap-px bg-border min-w-max h-full">
             {columns.map((col) => {
               const colTasks = filteredTasks.filter((t) => t.status === col.id)
@@ -433,7 +589,24 @@ export default function TasksPage() {
                     <span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1 py-0.5">{colTasks.length}</span>
                   </div>
                   <div className="flex-1 p-2 space-y-1.5 overflow-y-auto">
-                    {colTasks.map((task) => <TaskCard key={task.id} task={task} agents={dbAgents} teams={dbTeams} onMove={moveTask} />)}
+                    {colTasks.map((task) => (
+                      <TaskCard
+                        key={task.id}
+                        task={task}
+                        agents={dbAgents}
+                        teams={dbTeams}
+                        allTasks={filteredTasks}
+                        onMove={moveTask}
+                        deps={deps}
+                        linkingFrom={linkingFrom}
+                        onStartLink={handleStartLink}
+                        onCompleteLink={handleCompleteLink}
+                        onRemoveDep={handleRemoveDep}
+                        hoveredTaskId={hoveredTaskId}
+                        onHover={setHoveredTaskId}
+                        highlightedIds={highlightedIds}
+                      />
+                    ))}
                     {colTasks.length === 0 && (
                       <div className="flex items-center justify-center py-8">
                         <p className="text-[11px] text-muted-foreground/50">Empty</p>

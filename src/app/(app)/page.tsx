@@ -16,6 +16,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
+import { getMood, MOOD_EMOJI } from "@/lib/agent-mood"
 import { ChatSkeleton } from "@/components/loading-skeletons"
 import Link from "next/link"
 
@@ -203,7 +204,7 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
 
 // Message component
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -213,6 +214,8 @@ function MessageBubble({
   threadCount?: number
   isPinned?: boolean
   onTogglePin?: (messageId: string) => void
+  isBookmarked?: boolean
+  onToggleBookmark?: (messageId: string) => void
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
@@ -249,6 +252,7 @@ function MessageBubble({
           {message.messageType === "approval_request" && <Badge variant="destructive" className="text-xs h-5"><AlertCircle className="h-3 w-3 mr-1" />Needs Approval</Badge>}
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
+          {isBookmarked && <Bookmark className="h-3 w-3 text-amber-400 fill-amber-400" />}
           {isPinned && <Pin className="h-3 w-3 text-primary/60" />}
         </div>
         <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
@@ -296,8 +300,8 @@ function MessageBubble({
               </button>
             </>
           )}
-          <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground transition-colors" title="Bookmark">
-            <Bookmark className="h-3 w-3" />
+          <button className={cn("h-6 w-6 flex items-center justify-center rounded-sm transition-colors", isBookmarked ? "text-amber-400" : "text-muted-foreground hover:text-foreground")} onClick={() => onToggleBookmark?.(message.id)} title={isBookmarked ? "Remove bookmark" : "Bookmark"}>
+            <Bookmark className={cn("h-3 w-3", isBookmarked && "fill-amber-400")} />
           </button>
           {onTogglePin && (
             <button className={cn("h-6 w-6 flex items-center justify-center rounded-sm transition-colors", isPinned ? "text-primary" : "text-muted-foreground hover:text-foreground")} onClick={() => onTogglePin(message.id)} title={isPinned ? "Unpin message" : "Pin message"}>
@@ -417,6 +421,8 @@ export default function ChatPage() {
   const [showShortcuts, setShowShortcuts] = useState(false)
   const [pinnedIds, setPinnedIds] = useState<Record<string, Set<string>>>({})
   const [showPinnedPanel, setShowPinnedPanel] = useState(false)
+  const [bookmarks, setBookmarks] = useState<{ messageId: string; channelId: string; senderName: string; content: string; savedAt: string }[]>([])
+  const [savedItemsView, setSavedItemsView] = useState(false)
   const [activeThread, setActiveThread] = useState<string | null>(null) // parent message ID
   const [threadMessages, setThreadMessages] = useState<DBMessage[]>([])
   const [threadInput, setThreadInput] = useState("")
@@ -480,6 +486,46 @@ export default function ChatPage() {
 
   const currentPinnedSet = activeChannel ? (pinnedIds[activeChannel] ?? new Set<string>()) : new Set<string>()
   const pinnedCount = currentPinnedSet.size
+
+  // Load bookmarks from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("bos-bookmarks")
+      if (stored) setBookmarks(JSON.parse(stored))
+    } catch {}
+  }, [])
+
+  const bookmarkedIds = useMemo(() => new Set(bookmarks.map((b) => b.messageId)), [bookmarks])
+
+  const toggleBookmark = useCallback((messageId: string) => {
+    setBookmarks((prev) => {
+      let next: typeof prev
+      if (prev.some((b) => b.messageId === messageId)) {
+        next = prev.filter((b) => b.messageId !== messageId)
+      } else {
+        const msg = channelMessages.find((m) => m.id === messageId)
+        if (!msg || !activeChannel) return prev
+        const channelData = dbChannels.find((c) => c.id === activeChannel)
+        next = [...prev, {
+          messageId: msg.id,
+          channelId: activeChannel,
+          senderName: msg.senderName,
+          content: msg.content,
+          savedAt: new Date().toISOString(),
+        }]
+      }
+      localStorage.setItem("bos-bookmarks", JSON.stringify(next))
+      return next
+    })
+  }, [channelMessages, activeChannel, dbChannels])
+
+  const removeBookmark = useCallback((messageId: string) => {
+    setBookmarks((prev) => {
+      const next = prev.filter((b) => b.messageId !== messageId)
+      localStorage.setItem("bos-bookmarks", JSON.stringify(next))
+      return next
+    })
+  }, [])
 
   // Fetch unread counts and poll
   useEffect(() => {
@@ -696,6 +742,42 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       }
       setChannelMessages((prev) => [...prev, helpMsg])
+      return
+    }
+
+    // Handoff command: /handoff @agentName — transfer conversation context to another agent
+    if (text.trim().toLowerCase().startsWith("/handoff ")) {
+      const targetName = text.slice(9).trim().replace(/^@/, "")
+      const targetAgent = dbAgents.find((a) => a.name.toLowerCase() === targetName.toLowerCase())
+      if (!targetAgent) {
+        const errMsg: DBMessage = { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: null, senderUserId: null, senderName: "System", senderAvatar: "⚠️", content: `Agent "${targetName}" not found. Use /handoff @AgentName`, messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+        setChannelMessages((prev) => [...prev, errMsg])
+        return
+      }
+      // Post handoff system message
+      const handoffMsg = await fetch("/api/messages", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ channelId: activeChannel, senderName: "System", senderAvatar: "🔄", content: `Conversation handed off to **${targetAgent.name}** (${targetAgent.role}). They'll take it from here.`, messageType: "status" }),
+      }).then((r) => r.json())
+      setChannelMessages((prev) => [...prev, handoffMsg])
+      // Trigger the target agent to respond with context
+      try {
+        const recentMsgs = channelMessages.slice(-5).map((m) => ({ name: m.senderName, content: m.content }))
+        const res = await fetch("/api/agent-converse", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: targetAgent.id, teamId: activeChannelData?.teamId, channelName: activeChannelData?.name, recentMessages: recentMsgs }),
+        }).then((r) => r.json())
+        if (res.text) {
+          const agentMsg = await fetch("/api/messages", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ channelId: activeChannel, senderAgentId: targetAgent.id, senderName: targetAgent.name, senderAvatar: targetAgent.avatar, content: res.text, messageType: "text" }),
+          }).then((r) => r.json())
+          setChannelMessages((prev) => [...prev, agentMsg])
+        }
+      } catch { /* silent */ }
       return
     }
 
@@ -954,7 +1036,7 @@ export default function ChatPage() {
                 const isActive = activeChannel === channel.id && !dmAgent
                 const hasUnread = unreadCounts[channel.id] > 0 && !isActive
                 return (
-                  <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null); setActiveThread(null) }} className={cn(
+                  <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null); setActiveThread(null); setSavedItemsView(false) }} className={cn(
                     "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors group",
                     isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
                   )}>
@@ -969,6 +1051,23 @@ export default function ChatPage() {
                 )
               })}
             </div>
+          </div>
+
+          {/* Saved Items */}
+          <div className="px-3 mt-4">
+            <button
+              onClick={() => { setSavedItemsView(true); setDmAgent(null); setActiveThread(null) }}
+              className={cn(
+                "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
+                savedItemsView ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+              )}
+            >
+              <Bookmark className="h-4 w-4 opacity-50" />
+              <span className="flex-1 text-left">Saved Items</span>
+              {bookmarks.length > 0 && (
+                <span className="text-[10px] text-muted-foreground tabular-nums">{bookmarks.length}</span>
+              )}
+            </button>
           </div>
 
           {/* DMs — sorted by status: working > idle > paused */}
@@ -987,9 +1086,10 @@ export default function ChatPage() {
                     isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
                     !isOnline && !isActive && "opacity-50"
                   )}>
-                    <button onClick={() => setDmAgent(agent)} className="flex items-center gap-2 flex-1 min-w-0">
+                    <button onClick={() => { setDmAgent(agent); setSavedItemsView(false) }} className="flex items-center gap-2 flex-1 min-w-0">
                       <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm shrink-0" />
                       <span className="truncate flex-1 text-left">{agent.name}</span>
+                      {(() => { const m = getMood({ streak: agent.streak ?? 0, tasksCompleted: agent.tasksCompleted ?? 0, status: agent.status }); return m !== "neutral" ? <span className="text-sm shrink-0">{MOOD_EMOJI[m]}</span> : null })()}
                     </button>
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                     <div className="hidden group-hover/agent:flex items-center gap-0.5 shrink-0">
@@ -1018,7 +1118,72 @@ export default function ChatPage() {
       </div>
 
       {/* Main */}
-      {dmAgent ? <DMChat agent={dmAgent} /> : (
+      {savedItemsView ? (
+        <div className="flex-1 flex flex-col min-w-0 min-h-0">
+          <div className="flex items-center h-12 px-4 border-b border-border shrink-0">
+            <Bookmark className="h-4 w-4 text-amber-400 mr-2" />
+            <span className="text-[13px] font-medium text-foreground">Saved Items</span>
+            <span className="mx-2 text-border">|</span>
+            <span className="text-xs text-muted-foreground">{bookmarks.length} saved</span>
+            <div className="ml-auto">
+              <button onClick={() => setSavedItemsView(false)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors">
+                <X className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
+            </div>
+          </div>
+          <div className="flex-1 overflow-y-auto min-h-0">
+            {bookmarks.length === 0 ? (
+              <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
+                <Bookmark className="h-8 w-8 mb-3 opacity-30" />
+                <p className="text-sm font-medium">No saved messages</p>
+                <p className="text-xs mt-1">Bookmark messages to find them here later.</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border">
+                {[...bookmarks].reverse().map((b) => {
+                  const channelData = dbChannels.find((c) => c.id === b.channelId)
+                  return (
+                    <div key={b.messageId} className="px-4 py-3 hover:bg-accent/30 transition-colors">
+                      <div className="flex items-center justify-between gap-2">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span className="text-[13px] font-semibold truncate">{b.senderName}</span>
+                          <span className="text-xs text-muted-foreground">in #{channelData?.name ?? "unknown"}</span>
+                        </div>
+                        <span className="text-[10px] text-muted-foreground shrink-0">{new Date(b.savedAt).toLocaleDateString()}</span>
+                      </div>
+                      <p className="text-[13px] text-foreground/85 mt-1 line-clamp-2">{b.content}</p>
+                      <div className="flex items-center gap-3 mt-2">
+                        <button
+                          onClick={() => {
+                            setSavedItemsView(false)
+                            setActiveChannel(b.channelId)
+                            setDmAgent(null)
+                            setActiveThread(null)
+                            setTimeout(() => {
+                              const el = document.querySelector(`[data-message-id="${b.messageId}"]`)
+                              if (el) {
+                                el.scrollIntoView({ behavior: "smooth", block: "center" })
+                                el.classList.add("bg-primary/10")
+                                setTimeout(() => el.classList.remove("bg-primary/10"), 2000)
+                              }
+                            }, 300)
+                          }}
+                          className="text-[11px] text-primary hover:underline font-medium"
+                        >
+                          Jump to message
+                        </button>
+                        <button onClick={() => removeBookmark(b.messageId)} className="text-[11px] text-muted-foreground hover:text-destructive">
+                          Remove
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
+          </div>
+        </div>
+      ) : dmAgent ? <DMChat agent={dmAgent} /> : (
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Channel header */}
           <div className="flex items-center h-12 px-4 border-b border-border shrink-0">
@@ -1140,7 +1305,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} />
                         </div>
                       )
                     })
