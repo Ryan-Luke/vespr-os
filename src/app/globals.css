@@ -67,12 +67,12 @@
   --border: oklch(0.922 0 0);
   --input: oklch(0.922 0 0);
   --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
+  --chart-1: oklch(0.646 0.222 264);
+  --chart-2: oklch(0.6 0.2 160);
+  --chart-3: oklch(0.7 0.18 80);
+  --chart-4: oklch(0.65 0.2 330);
+  --chart-5: oklch(0.55 0.2 200);
+  --radius: 0.75rem;
   --sidebar: oklch(0.985 0 0);
   --sidebar-foreground: oklch(0.145 0 0);
   --sidebar-primary: oklch(0.205 0 0);
@@ -84,37 +84,57 @@
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+  /* Premium deep dark — not pure black, rich and warm */
+  --background: oklch(0.115 0.008 270);
+  --foreground: oklch(0.95 0.005 270);
+
+  /* Glass-morphism cards — slightly lighter than bg, semi-transparent feel */
+  --card: oklch(0.16 0.01 270);
+  --card-foreground: oklch(0.95 0.005 270);
+  --popover: oklch(0.17 0.012 270);
+  --popover-foreground: oklch(0.95 0.005 270);
+
+  /* Primary — vibrant purple-blue gradient accent */
+  --primary: oklch(0.65 0.25 270);
+  --primary-foreground: oklch(0.98 0 0);
+
+  /* Secondary — subtle elevated surfaces */
+  --secondary: oklch(0.2 0.015 270);
+  --secondary-foreground: oklch(0.9 0.005 270);
+
+  /* Muted — for backgrounds and disabled states */
+  --muted: oklch(0.19 0.01 270);
+  --muted-foreground: oklch(0.55 0.02 270);
+
+  /* Accent — hover/focus states */
+  --accent: oklch(0.22 0.02 270);
+  --accent-foreground: oklch(0.95 0.005 270);
+
+  --destructive: oklch(0.65 0.22 25);
+
+  /* Borders — very subtle, glass-like */
+  --border: oklch(1 0 0 / 8%);
+  --input: oklch(1 0 0 / 10%);
+  --ring: oklch(0.65 0.25 270);
+
+  /* Charts — vibrant gradient palette */
+  --chart-1: oklch(0.7 0.25 270);
+  --chart-2: oklch(0.65 0.22 170);
+  --chart-3: oklch(0.72 0.2 80);
+  --chart-4: oklch(0.68 0.22 330);
+  --chart-5: oklch(0.6 0.2 200);
+
+  --radius: 0.75rem;
+
+  /* Sidebar — slightly darker than main bg */
+  --sidebar: oklch(0.1 0.008 270);
+  --sidebar-foreground: oklch(0.9 0.005 270);
+  --sidebar-primary: oklch(0.65 0.25 270);
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.18 0.015 270);
+  --sidebar-accent-foreground: oklch(0.95 0.005 270);
+  --sidebar-border: oklch(1 0 0 / 6%);
+  --sidebar-ring: oklch(0.65 0.25 270);
 }
 
 @layer base {
@@ -127,4 +147,97 @@
   html {
     @apply font-sans;
   }
+}
+
+/* ── Premium Design System ──────────────────────────────── */
+
+/* Glass-morphism card effect */
+.dark [data-slot="card"],
+.dark .glass-card {
+  background: oklch(0.16 0.01 270 / 60%);
+  backdrop-filter: blur(12px);
+  border: 1px solid oklch(1 0 0 / 6%);
+}
+
+/* Glow effect on primary elements */
+.dark .glow-primary {
+  box-shadow: 0 0 20px oklch(0.65 0.25 270 / 20%), 0 0 60px oklch(0.65 0.25 270 / 5%);
+}
+
+.dark .glow-green {
+  box-shadow: 0 0 20px oklch(0.65 0.22 155 / 20%);
+}
+
+.dark .glow-amber {
+  box-shadow: 0 0 20px oklch(0.7 0.18 80 / 20%);
+}
+
+/* Gradient text */
+.gradient-text {
+  background: linear-gradient(135deg, oklch(0.75 0.2 270), oklch(0.7 0.22 300));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Gradient background accents */
+.gradient-bg-primary {
+  background: linear-gradient(135deg, oklch(0.65 0.25 270), oklch(0.6 0.22 300));
+}
+
+.gradient-bg-success {
+  background: linear-gradient(135deg, oklch(0.6 0.2 155), oklch(0.55 0.18 180));
+}
+
+/* Subtle animated gradient background for hero sections */
+.gradient-mesh {
+  background:
+    radial-gradient(ellipse at 20% 50%, oklch(0.65 0.25 270 / 8%) 0%, transparent 50%),
+    radial-gradient(ellipse at 80% 20%, oklch(0.6 0.22 300 / 6%) 0%, transparent 50%),
+    radial-gradient(ellipse at 50% 80%, oklch(0.65 0.22 170 / 4%) 0%, transparent 50%);
+}
+
+/* Premium scrollbar */
+.dark ::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.dark ::-webkit-scrollbar-track {
+  background: transparent;
+}
+.dark ::-webkit-scrollbar-thumb {
+  background: oklch(1 0 0 / 10%);
+  border-radius: 3px;
+}
+.dark ::-webkit-scrollbar-thumb:hover {
+  background: oklch(1 0 0 / 18%);
+}
+
+/* Smooth transitions on interactive elements */
+.dark button,
+.dark a,
+.dark [role="button"] {
+  transition: all 0.15s ease;
+}
+
+/* Badge glow on hover */
+.dark [data-slot="badge"]:hover {
+  filter: brightness(1.1);
+}
+
+/* Premium input focus */
+.dark input:focus,
+.dark textarea:focus {
+  box-shadow: 0 0 0 2px oklch(0.65 0.25 270 / 20%);
+}
+
+/* KPI card number styling */
+.dark .kpi-value {
+  font-feature-settings: "tnum";
+  letter-spacing: -0.02em;
+}
+
+/* Progress bar glow */
+.dark [data-slot="progress"] [data-slot="indicator"] {
+  box-shadow: 0 0 8px oklch(0.65 0.25 270 / 40%);
 }

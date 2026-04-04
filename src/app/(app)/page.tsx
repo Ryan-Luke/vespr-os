@@ -642,15 +642,15 @@ export default function ChatPage() {
   // No workspace — redirect to onboarding
   if (dbAgents.length === 0 && dbChannels.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full">
+      <div className="flex items-center justify-center h-full gradient-mesh">
         <div className="text-center space-y-4 max-w-md">
-          <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-            <Bot className="h-8 w-8 text-primary" />
+          <div className="h-16 w-16 rounded-2xl gradient-bg-primary flex items-center justify-center mx-auto glow-primary">
+            <Bot className="h-8 w-8 text-white" />
           </div>
-          <h2 className="text-xl font-bold">Welcome to Business OS</h2>
+          <h2 className="text-2xl font-bold gradient-text">Welcome to Business OS</h2>
           <p className="text-muted-foreground">You don't have a team yet. Let's set up your AI workforce.</p>
           <Link href="/onboarding">
-            <Button size="lg" className="mt-2">Get Started</Button>
+            <Button size="lg" className="mt-2 gradient-bg-primary text-white border-0 glow-primary">Get Started</Button>
           </Link>
         </div>
       </div>
@@ -660,9 +660,9 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <div className="w-56 border-r border-border flex flex-col bg-card/50 shrink-0">
+      <div className="w-56 border-r border-border flex flex-col bg-sidebar shrink-0">
         <div className="p-3 border-b border-border">
-          <h2 className="font-bold text-sm">Business OS</h2>
+          <h2 className="font-bold text-sm gradient-text">Business OS</h2>
           <p className="text-xs text-muted-foreground">{dbAgents.length} agents online</p>
         </div>
         <div className="flex-1 overflow-y-auto">

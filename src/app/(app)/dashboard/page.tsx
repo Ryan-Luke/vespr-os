@@ -61,24 +61,26 @@ export default async function DashboardPage() {
       <MorningCheckin />
 
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
+        <h1 className="text-2xl font-bold tracking-tight">Dashboard</h1>
         <p className="text-sm text-muted-foreground">Your AI workforce at a glance</p>
       </div>
 
       <ApprovalQueue />
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        {kpis.map((kpi) => (
-          <Card key={kpi.label}>
+        {kpis.map((kpi, i) => (
+          <Card key={kpi.label} className={i === 0 ? "glow-primary" : ""}>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium text-muted-foreground">{kpi.label}</CardTitle>
-              <TrendingUp className="h-4 w-4 text-muted-foreground" />
+              <div className={`h-8 w-8 rounded-lg flex items-center justify-center ${i === 0 ? "gradient-bg-primary" : i === 1 ? "gradient-bg-success" : "bg-muted"}`}>
+                <TrendingUp className="h-4 w-4 text-white" />
+              </div>
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{kpi.value}</div>
-              <div className="flex items-center gap-1 mt-1">
-                {kpi.change > 0 ? <ArrowUpRight className="h-3 w-3 text-green-500" /> : kpi.change < 0 ? <ArrowDownRight className="h-3 w-3 text-green-500" /> : null}
-                <span className={`text-xs ${kpi.change !== 0 ? "text-green-500" : "text-muted-foreground"}`}>
+              <div className="text-3xl font-bold tracking-tight kpi-value">{kpi.value}</div>
+              <div className="flex items-center gap-1 mt-1.5">
+                {kpi.change > 0 ? <ArrowUpRight className="h-3 w-3 text-green-400" /> : kpi.change < 0 ? <ArrowDownRight className="h-3 w-3 text-green-400" /> : null}
+                <span className={`text-xs ${kpi.change !== 0 ? "text-green-400" : "text-muted-foreground"}`}>
                   {kpi.change !== 0 && `${Math.abs(kpi.change)}%`} {kpi.changeLabel}
                 </span>
               </div>

@@ -133,7 +133,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   const sidebarContent = (
     <aside
       className={cn(
-        "flex flex-col border-r border-border bg-card h-full transition-all duration-200",
+        "flex flex-col border-r border-border bg-sidebar h-full transition-all duration-200",
         // On mobile the sidebar is always full-width inside its overlay
         "max-md:w-64",
         // On desktop use collapsed state
