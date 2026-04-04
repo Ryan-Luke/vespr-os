@@ -14,7 +14,7 @@ import type { AgentStatus } from "@/lib/types"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -286,6 +286,9 @@ export default function ChatPage() {
   const [showEmojiInput, setShowEmojiInput] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const [chatSearch, setChatSearch] = useState("")
+  const [chatSearchOpen, setChatSearchOpen] = useState(false)
+  const [showShortcuts, setShowShortcuts] = useState(false)
   const [activeThread, setActiveThread] = useState<string | null>(null) // parent message ID
   const [threadMessages, setThreadMessages] = useState<DBMessage[]>([])
   const [threadInput, setThreadInput] = useState("")
@@ -301,6 +304,17 @@ export default function ChatPage() {
       if (data.channels.length > 0) setActiveChannel(data.channels[0].id)
       setDataLoaded(true)
     })
+  }, [])
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "/" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setShowShortcuts((s) => !s) }
+      if (e.key === "Escape") { setActiveThread(null); setChatSearchOpen(false); setChatSearch(""); setShowShortcuts(false); setShowMembers(false) }
+      if (e.key === "f" && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); setChatSearchOpen(true) }
+    }
+    window.addEventListener("keydown", handleKey)
+    return () => window.removeEventListener("keydown", handleKey)
   }, [])
 
   // Fetch unread counts and poll
@@ -715,6 +729,21 @@ export default function ChatPage() {
                   </span>
                 )
               })()}
+              {chatSearchOpen ? (
+                <div className="flex items-center gap-1">
+                  <input
+                    autoFocus
+                    placeholder="Search messages..."
+                    value={chatSearch}
+                    onChange={(e) => setChatSearch(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Escape") { setChatSearch(""); setChatSearchOpen(false) } }}
+                    className="h-7 w-40 rounded-md border border-border bg-card px-2 text-xs outline-none focus:ring-1 focus:ring-primary/50"
+                  />
+                  <button onClick={() => { setChatSearch(""); setChatSearchOpen(false) }} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                </div>
+              ) : (
+                <button onClick={() => setChatSearchOpen(true)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Search messages"><Search className="h-3.5 w-3.5 text-muted-foreground" /></button>
+              )}
               <Button variant={autonomousMode ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1.5" onClick={() => setAutonomousMode(!autonomousMode)}>
                 {autonomousMode ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                 {autonomousMode ? "Pause Agents" : "Run Autonomous"}
@@ -756,7 +785,7 @@ export default function ChatPage() {
               ) : (
                 <div className="space-y-1">
                   {(() => {
-                    const topLevel = channelMessages.filter((m) => !m.threadId)
+                    const topLevel = channelMessages.filter((m) => !m.threadId && (!chatSearch || m.content.toLowerCase().includes(chatSearch.toLowerCase()) || m.senderName.toLowerCase().includes(chatSearch.toLowerCase())))
                     let lastDate = ""
                     return topLevel.map((msg) => {
                       const msgDate = new Date(msg.createdAt)
@@ -934,6 +963,34 @@ export default function ChatPage() {
                 </div>
               )
             })()}
+          </div>
+        </div>
+      )}
+
+      {/* Keyboard Shortcuts Overlay */}
+      {showShortcuts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowShortcuts(false)}>
+          <div className="bg-card border border-border rounded-xl p-6 w-80 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="font-bold text-sm">Keyboard Shortcuts</h3>
+              <button onClick={() => setShowShortcuts(false)} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-4 w-4" /></button>
+            </div>
+            <div className="space-y-2 text-sm">
+              {[
+                ["Cmd + K", "Global search"],
+                ["Cmd + F", "Search messages"],
+                ["Cmd + /", "Toggle shortcuts"],
+                ["@", "Mention an agent"],
+                ["Shift + Enter", "New line"],
+                ["Enter", "Send message"],
+                ["Escape", "Close panels"],
+              ].map(([key, desc]) => (
+                <div key={key} className="flex items-center justify-between">
+                  <span className="text-muted-foreground">{desc}</span>
+                  <kbd className="px-1.5 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs border border-border">{key}</kbd>
+                </div>
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -186,6 +186,26 @@ async function seed() {
     { name: "Customer Feedback Analysis", description: "Analyzes new reviews and support tickets for sentiment trends", schedule: "0 6 * * *", status: "paused", managedByAgentId: agent("Nyx").id, runCount: 89 },
   ])
 
+  // Insert activity log entries (makes dashboard feed look alive)
+  const now = Date.now()
+  await db.insert(schema.activityLog).values([
+    { agentId: agent("Maya").id, agentName: "Maya", action: "completed_task", description: "Published blog post: 'AI in Small Business Operations'", createdAt: new Date(now - 5 * 60000) },
+    { agentId: agent("Jordan").id, agentName: "Jordan", action: "completed_task", description: "Found 23 new prospects in fintech vertical — all Series A-C", createdAt: new Date(now - 15 * 60000) },
+    { agentId: agent("Morgan").id, agentName: "Morgan", action: "flagged", description: "Blocked: Missing March bank statement for Q1 P&L report", createdAt: new Date(now - 30 * 60000) },
+    { agentId: agent("Casey").id, agentName: "Casey", action: "completed_task", description: "Resolved 12 support tickets — avg response time 1.2 hrs", createdAt: new Date(now - 45 * 60000) },
+    { agentId: agent("Zara").id, agentName: "Zara", action: "completed_task", description: "Scheduled 15 social posts for Instagram & LinkedIn", createdAt: new Date(now - 60 * 60000) },
+    { agentId: agent("Sam").id, agentName: "Sam", action: "completed_task", description: "Synced 47 contacts to GHL CRM with full enrichment", createdAt: new Date(now - 2 * 3600000) },
+    { agentId: agent("Nyx").id, agentName: "Nyx", action: "completed_task", description: "Processed 8 invoices — total value $23,450", createdAt: new Date(now - 2.5 * 3600000) },
+    { agentId: agent("Drew").id, agentName: "Drew", action: "flagged", description: "Flagged shipping delay: Order #ORD-8834, FedEx weather issue", createdAt: new Date(now - 3 * 3600000) },
+    { agentId: agent("Riley").id, agentName: "Riley", action: "completed_task", description: "Sent 34 outreach emails — 42% open rate, 3 replies", createdAt: new Date(now - 4 * 3600000) },
+    { agentId: agent("Finley").id, agentName: "Finley", action: "completed_task", description: "Reconciled 156 transactions from March bank statement (partial)", createdAt: new Date(now - 5 * 3600000) },
+    { agentId: agent("Alex").id, agentName: "Alex", action: "completed_task", description: "SEO audit complete — found 8 keyword gaps vs competitors", createdAt: new Date(now - 6 * 3600000) },
+    { agentId: agent("Quinn").id, agentName: "Quinn", action: "created_sop", description: "Created SOP: Invoice Processing Workflow v1", createdAt: new Date(now - 7 * 3600000) },
+    { agentId: chiefOfStaff.id, agentName: "Nova", action: "sent_message", description: "Posted morning sync in #team-leaders — all leads checked in", createdAt: new Date(now - 8 * 3600000) },
+    { agentId: agent("Maya").id, agentName: "Maya", action: "updated_knowledge", description: "Updated knowledge base: Section 8 Real Estate ICP & Positioning", createdAt: new Date(now - 9 * 3600000) },
+    { agentId: agent("Jordan").id, agentName: "Jordan", action: "completed_task", description: "Booked 2 qualified calls at $140/call from Section 8 ads", createdAt: new Date(now - 10 * 3600000) },
+  ])
+
   console.log("Seed complete!")
   console.log(`  ${insertedAgents.length + 1} agents (+ Nova)`)
   console.log(`  ${insertedChannels.length} channels`)
