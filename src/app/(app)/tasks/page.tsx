@@ -244,6 +244,9 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
   const isLinkSource = linkingFrom === task.id
   const isHighlighted = highlightedIds.has(task.id)
 
+  const elapsed = timerData ? getElapsed(timerData) : 0
+  const assignedAgent = agent // alias for clarity in metadata row
+
   // Subtask state
   const [showAddSubtask, setShowAddSubtask] = useState(false)
   const [newSubtaskTitle, setNewSubtaskTitle] = useState("")
@@ -324,6 +327,23 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
             </button>
           </div>
           {task.description && <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>}
+          {/* Task metadata — time, agent, created */}
+          <div className="flex items-center gap-3 mt-1.5">
+            {elapsed > 0 && (
+              <span className={cn("text-[11px] tabular-nums flex items-center gap-1", isTimerRunning ? "text-emerald-400" : "text-muted-foreground")}>
+                <Clock className="h-3 w-3" />
+                {formatTime(elapsed)}
+              </span>
+            )}
+            {assignedAgent && (
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1">
+                <PixelAvatar characterIndex={assignedAgent.pixelAvatarIndex} size={14} className="rounded-sm" />
+                {assignedAgent.name}
+              </span>
+            )}
+            {task.assignedToUser && <span className="text-[10px] text-amber-400 font-medium">You</span>}
+            <span className="text-[11px] text-muted-foreground/50">{new Date(task.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+          </div>
         </div>
       </div>
 
@@ -405,27 +425,13 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
 
       <div className="flex items-center justify-between mt-2 pl-3.5">
         <div className="flex items-center gap-2">
-          {agent && (
-            <div className="flex items-center gap-1">
-              <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={14} className="rounded-sm" />
-              <span className="text-[11px] text-muted-foreground">{agent.name}</span>
-            </div>
-          )}
-          {task.assignedToUser && <span className="text-[11px] text-amber-400 font-medium">You</span>}
           {task.linkedMessageIds.length > 0 && (
             <a href={`/?message=${task.linkedMessageIds[0]}`} onClick={(e) => e.stopPropagation()} className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors">
               <MessageSquare className="h-3 w-3" />
               <span>{task.linkedMessageIds.length}</span>
             </a>
           )}
-          {/* Timer display */}
-          {timerData && (timerData.totalSeconds > 0 || timerData.startedAt) && (
-            <div className="flex items-center gap-1">
-              {isTimerRunning && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
-              <Clock className="h-3 w-3 text-muted-foreground" />
-              <span className="text-[11px] text-muted-foreground tabular-nums">{formatTime(getElapsed(timerData))}</span>
-            </div>
-          )}
+          {isTimerRunning && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button disabled={colIndex <= 0} onClick={(e) => { e.stopPropagation(); colIndex > 0 && onMove(task.id, columns[colIndex - 1].id) }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
@@ -608,7 +614,7 @@ export default function TasksPage() {
   const [filterTeam, setFilterTeam] = useState<string | null>(null)
   const [filterAgent, setFilterAgent] = useState<string | null>(null)
   const [search, setSearch] = useState("")
-  const [showMyTasks, setShowMyTasks] = useState(true)
+  const [showMyTasks, setShowMyTasks] = useState(false)
   const [showNewTask, setShowNewTask] = useState(false)
   const [newTitle, setNewTitle] = useState("")
   const [newDesc, setNewDesc] = useState("")
@@ -898,115 +904,59 @@ export default function TasksPage() {
       </div>
 
       <div className="flex-1 overflow-y-auto">
-        {/* My Tasks */}
-        {unresolvedOwner.length > 0 && showMyTasks && (
-          <div className="px-6 py-4 border-b border-border">
-            <div className="flex items-center justify-between mb-3">
+        {/* My Tasks — Compact */}
+        {unresolvedOwner.length > 0 && (
+          <div className="px-6 py-2.5 border-b border-border">
+            <button
+              className="flex items-center justify-between w-full group"
+              onClick={() => setShowMyTasks(!showMyTasks)}
+            >
               <div className="flex items-center gap-2">
-                <span className="section-label">Assigned to You</span>
-                <span className="h-[18px] min-w-[18px] rounded-full bg-red-500 px-1 text-[10px] font-medium text-white flex items-center justify-center">{unresolvedOwner.length}</span>
+                <Bell className="h-3 w-3 text-amber-400" />
+                <span className="text-[13px] font-medium">Your Tasks</span>
+                <span className="h-[18px] min-w-[18px] rounded-full bg-amber-500 px-1 text-[10px] font-medium text-white flex items-center justify-center">{unresolvedOwner.length}</span>
               </div>
-              <button className="text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowMyTasks(false)}>Hide</button>
-            </div>
-
-            {/* Progress bar */}
-            <div className="mb-3">
-              <div className="flex items-center justify-between mb-1">
-                <span className="text-[11px] text-muted-foreground">
-                  {myTasks.filter((t) => t.resolved).length} of {myTasks.length} tasks done
-                </span>
-                <span className="text-[11px] text-muted-foreground tabular-nums">
-                  {Math.round((myTasks.filter((t) => t.resolved).length / myTasks.length) * 100)}%
-                </span>
-              </div>
-              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-green-500 rounded-full transition-all duration-300"
-                  style={{ width: `${(myTasks.filter((t) => t.resolved).length / myTasks.length) * 100}%` }}
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              {myTasks.filter((t) => !t.resolved).map((task) => {
-                const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
-                const steps = task.instructions ? task.instructions.split("\n").filter((s) => s.trim()) : []
-                return (
-                  <div key={task.id} className="bg-card border border-border rounded-md p-4 border-l-2 border-l-amber-500">
-                    <div className="flex items-start gap-2.5">
-                      {reqAgent && <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={28} className="rounded-sm shrink-0 mt-0.5" />}
-                      <div className="flex-1 min-w-0">
-                        {/* Title row with priority dot */}
-                        <div className="flex items-center gap-2">
-                          <span className="text-[13px] font-medium">{task.title}</span>
-                          <span className={cn("h-2 w-2 rounded-full shrink-0", priorityDots[task.priority] || "bg-zinc-500")} title={task.priority} />
-                          <span className={cn("text-[10px] font-medium uppercase tracking-wide", priorityColors[task.priority] || "text-muted-foreground")}>{task.priority}</span>
-                        </div>
-                        <p className="text-[11px] text-muted-foreground mt-0.5">
-                          From {task.requestedBy}{reqAgent ? ` (${dbAgents.find((a) => a.name === task.requestedBy)?.role || ""})` : ""}
-                        </p>
-
-                        {/* WHY section */}
-                        <div className="mt-2.5 bg-amber-500/5 border border-amber-500/10 rounded px-3 py-2">
-                          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-0.5">Why this needs you</p>
-                          <p className="text-xs text-foreground/80">{task.description}</p>
-                        </div>
-
-                        {/* Step-by-step instructions */}
-                        {steps.length > 0 && (
-                          <div className="mt-2.5">
-                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Steps</p>
-                            <ol className="space-y-1">
-                              {steps.map((step, i) => {
-                                const stepText = step.replace(/^\d+\.\s*/, "")
-                                return (
-                                  <li key={i} className="flex items-start gap-2">
-                                    <span className="h-5 w-5 rounded-full bg-muted text-[11px] font-medium flex items-center justify-center shrink-0 mt-px">{i + 1}</span>
-                                    <span className="text-xs text-foreground/80 leading-relaxed pt-0.5">{stepText}</span>
-                                  </li>
-                                )
-                              })}
-                            </ol>
-                          </div>
-                        )}
-
-                        {/* Resource links */}
-                        {task.resources && task.resources.length > 0 && (
-                          <div className="flex flex-wrap gap-1.5 mt-2.5">
-                            {task.resources.map((res, i) => (
-                              <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-primary/5 rounded-md px-2 py-1 transition-colors">
-                                <ExternalLink className="h-3 w-3 shrink-0" />
-                                {res.label}
-                              </a>
-                            ))}
-                          </div>
-                        )}
-
-                        {/* Action buttons */}
-                        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border">
-                          <button onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))} className="h-7 px-3 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5">
-                            <Check className="h-3 w-3" />Mark Done
-                          </button>
-                          {reqAgent && (
-                            <a href={`/?dm=${reqAgent.id}`} className="h-7 px-3 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex items-center gap-1.5">
-                              <MessageSquare className="h-3 w-3" />Ask {task.requestedBy}
-                            </a>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                )
-              })}
-            </div>
-          </div>
-        )}
-
-        {!showMyTasks && unresolvedOwner.length > 0 && (
-          <div className="px-6 py-2 border-b border-border">
-            <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1" onClick={() => setShowMyTasks(true)}>
-              <Bell className="h-3 w-3 text-red-400" />{unresolvedOwner.length} tasks assigned to you
+              <ChevronDown className={cn("h-3.5 w-3.5 text-muted-foreground transition-transform", showMyTasks && "rotate-180")} />
             </button>
+
+            {showMyTasks && (
+              <div className="mt-2 space-y-1">
+                {/* Compact progress */}
+                <div className="flex items-center gap-2 mb-2">
+                  <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(myTasks.filter((t) => t.resolved).length / myTasks.length) * 100}%` }} />
+                  </div>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">{myTasks.filter((t) => t.resolved).length}/{myTasks.length}</span>
+                </div>
+
+                {myTasks.filter((t) => !t.resolved).map((task) => {
+                  const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
+                  return (
+                    <div key={task.id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-accent/50 transition-colors border-l-2 border-l-amber-500">
+                      <button
+                        onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))}
+                        className="h-4 w-4 rounded border border-border hover:border-amber-400 shrink-0 flex items-center justify-center transition-colors"
+                      >
+                        <Check className="h-2.5 w-2.5 text-transparent hover:text-amber-400" />
+                      </button>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-medium truncate">{task.title}</span>
+                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-orange-500" : task.priority === "medium" ? "bg-blue-500" : "bg-zinc-500")} />
+                        </div>
+                        <p className="text-[11px] text-muted-foreground truncate">{task.description}</p>
+                      </div>
+                      {reqAgent && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={16} className="rounded-sm" />
+                          <span className="text-[11px] text-muted-foreground">{task.requestedBy}</span>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         )}
 
