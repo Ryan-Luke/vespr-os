@@ -21,6 +21,7 @@ import {
   X,
   Shield,
   Bell,
+  TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ const navItems = [
   { href: "/knowledge", label: "Knowledge", icon: Brain },
   { href: "/automations", label: "Automations", icon: Zap },
   { href: "/decisions", label: "Decision Log", icon: Shield },
+  { href: "/timeline", label: "Timeline", icon: TrendingUp },
   { href: "/integrations", label: "Integrations", icon: Plug },
   { href: "/builder", label: "Hire Agent", icon: PlusCircle },
   { href: "/settings", label: "Settings", icon: Settings },
