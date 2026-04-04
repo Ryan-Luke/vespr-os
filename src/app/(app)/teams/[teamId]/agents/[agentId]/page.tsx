@@ -4,7 +4,7 @@ import { useState, useEffect, use } from "react"
 import {} from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits } from "@/lib/personality-presets"
+import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits, type CustomPersonalityConfig, TEMPERAMENT_OPTIONS, SOCIAL_OPTIONS, HUMOR_OPTIONS, ENERGY_OPTIONS, QUIRK_OPTIONS } from "@/lib/personality-presets"
 import { levelProgress, levelTitle, xpForLevel } from "@/lib/gamification"
 import { getMood, MOOD_EMOJI, MOOD_LABEL, type AgentMood } from "@/lib/agent-mood"
 import {
@@ -40,7 +40,7 @@ interface DBAgent {
   id: string; name: string; role: string; avatar: string; pixelAvatarIndex: number
   provider: string; model: string; systemPrompt: string | null; status: string
   teamId: string | null; currentTask: string | null; skills: string[]
-  personalityPresetId: string | null; personality: PersonalityTraits
+  personalityPresetId: string | null; personality: PersonalityTraits; personalityConfig: CustomPersonalityConfig | null
   autonomyLevel: string; isTeamLead: boolean
   xp: number; level: number; streak: number
   tasksCompleted: number; costThisMonth: number
@@ -767,7 +767,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             { label: "Tasks", value: (agent.tasksCompleted ?? 0).toLocaleString() },
             { label: "Cost/mo", value: `$${(agent.costThisMonth ?? 0).toFixed(2)}` },
             { label: "Feedback", value: feedback ? `${feedback.positive}/${feedback.total}` : "—" },
-            { label: "Streak", value: (agent.streak ?? 0) > 0 ? `${agent.streak}d` : "—" },
+            { label: "Streak", value: (agent.streak ?? 0) > 0 ? `🔥 ${agent.streak}d` : "—" },
           ].map((s) => (
             <div key={s.label} className="bg-card px-3 py-2.5">
               <p className="text-[11px] text-muted-foreground">{s.label}</p>
@@ -830,11 +830,19 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
         )}
 
         {milestones.length > 0 && (
-          <div className="flex items-center gap-3 flex-wrap">
-            <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Milestones</span>
-            {milestones.map((m) => (
-              <span key={m.id} className="text-xs text-muted-foreground">{m.icon} {m.name}</span>
-            ))}
+          <div>
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Milestones</span>
+              <span className="text-[11px] text-muted-foreground tabular-nums">{milestones.length}/11</span>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {milestones.map((m) => (
+                <div key={m.id} className="inline-flex items-center gap-1.5 bg-accent/60 border border-border rounded-lg px-2.5 py-1" title={`${m.description} — ${new Date(m.unlockedAt).toLocaleDateString()}`}>
+                  <span className="text-sm">{m.icon}</span>
+                  <span className="text-[11px] font-medium">{m.name}</span>
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
@@ -852,28 +860,104 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             {/* Personality */}
             <div>
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Personality</p>
-              {preset ? (
-                <div>
+              {preset && (
+                <div className="mb-3">
                   <p className="text-[13px] font-medium">{preset.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 italic">{preset.speechStyle}</p>
-                  <div className="grid grid-cols-2 gap-x-4 gap-y-1 mt-2">
-                    {(Object.entries(preset.traits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
-                      <div key={key} className="flex items-center gap-2">
-                        <span className="text-[11px] text-muted-foreground w-16">{TRAIT_LABELS[key].name}</span>
-                        <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
-                          <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
-                        </div>
-                      </div>
-                    ))}
-                  </div>
                 </div>
-              ) : agent.personality ? (
-                <div className="flex flex-wrap gap-1.5">
-                  {getTopTraits(agent.personality).map((trait) => (
-                    <span key={trait} className="text-xs text-muted-foreground">{trait}</span>
+              )}
+              {/* Trait bars */}
+              {agent.personality && (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3">
+                  {(Object.entries(agent.personality) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground w-16">{TRAIT_LABELS[key]?.name || key}</span>
+                      <div className="flex-1 h-1 rounded-full bg-border overflow-hidden">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
+                      </div>
+                    </div>
                   ))}
                 </div>
-              ) : (
+              )}
+              {/* Expanded personality tags */}
+              {agent.personalityConfig && (() => {
+                const pc = agent.personalityConfig
+                return (
+                  <div className="space-y-2.5 mt-3">
+                    {/* Temperament */}
+                    {pc.temperament?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Temperament</p>
+                        <div className="flex flex-wrap gap-1">
+                          {pc.temperament.map((t) => {
+                            const opt = TEMPERAMENT_OPTIONS.find((o) => o.id === t)
+                            return <span key={t} className="inline-flex items-center gap-1 text-xs bg-orange-500/10 text-orange-300 border border-orange-500/20 rounded-full px-2 py-0.5">{opt?.emoji} {opt?.label || t}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Social */}
+                    {pc.social?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Social Style</p>
+                        <div className="flex flex-wrap gap-1">
+                          {pc.social.map((s) => {
+                            const opt = SOCIAL_OPTIONS.find((o) => o.id === s)
+                            return <span key={s} className="inline-flex items-center gap-1 text-xs bg-blue-500/10 text-blue-300 border border-blue-500/20 rounded-full px-2 py-0.5">{opt?.emoji} {opt?.label || s}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Humor + Energy */}
+                    <div className="flex gap-4">
+                      {pc.humor?.length > 0 && pc.humor[0] !== "none" && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Humor</p>
+                          <div className="flex flex-wrap gap-1">
+                            {pc.humor.map((h) => {
+                              const opt = HUMOR_OPTIONS.find((o) => o.id === h)
+                              return <span key={h} className="inline-flex items-center gap-1 text-xs bg-purple-500/10 text-purple-300 border border-purple-500/20 rounded-full px-2 py-0.5">{opt?.emoji} {opt?.label || h}</span>
+                            })}
+                          </div>
+                        </div>
+                      )}
+                      {pc.energy && (
+                        <div>
+                          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Energy</p>
+                          {(() => {
+                            const opt = ENERGY_OPTIONS.find((o) => o.id === pc.energy)
+                            return <span className="inline-flex items-center gap-1 text-xs bg-emerald-500/10 text-emerald-300 border border-emerald-500/20 rounded-full px-2 py-0.5">{opt?.emoji} {opt?.label || pc.energy}</span>
+                          })()}
+                        </div>
+                      )}
+                    </div>
+                    {/* Quirks */}
+                    {pc.quirks?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Quirks</p>
+                        <div className="flex flex-wrap gap-1">
+                          {pc.quirks.map((q) => {
+                            const opt = QUIRK_OPTIONS.find((o) => o.id === q)
+                            return <span key={q} className="inline-flex items-center gap-1 text-xs bg-muted/60 text-muted-foreground border border-border rounded-full px-2 py-0.5">{opt?.emoji} {opt?.label || q}</span>
+                          })}
+                        </div>
+                      </div>
+                    )}
+                    {/* Catchphrases */}
+                    {pc.catchphrases?.length > 0 && (
+                      <div>
+                        <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Signature Expressions</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {pc.catchphrases.map((c, i) => (
+                            <span key={i} className="text-xs italic text-foreground/70 bg-accent/50 rounded-md px-2 py-0.5">&ldquo;{c}&rdquo;</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )
+              })()}
+              {!agent.personality && !preset && !agent.personalityConfig && (
                 <p className="text-xs text-muted-foreground">Default</p>
               )}
             </div>

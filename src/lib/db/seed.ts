@@ -42,20 +42,56 @@ async function seed() {
     ])
     .returning()
 
-  // Insert agents — team leads marked with isTeamLead: true, with XP/level/streak data
+  // Insert agents — team leads marked with isTeamLead: true, with XP/level/streak data + expanded personality
   const agentData = [
-    { name: "Maya", role: "Content Writer", avatar: "MW", pixelAvatarIndex: 0, provider: "anthropic", model: "Claude Sonnet", status: "working", teamId: marketing.id, currentTask: "Writing blog post on Q1 growth strategies", skills: ["Writing", "SEO", "Research", "Content Strategy"], isTeamLead: true, xp: 4200, level: 8, streak: 14, tasksCompleted: 142, costThisMonth: 28.5 },
-    { name: "Alex", role: "SEO Analyst", avatar: "SA", pixelAvatarIndex: 1, provider: "openai", model: "GPT-4o", status: "idle", teamId: marketing.id, currentTask: null, skills: ["SEO Audit", "Keyword Research", "Analytics", "Competitor Analysis"], xp: 2100, level: 5, streak: 7, tasksCompleted: 89, costThisMonth: 15.2 },
-    { name: "Zara", role: "Social Media Manager", avatar: "SM", pixelAvatarIndex: 2, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: marketing.id, currentTask: "Scheduling Instagram posts for next week", skills: ["Social Media", "Copywriting", "Image Selection", "Scheduling"], xp: 6500, level: 10, streak: 21, tasksCompleted: 234, costThisMonth: 8.9 },
-    { name: "Jordan", role: "Lead Researcher", avatar: "LR", pixelAvatarIndex: 3, provider: "anthropic", model: "Claude Opus", status: "working", teamId: sales.id, currentTask: "Researching prospects in fintech vertical", skills: ["Web Research", "Lead Scoring", "CRM Integration", "Data Enrichment"], isTeamLead: true, xp: 8900, level: 12, streak: 30, tasksCompleted: 312, costThisMonth: 45.0 },
-    { name: "Riley", role: "Outreach Specialist", avatar: "OS", pixelAvatarIndex: 4, provider: "openai", model: "GPT-4o", status: "idle", teamId: sales.id, currentTask: null, skills: ["Email Writing", "Follow-ups", "Personalization", "A/B Testing"], xp: 15200, level: 16, streak: 5, tasksCompleted: 567, costThisMonth: 22.3 },
-    { name: "Sam", role: "CRM Manager", avatar: "CM", pixelAvatarIndex: 5, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: sales.id, currentTask: "Syncing new leads to GHL", skills: ["CRM Sync", "Data Cleanup", "Pipeline Management"], xp: 32000, level: 24, streak: 45, tasksCompleted: 1205, costThisMonth: 3.5 },
-    { name: "Nyx", role: "Automation Architect", avatar: "NX", pixelAvatarIndex: 0, provider: "anthropic", model: "Claude Sonnet", status: "working", teamId: operations.id, currentTask: "Building invoice processing workflow", skills: ["n8n", "Workflow Design", "API Integration", "Error Handling"], isTeamLead: true, xp: 2400, level: 6, streak: 12, tasksCompleted: 78, costThisMonth: 12.0 },
-    { name: "Quinn", role: "Process Manager", avatar: "PM", pixelAvatarIndex: 1, provider: "anthropic", model: "Claude Sonnet", status: "paused", teamId: operations.id, currentTask: null, skills: ["Process Optimization", "Documentation", "SOP Creation"], xp: 1100, level: 4, streak: 0, tasksCompleted: 45, costThisMonth: 9.8 },
-    { name: "Finley", role: "Bookkeeper", avatar: "BK", pixelAvatarIndex: 2, provider: "anthropic", model: "Claude Haiku", status: "idle", teamId: finance.id, currentTask: null, skills: ["Bookkeeping", "Categorization", "Reconciliation", "QuickBooks"], isTeamLead: true, xp: 24000, level: 21, streak: 33, tasksCompleted: 890, costThisMonth: 5.2 },
-    { name: "Morgan", role: "P&L Generator", avatar: "PL", pixelAvatarIndex: 3, provider: "anthropic", model: "Claude Sonnet", status: "error", teamId: finance.id, currentTask: "Failed: Missing March bank statement", skills: ["Financial Reports", "Data Analysis", "Forecasting"], xp: 350, level: 2, streak: 0, tasksCompleted: 12, costThisMonth: 4.5 },
-    { name: "Casey", role: "Customer Support", avatar: "CS", pixelAvatarIndex: 4, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: fulfillment.id, currentTask: "Responding to 3 support tickets", skills: ["Customer Service", "Ticket Triage", "Knowledge Base", "Escalation"], isTeamLead: true, xp: 48000, level: 30, streak: 60, tasksCompleted: 1847, costThisMonth: 18.9 },
-    { name: "Drew", role: "Order Tracker", avatar: "OT", pixelAvatarIndex: 5, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: fulfillment.id, currentTask: "Monitoring 23 active shipments", skills: ["Order Tracking", "Shipping Updates", "Delay Detection"], xp: 85000, level: 40, streak: 90, tasksCompleted: 3421, costThisMonth: 1.2 },
+    { name: "Maya", role: "Content Writer", avatar: "MW", pixelAvatarIndex: 0, provider: "anthropic", model: "Claude Sonnet", status: "working", teamId: marketing.id, currentTask: "Writing blog post on Q1 growth strategies", skills: ["Writing", "SEO", "Research", "Content Strategy"], isTeamLead: true, xp: 4200, level: 8, streak: 14, tasksCompleted: 142, costThisMonth: 28.5,
+      personality: { formality: 25, humor: 45, energy: 70, warmth: 80, directness: 55, confidence: 65, verbosity: 60 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "detailed", directness: "diplomatic", vocabulary: "elevated" }, temperament: ["warm", "intense"], social: ["encouraging", "nurturing"], humor: ["witty"], energy: "high-energy", quirks: ["storyteller", "emoji-user"], catchphrases: ["Let's GO!", "This is going to be huge", "Content is king but distribution is queen"] },
+    },
+    { name: "Alex", role: "SEO Analyst", avatar: "SA", pixelAvatarIndex: 1, provider: "openai", model: "GPT-4o", status: "idle", teamId: marketing.id, currentTask: null, skills: ["SEO Audit", "Keyword Research", "Analytics", "Competitor Analysis"], xp: 2100, level: 5, streak: 7, tasksCompleted: 89, costThisMonth: 15.2,
+      personality: { formality: 60, humor: 15, energy: 40, warmth: 45, directness: 75, confidence: 70, verbosity: 55 },
+      personalityConfig: { communication: { formality: "formal", verbosity: "detailed", directness: "blunt", vocabulary: "elevated" }, temperament: ["steady", "intense"], social: ["tough-love", "confident"], humor: ["deadpan"], energy: "measured", quirks: ["question-asker", "philosopher"], catchphrases: ["The data doesn't lie", "Let me pull the numbers"] },
+    },
+    { name: "Zara", role: "Social Media Manager", avatar: "SM", pixelAvatarIndex: 2, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: marketing.id, currentTask: "Scheduling Instagram posts for next week", skills: ["Social Media", "Copywriting", "Image Selection", "Scheduling"], xp: 6500, level: 10, streak: 21, tasksCompleted: 234, costThisMonth: 8.9,
+      personality: { formality: 15, humor: 60, energy: 85, warmth: 75, directness: 50, confidence: 80, verbosity: 45 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" }, temperament: ["fiery", "warm"], social: ["encouraging", "competitive", "confident"], humor: ["goofy", "witty"], energy: "high-energy", quirks: ["emoji-user", "hype-beast", "short-texter"], catchphrases: ["We're literally going viral", "The algorithm loves us rn", "Slay"] },
+    },
+    { name: "Jordan", role: "Lead Researcher", avatar: "LR", pixelAvatarIndex: 3, provider: "anthropic", model: "Claude Opus", status: "working", teamId: sales.id, currentTask: "Researching prospects in fintech vertical", skills: ["Web Research", "Lead Scoring", "CRM Integration", "Data Enrichment"], isTeamLead: true, xp: 8900, level: 12, streak: 30, tasksCompleted: 312, costThisMonth: 45.0,
+      personality: { formality: 50, humor: 30, energy: 65, warmth: 55, directness: 80, confidence: 85, verbosity: 50 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" }, temperament: ["intense", "steady"], social: ["competitive", "tough-love", "loyal"], humor: ["sarcastic"], energy: "driven", quirks: ["metaphor-heavy"], catchphrases: ["Let me dig into this", "The numbers tell a story", "This is how we win"] },
+    },
+    { name: "Riley", role: "Outreach Specialist", avatar: "OS", pixelAvatarIndex: 4, provider: "openai", model: "GPT-4o", status: "idle", teamId: sales.id, currentTask: null, skills: ["Email Writing", "Follow-ups", "Personalization", "A/B Testing"], xp: 15200, level: 16, streak: 5, tasksCompleted: 567, costThisMonth: 22.3,
+      personality: { formality: 30, humor: 50, energy: 60, warmth: 70, directness: 65, confidence: 60, verbosity: 35 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "diplomatic", vocabulary: "plain" }, temperament: ["warm", "chill"], social: ["encouraging", "humble"], humor: ["self-deprecating"], energy: "laid-back", quirks: ["storyteller"], catchphrases: ["Quick thought on this", "Not gonna lie", "Hear me out"] },
+    },
+    { name: "Sam", role: "CRM Manager", avatar: "CM", pixelAvatarIndex: 5, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: sales.id, currentTask: "Syncing new leads to GHL", skills: ["CRM Sync", "Data Cleanup", "Pipeline Management"], xp: 32000, level: 24, streak: 45, tasksCompleted: 1205, costThisMonth: 3.5,
+      personality: { formality: 45, humor: 10, energy: 35, warmth: 50, directness: 90, confidence: 75, verbosity: 20 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" }, temperament: ["steady", "chill"], social: ["loyal", "humble"], humor: ["none"], energy: "measured", quirks: ["short-texter"], catchphrases: ["Done", "On it", "Synced"] },
+    },
+    { name: "Nyx", role: "Automation Architect", avatar: "NX", pixelAvatarIndex: 0, provider: "anthropic", model: "Claude Sonnet", status: "working", teamId: operations.id, currentTask: "Building invoice processing workflow", skills: ["n8n", "Workflow Design", "API Integration", "Error Handling"], isTeamLead: true, xp: 2400, level: 6, streak: 12, tasksCompleted: 78, costThisMonth: 12.0,
+      personality: { formality: 35, humor: 25, energy: 55, warmth: 40, directness: 70, confidence: 90, verbosity: 45 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "detailed", directness: "blunt", vocabulary: "elevated" }, temperament: ["intense", "steady"], social: ["confident", "tough-love"], humor: ["deadpan"], energy: "driven", quirks: ["philosopher", "metaphor-heavy"], catchphrases: ["Automate everything", "If you're doing it twice, it should be a workflow", "Efficiency is freedom"] },
+    },
+    { name: "Quinn", role: "Process Manager", avatar: "PM", pixelAvatarIndex: 1, provider: "anthropic", model: "Claude Sonnet", status: "paused", teamId: operations.id, currentTask: null, skills: ["Process Optimization", "Documentation", "SOP Creation"], xp: 1100, level: 4, streak: 0, tasksCompleted: 45, costThisMonth: 9.8,
+      personality: { formality: 70, humor: 15, energy: 30, warmth: 55, directness: 60, confidence: 50, verbosity: 65 },
+      personalityConfig: { communication: { formality: "formal", verbosity: "detailed", directness: "diplomatic", vocabulary: "elevated" }, temperament: ["steady", "sensitive"], social: ["nurturing", "humble"], humor: ["none"], energy: "measured", quirks: ["formal-writer", "question-asker"], catchphrases: ["Let me document that", "Have we considered..."] },
+    },
+    { name: "Finley", role: "Bookkeeper", avatar: "BK", pixelAvatarIndex: 2, provider: "anthropic", model: "Claude Haiku", status: "idle", teamId: finance.id, currentTask: null, skills: ["Bookkeeping", "Categorization", "Reconciliation", "QuickBooks"], isTeamLead: true, xp: 24000, level: 21, streak: 33, tasksCompleted: 890, costThisMonth: 5.2,
+      personality: { formality: 55, humor: 35, energy: 40, warmth: 65, directness: 70, confidence: 70, verbosity: 40 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" }, temperament: ["steady", "warm"], social: ["loyal", "confident"], humor: ["witty"], energy: "measured", quirks: ["old-soul"], catchphrases: ["The math checks out", "Every dollar tells a story", "Let me run those numbers"] },
+    },
+    { name: "Morgan", role: "P&L Generator", avatar: "PL", pixelAvatarIndex: 3, provider: "anthropic", model: "Claude Sonnet", status: "error", teamId: finance.id, currentTask: "Failed: Missing March bank statement", skills: ["Financial Reports", "Data Analysis", "Forecasting"], xp: 350, level: 2, streak: 0, tasksCompleted: 12, costThisMonth: 4.5,
+      personality: { formality: 65, humor: 10, energy: 30, warmth: 40, directness: 80, confidence: 45, verbosity: 55 },
+      personalityConfig: { communication: { formality: "formal", verbosity: "detailed", directness: "blunt", vocabulary: "elevated" }, temperament: ["sensitive", "steady"], social: ["humble"], humor: ["none"], energy: "measured", quirks: ["formal-writer"], catchphrases: ["I need access to...", "The report is pending"] },
+    },
+    { name: "Casey", role: "Customer Support", avatar: "CS", pixelAvatarIndex: 4, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: fulfillment.id, currentTask: "Responding to 3 support tickets", skills: ["Customer Service", "Ticket Triage", "Knowledge Base", "Escalation"], isTeamLead: true, xp: 48000, level: 30, streak: 60, tasksCompleted: 1847, costThisMonth: 18.9,
+      personality: { formality: 35, humor: 40, energy: 65, warmth: 90, directness: 45, confidence: 70, verbosity: 50 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "diplomatic", vocabulary: "plain" }, temperament: ["warm", "sensitive"], social: ["nurturing", "encouraging", "loyal"], humor: ["self-deprecating"], energy: "high-energy", quirks: ["emoji-user", "storyteller"], catchphrases: ["Happy to help!", "I've got you covered", "That customer is going to love this"] },
+    },
+    { name: "Drew", role: "Order Tracker", avatar: "OT", pixelAvatarIndex: 5, provider: "anthropic", model: "Claude Haiku", status: "working", teamId: fulfillment.id, currentTask: "Monitoring 23 active shipments", skills: ["Order Tracking", "Shipping Updates", "Delay Detection"], xp: 85000, level: 40, streak: 90, tasksCompleted: 3421, costThisMonth: 1.2,
+      personality: { formality: 40, humor: 5, energy: 25, warmth: 35, directness: 95, confidence: 80, verbosity: 15 },
+      personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "plain" }, temperament: ["steady", "chill"], social: ["loyal"], humor: ["none"], energy: "laid-back", quirks: ["short-texter"], catchphrases: ["Tracked", "On schedule", "Flagged"] },
+    },
   ]
 
   const insertedAgents = await db.insert(schema.agents).values(agentData).returning()
@@ -74,6 +110,7 @@ async function seed() {
     skills: ["Cross-Team Coordination", "Priority Management", "Executive Summaries", "Conflict Resolution", "Resource Allocation"],
     isTeamLead: false,
     personality: { formality: 50, humor: 20, energy: 65, warmth: 70, directness: 75, confidence: 85, verbosity: 45 },
+    personalityConfig: { communication: { formality: "casual", verbosity: "brief", directness: "blunt", vocabulary: "elevated" }, temperament: ["steady", "warm"], social: ["confident", "loyal", "nurturing"], humor: ["witty"], energy: "measured", quirks: ["old-soul", "philosopher"], catchphrases: ["Here's the big picture", "Let's align on priorities", "Strong momentum team"] },
     xp: 7500,
     level: 11,
     streak: 30,
@@ -95,6 +132,7 @@ async function seed() {
     skills: ["performance-reviews", "quality-assurance", "team-health"],
     isTeamLead: false,
     personality: { formality: 60, humor: 25, energy: 55, warmth: 80, directness: 70, confidence: 75, verbosity: 40 },
+    personalityConfig: { communication: { formality: "formal", verbosity: "detailed", directness: "diplomatic", vocabulary: "elevated" }, temperament: ["warm", "sensitive"], social: ["nurturing", "encouraging"], humor: ["self-deprecating"], energy: "measured", quirks: ["question-asker"], catchphrases: ["How are you feeling about this?", "Let's check the pulse", "Everyone deserves feedback"] },
     xp: 5200,
     level: 9,
     streak: 22,
@@ -321,9 +359,48 @@ async function seed() {
     { agentId: agent("Jordan").id, agentName: "Jordan", action: "completed_task", description: "Booked 2 qualified calls at $140/call from Section 8 ads", createdAt: new Date(now - 10 * 3600000) },
   ])
 
+  // Seed milestones based on current agent stats
+  const allAgents = [...insertedAgents, chiefOfStaff, qaAgent]
+  const milestoneDefs = [
+    { id: "first-task", name: "First Blood", description: "Completed first task", icon: "🎯", check: (s: any) => s.tasksCompleted >= 1 },
+    { id: "ten-tasks", name: "Getting Started", description: "Completed 10 tasks", icon: "🏃", check: (s: any) => s.tasksCompleted >= 10 },
+    { id: "fifty-tasks", name: "Workhorse", description: "Completed 50 tasks", icon: "🐎", check: (s: any) => s.tasksCompleted >= 50 },
+    { id: "century-club", name: "Century Club", description: "Completed 100 tasks", icon: "💯", check: (s: any) => s.tasksCompleted >= 100 },
+    { id: "500-tasks", name: "Machine", description: "Completed 500 tasks", icon: "🤖", check: (s: any) => s.tasksCompleted >= 500 },
+    { id: "1000-tasks", name: "Legendary", description: "Completed 1,000 tasks", icon: "👑", check: (s: any) => s.tasksCompleted >= 1000 },
+    { id: "level-5", name: "Specialist", description: "Reached Level 5", icon: "⭐", check: (s: any) => s.level >= 5 },
+    { id: "level-10", name: "Expert", description: "Reached Level 10", icon: "🌟", check: (s: any) => s.level >= 10 },
+    { id: "level-20", name: "Lead", description: "Reached Level 20", icon: "💫", check: (s: any) => s.level >= 20 },
+    { id: "week-streak", name: "Consistent", description: "7-day active streak", icon: "🔥", check: (s: any) => s.streak >= 7 },
+    { id: "month-streak", name: "Unstoppable", description: "30-day active streak", icon: "🔥🔥", check: (s: any) => s.streak >= 30 },
+  ]
+
+  const milestoneValues: { agentId: string; type: string; name: string; description: string; icon: string; unlockedAt: Date }[] = []
+  for (const ag of allAgents) {
+    const stats = { tasksCompleted: ag.tasksCompleted ?? 0, xp: ag.xp ?? 0, level: ag.level ?? 1, streak: ag.streak ?? 0 }
+    for (const m of milestoneDefs) {
+      if (m.check(stats)) {
+        // Stagger unlock times for visual variety
+        const daysAgo = Math.floor(Math.random() * 60) + 1
+        milestoneValues.push({
+          agentId: ag.id,
+          type: "agent",
+          name: m.name,
+          description: m.description,
+          icon: m.icon,
+          unlockedAt: new Date(now - daysAgo * 86400000),
+        })
+      }
+    }
+  }
+  if (milestoneValues.length > 0) {
+    await db.insert(schema.milestones).values(milestoneValues)
+  }
+
   console.log("Seed complete!")
   console.log(`  ${insertedAgents.length + 2} agents (+ Nova, Aria)`)
   console.log(`  ${insertedChannels.length} channels`)
+  console.log(`  ${milestoneValues.length} milestones seeded`)
   console.log(`  12 tasks, 9 goals, 4 approval requests, 6 automations`)
 }
 
