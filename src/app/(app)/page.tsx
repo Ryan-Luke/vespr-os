@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Mic, MicOff, Pin, Code,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Mic, MicOff, Trophy, Coffee, Pin, Code,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -71,7 +71,9 @@ const EMOJI_FULL_LIST = [
   "🚚", "📦", "📸", "🤖", "🧠", "💬", "📋", "🗂️", "🔍", "💎",
 ]
 
-function channelIcon(type: string) {
+function channelIcon(type: string, name?: string) {
+  if (name === "wins") return <Trophy className="h-4 w-4" />
+  if (name === "watercooler") return <Coffee className="h-4 w-4" />
   switch (type) {
     case "team": return <Hash className="h-4 w-4" />
     case "agent": return <Bot className="h-4 w-4" />
@@ -867,6 +869,21 @@ export default function ChatPage() {
     }).then((r) => r.json())
     setChannelMessages((prev) => [...prev, userMsg])
 
+    // Auto-save watercooler content to company memory
+    if (activeChannelData?.name === "watercooler" && (text.includes("http") || text.length > 50)) {
+      fetch("/api/company-memory", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          category: text.includes("http") ? "lesson" : "preference",
+          title: text.slice(0, 80) + (text.length > 80 ? "..." : ""),
+          content: text,
+          source: "user",
+          tags: ["watercooler", "shared-content"],
+        }),
+      }).catch(() => {})
+    }
+
     // Find responding agent — smart selection
     const channelAgents = getChannelAgents()
     const mentionMatch = /@(\w+)/.exec(text)
@@ -1105,7 +1122,7 @@ export default function ChatPage() {
                     "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors group",
                     isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
                   )}>
-                    <span className="opacity-50">{channelIcon(channel.type)}</span>
+                    <span className="opacity-50">{channelIcon(channel.type, channel.name)}</span>
                     <span className={cn("truncate flex-1 text-left", hasUnread && "text-foreground font-medium")}>{channel.name}</span>
                     {hasUnread ? (
                       <span className="h-[18px] min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">{unreadCounts[channel.id]}</span>
@@ -1256,7 +1273,8 @@ export default function ChatPage() {
             <span className="mx-2 text-border">|</span>
             <span className="text-xs text-muted-foreground truncate">
               {activeChannelData?.name === "team-leaders" ? "Department leads + Chief of Staff" :
-               activeChannelData?.name === "general" ? "Company-wide" :
+               activeChannelData?.name === "wins" ? "Celebrate wins and milestones" :
+               activeChannelData?.name === "watercooler" ? "Share content, ideas, and culture" :
                `${getChannelAgents().length} members`}
             </span>
 
