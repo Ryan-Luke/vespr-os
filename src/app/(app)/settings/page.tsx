@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Key, Building2, Bell, CreditCard, Shield } from "lucide-react"
+import ApiKeyManager from "@/components/api-key-manager"
 
 export default function SettingsPage() {
   return (
@@ -64,23 +65,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="api-keys" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md p-4 space-y-4">
-            <p className="section-label">AI Provider Keys</p>
-            {[
-              { label: "Anthropic", value: "sk-ant-•••••••••••", connected: true },
-              { label: "OpenAI", value: "sk-•••••••••••", connected: true },
-              { label: "Google AI", value: "", connected: false },
-            ].map((key) => (
-              <div key={key.label} className="space-y-1.5">
-                <label className="text-[13px] font-medium">{key.label}</label>
-                <div className="flex gap-2 items-center">
-                  <input type="password" defaultValue={key.value} placeholder="Enter API key..." className="flex-1 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] font-mono outline-none focus:border-muted-foreground/30 transition-colors" />
-                  <span className={key.connected ? "h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" : "h-1.5 w-1.5 rounded-full bg-muted-foreground/30 shrink-0"} />
-                </div>
-              </div>
-            ))}
-            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save Keys</button>
-          </div>
+          <ApiKeyManager />
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4 mt-4">

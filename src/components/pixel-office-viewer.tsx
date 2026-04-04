@@ -17,6 +17,7 @@ import {
 import { Plus, Minus } from "lucide-react"
 import { TILE_SIZE } from "@/lib/pixel-office/types"
 import type { Agent } from "@/lib/types"
+import { cn } from "@/lib/utils"
 
 interface PixelOfficeViewerProps {
   agents: Agent[]
@@ -37,6 +38,8 @@ export function PixelOfficeViewer({ agents, onAgentClick }: PixelOfficeViewerPro
   const [autoZoomed, setAutoZoomed] = useState(false)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [hoveredAgent, setHoveredAgent] = useState<Agent | null>(null)
+  const [tooltipPos, setTooltipPos] = useState<{ x: number; y: number } | null>(null)
 
   const clampPan = useCallback(
     (px: number, py: number) => {
@@ -247,6 +250,8 @@ export function PixelOfficeViewer({ agents, onAgentClick }: PixelOfficeViewerPro
         const dx = (e.clientX - panStartRef.current.mouseX) * dpr
         const dy = (e.clientY - panStartRef.current.mouseY) * dpr
         panRef.current = clampPan(panStartRef.current.panX + dx, panStartRef.current.panY + dy)
+        setHoveredAgent(null)
+        setTooltipPos(null)
         return
       }
 
@@ -256,8 +261,24 @@ export function PixelOfficeViewer({ agents, onAgentClick }: PixelOfficeViewerPro
       const canvas = canvasRef.current
       if (canvas) canvas.style.cursor = hitId !== null ? "pointer" : "default"
       os.hoveredAgentId = hitId
+
+      if (hitId !== null) {
+        const agentId = agentIdMapRef.current.get(hitId)
+        const agent = agentId ? agents.find((a) => a.id === agentId) : null
+        setHoveredAgent(agent ?? null)
+        if (containerRef.current) {
+          const containerRect = containerRef.current.getBoundingClientRect()
+          setTooltipPos({
+            x: e.clientX - containerRect.left,
+            y: e.clientY - containerRect.top,
+          })
+        }
+      } else {
+        setHoveredAgent(null)
+        setTooltipPos(null)
+      }
     },
-    [screenToWorld, clampPan]
+    [screenToWorld, clampPan, agents]
   )
 
   const handleMouseDown = useCallback(
@@ -290,6 +311,13 @@ export function PixelOfficeViewer({ agents, onAgentClick }: PixelOfficeViewerPro
     },
     []
   )
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredAgent(null)
+    setTooltipPos(null)
+    const os = officeStateRef.current
+    if (os) os.hoveredAgentId = null
+  }, [])
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -342,10 +370,44 @@ export function PixelOfficeViewer({ agents, onAgentClick }: PixelOfficeViewerPro
         onMouseMove={handleMouseMove}
         onMouseDown={handleMouseDown}
         onMouseUp={handleMouseUp}
+        onMouseLeave={handleMouseLeave}
         onWheel={handleWheel}
         onContextMenu={(e) => e.preventDefault()}
         style={{ display: loading ? "none" : "block" }}
       />
+
+      {/* Hover tooltip */}
+      {hoveredAgent && tooltipPos && (
+        <div
+          className="absolute z-20 bg-popover border border-border rounded-md shadow-lg p-2.5 pointer-events-none max-w-[200px]"
+          style={{
+            left: tooltipPos.x + 10,
+            top: tooltipPos.y + 10,
+          }}
+        >
+          <div className="text-[13px] font-semibold leading-tight">{hoveredAgent.name}</div>
+          <div className="text-xs text-muted-foreground">{hoveredAgent.role}</div>
+          <div className="flex items-center gap-1.5 mt-1">
+            <span
+              className={cn(
+                "h-1.5 w-1.5 rounded-full shrink-0",
+                hoveredAgent.status === "working"
+                  ? "status-working"
+                  : hoveredAgent.status === "error"
+                    ? "status-error"
+                    : hoveredAgent.status === "paused"
+                      ? "status-paused"
+                      : "status-idle"
+              )}
+            />
+            <span className="text-xs capitalize">{hoveredAgent.status}</span>
+            <span className="text-xs text-muted-foreground ml-auto">Lv.{hoveredAgent.level ?? 1}</span>
+          </div>
+          {hoveredAgent.currentTask && (
+            <div className="text-xs text-muted-foreground mt-1 truncate">{hoveredAgent.currentTask}</div>
+          )}
+        </div>
+      )}
 
       {/* Zoom controls */}
       {!loading && (

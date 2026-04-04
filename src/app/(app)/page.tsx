@@ -952,18 +952,23 @@ export default function ChatPage() {
                       <span className="truncate flex-1 text-left">{agent.name}</span>
                     </button>
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
-                    <button
-                      onClick={async (e) => {
-                        e.stopPropagation()
-                        const newStatus = agent.status === "paused" ? "idle" : "paused"
-                        await fetch(`/api/agents/${agent.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) })
-                        setDbAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, status: newStatus } : a))
-                      }}
-                      className="hidden group-hover/agent:flex h-4 w-4 items-center justify-center rounded hover:bg-accent shrink-0"
-                      title={agent.status === "paused" ? "Resume" : "Pause"}
-                    >
-                      {agent.status === "paused" ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
-                    </button>
+                    <div className="hidden group-hover/agent:flex items-center gap-0.5 shrink-0">
+                      <Link href={`/teams/${agent.teamId}/agents/${agent.id}`} onClick={(e) => e.stopPropagation()} className="h-4 w-4 flex items-center justify-center rounded hover:bg-accent" title="Profile">
+                        <Bot className="h-2.5 w-2.5" />
+                      </Link>
+                      <button
+                        onClick={async (e) => {
+                          e.stopPropagation()
+                          const newStatus = agent.status === "paused" ? "idle" : "paused"
+                          await fetch(`/api/agents/${agent.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) })
+                          setDbAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, status: newStatus } : a))
+                        }}
+                        className="h-4 w-4 flex items-center justify-center rounded hover:bg-accent"
+                        title={agent.status === "paused" ? "Resume" : "Pause"}
+                      >
+                        {agent.status === "paused" ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
+                      </button>
+                    </div>
                   </div>
                 )
               })}
@@ -1069,16 +1074,22 @@ export default function ChatPage() {
                       )
                     })
                   })()}
-                  {typingAgent && (
-                    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground animate-pulse">
-                      <div className="flex gap-0.5">
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                  {typingAgent && (() => {
+                    const agent = dbAgents.find((a) => a.name === typingAgent)
+                    return (
+                      <div className="flex items-center gap-2.5 px-4 py-2 text-xs text-muted-foreground">
+                        {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm shrink-0 opacity-60" />}
+                        <div className="flex items-center gap-2">
+                          <div className="flex gap-0.5">
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                          </div>
+                          <span className="text-[11px]">{typingAgent} is typing...</span>
+                        </div>
                       </div>
-                      <span>{typingAgent} is typing...</span>
-                    </div>
-                  )}
+                    )
+                  })()}
                   <div ref={messagesEndRef} />
                 </div>
               )}

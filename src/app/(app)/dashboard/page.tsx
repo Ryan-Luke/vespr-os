@@ -130,6 +130,39 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* ── COST PER AGENT ────────────────────────────────── */}
+        {(() => {
+          const agentCosts = allAgents
+            .filter((a) => (a.costThisMonth ?? 0) > 0)
+            .sort((a, b) => (b.costThisMonth ?? 0) - (a.costThisMonth ?? 0))
+            .slice(0, 8)
+          const maxCost = agentCosts[0]?.costThisMonth ?? 1
+          if (agentCosts.length === 0) return null
+          return (
+            <div className="bg-card border border-border rounded-md p-4">
+              <div className="flex items-center justify-between mb-3">
+                <p className="section-label">Cost by Agent</p>
+                <span className="text-xs text-muted-foreground tabular-nums">${totalCost.toFixed(0)} total</span>
+              </div>
+              <div className="space-y-1.5">
+                {agentCosts.map((agent) => {
+                  const pct = maxCost > 0 ? ((agent.costThisMonth ?? 0) / maxCost) * 100 : 0
+                  return (
+                    <div key={agent.id} className="flex items-center gap-2.5">
+                      <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={16} className="rounded-sm shrink-0" />
+                      <span className="text-xs w-16 truncate">{agent.name}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
+                        <div className="h-full rounded-full bg-primary/60 transition-all" style={{ width: `${pct}%` }} />
+                      </div>
+                      <span className="text-[11px] text-muted-foreground tabular-nums w-12 text-right">${(agent.costThisMonth ?? 0).toFixed(2)}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          )
+        })()}
+
         {/* ── AGENT GRID ───────────────────────────────────── */}
         <div>
           <p className="section-label mb-3">Agent Grid</p>
