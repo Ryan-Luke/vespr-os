@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+// useMemo already imported
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Badge } from "@/components/ui/badge"
@@ -86,12 +87,14 @@ function formatTime(dateStr: string) {
 
 // Message component
 function MessageBubble({
-  message, agents, onAddReaction, onDM,
+  message, agents, onAddReaction, onDM, onReply, threadCount,
 }: {
   message: DBMessage
   agents: DBAgent[]
   onAddReaction: (id: string, emoji: string) => void
   onDM?: (agent: DBAgent) => void
+  onReply?: (messageId: string) => void
+  threadCount?: number
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
@@ -152,6 +155,13 @@ function MessageBubble({
             ))}
           </div>
         )}
+        {/* Thread count */}
+        {(threadCount ?? 0) > 0 && onReply && (
+          <button onClick={() => onReply(message.id)} className="flex items-center gap-1.5 mt-1.5 text-xs text-primary hover:underline">
+            <MessageSquare className="h-3 w-3" />
+            {threadCount} {threadCount === 1 ? "reply" : "replies"}
+          </button>
+        )}
       </div>
       {hovered && (
         <div className="absolute right-2 -top-3 flex items-center gap-0.5 rounded-md border border-border bg-card shadow-sm p-0.5">
@@ -170,6 +180,18 @@ function MessageBubble({
                 disabled={!!feedbackGiven}
               >
                 <ThumbsDown className="h-3.5 w-3.5" />
+              </button>
+              <div className="w-px h-4 bg-border mx-0.5" />
+            </>
+          )}
+          {onReply && (
+            <>
+              <button
+                className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-primary transition-colors"
+                onClick={() => onReply(message.id)}
+                title="Reply in thread"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
               </button>
               <div className="w-px h-4 bg-border mx-0.5" />
             </>
@@ -263,6 +285,10 @@ export default function ChatPage() {
   const [showEmojiInput, setShowEmojiInput] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
   const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
+  const [activeThread, setActiveThread] = useState<string | null>(null) // parent message ID
+  const [threadMessages, setThreadMessages] = useState<DBMessage[]>([])
+  const [threadInput, setThreadInput] = useState("")
+  const [threadLoading, setThreadLoading] = useState(false)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -322,6 +348,86 @@ export default function ChatPage() {
     }
     if (!activeChannelData?.teamId) return dbAgents.slice(0, 3)
     return dbAgents.filter((a) => a.teamId === activeChannelData.teamId)
+  }
+
+  // Thread counts per message
+  const threadCounts = useMemo(() => {
+    const counts: Record<string, number> = {}
+    channelMessages.forEach((m) => {
+      if (m.threadId) counts[m.threadId] = (counts[m.threadId] || 0) + 1
+    })
+    return counts
+  }, [channelMessages])
+
+  // Open thread panel
+  async function openThread(parentId: string) {
+    setActiveThread(parentId)
+    setShowMembers(false)
+    // Load thread replies
+    const replies = channelMessages.filter((m) => m.threadId === parentId)
+    setThreadMessages(replies)
+  }
+
+  // Send reply in thread
+  async function sendThreadReply() {
+    if (!threadInput.trim() || !activeThread || !activeChannel || threadLoading) return
+    const text = threadInput
+    setThreadInput("")
+
+    // Save user reply
+    const userMsg = await fetch("/api/messages", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ channelId: activeChannel, threadId: activeThread, senderName: "You", senderAvatar: "YO", content: text, messageType: "text" }),
+    }).then((r) => r.json())
+    setThreadMessages((prev) => [...prev, userMsg])
+    setChannelMessages((prev) => [...prev, userMsg])
+
+    // Get agent to reply in thread
+    const channelAgents = getChannelAgents()
+    const lead = channelAgents.find((a: any) => a.isTeamLead) || channelAgents[0]
+    if (!lead) return
+
+    setThreadLoading(true)
+    try {
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: lead.id, messages: [{ id: userMsg.id, role: "user", parts: [{ type: "text", text }] }] }),
+      })
+      const reader = res.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+      if (reader) {
+        let buffer = ""
+        while (true) {
+          const { done, value } = await reader.read()
+          if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          const lines = buffer.split("\n")
+          buffer = lines.pop() ?? ""
+          for (const line of lines) {
+            const trimmed = line.trim()
+            if (trimmed.startsWith("data: ")) {
+              try {
+                const parsed = JSON.parse(trimmed.slice(6))
+                if (parsed.type === "text-delta" && parsed.delta) fullText += parsed.delta
+              } catch { /* skip */ }
+            }
+          }
+        }
+      }
+      if (fullText) {
+        const savedMsg = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ channelId: activeChannel, threadId: activeThread, senderAgentId: lead.id, senderName: lead.name, senderAvatar: lead.avatar, content: fullText, messageType: "text" }),
+        }).then((r) => r.json())
+        setThreadMessages((prev) => [...prev, savedMsg])
+        setChannelMessages((prev) => [...prev, savedMsg])
+      }
+    } catch { /* silent */ }
+    setThreadLoading(false)
   }
 
   function handleAddReaction(messageId: string, emoji: string) {
@@ -614,7 +720,7 @@ export default function ChatPage() {
                 </div>
               ) : (
                 <div className="space-y-1">
-                  {channelMessages.map((msg) => <MessageBubble key={msg.id} message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} />)}
+                  {channelMessages.filter((m) => !m.threadId).map((msg) => <MessageBubble key={msg.id} message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} />)}
                   <div ref={messagesEndRef} />
                 </div>
               )}
@@ -659,8 +765,77 @@ export default function ChatPage() {
         </div>
       )}
 
+      {/* Thread Panel */}
+      {activeThread && !dmAgent && (
+        <div className="w-80 border-l border-border flex flex-col shrink-0 bg-card/30">
+          <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
+            <h3 className="font-bold text-sm">Thread</h3>
+            <button className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent" onClick={() => setActiveThread(null)}><X className="h-4 w-4 text-muted-foreground" /></button>
+          </div>
+
+          {/* Parent message */}
+          {(() => {
+            const parent = channelMessages.find((m) => m.id === activeThread)
+            if (!parent) return null
+            const parentAgent = parent.senderAgentId ? dbAgents.find((a) => a.id === parent.senderAgentId) : null
+            return (
+              <div className="p-3 border-b border-border bg-muted/30">
+                <div className="flex items-center gap-2">
+                  {parentAgent ? <PixelAvatar characterIndex={parentAgent.pixelAvatarIndex} size={24} className="rounded border border-border" /> : <div className="h-6 w-6 rounded bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground">{parent.senderAvatar}</div>}
+                  <span className="text-sm font-bold">{parent.senderName}</span>
+                  <span className="text-xs text-muted-foreground">{formatTime(parent.createdAt)}</span>
+                </div>
+                <p className="text-sm mt-1 text-foreground/80">{parent.content}</p>
+              </div>
+            )
+          })()}
+
+          {/* Thread replies */}
+          <div className="flex-1 overflow-y-auto p-3 space-y-3">
+            {threadMessages.length === 0 && (
+              <p className="text-xs text-muted-foreground text-center py-4">No replies yet. Start the conversation.</p>
+            )}
+            {threadMessages.map((msg) => {
+              const msgAgent = msg.senderAgentId ? dbAgents.find((a) => a.id === msg.senderAgentId) : null
+              return (
+                <div key={msg.id} className="flex items-start gap-2">
+                  {msgAgent ? <PixelAvatar characterIndex={msgAgent.pixelAvatarIndex} size={24} className="rounded border border-border mt-0.5" /> : <div className="h-6 w-6 rounded bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground mt-0.5">{msg.senderAvatar}</div>}
+                  <div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs font-bold">{msg.senderName}</span>
+                      <span className="text-xs text-muted-foreground">{formatTime(msg.createdAt)}</span>
+                    </div>
+                    <p className="text-sm text-foreground/80">{msg.content}</p>
+                  </div>
+                </div>
+              )
+            })}
+            {threadLoading && <div className="flex items-center gap-1 text-xs text-muted-foreground"><Loader2 className="h-3 w-3 animate-spin" />Replying...</div>}
+          </div>
+
+          {/* Thread input */}
+          <div className="border-t border-border p-2">
+            <div className="rounded-lg border border-border bg-card focus-within:ring-1 focus-within:ring-primary/50">
+              <textarea
+                placeholder="Reply in thread..."
+                value={threadInput}
+                onChange={(e) => setThreadInput(e.target.value)}
+                onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendThreadReply() } }}
+                rows={1}
+                className="w-full resize-none bg-transparent px-3 py-2 text-sm outline-none placeholder:text-muted-foreground"
+              />
+              <div className="flex justify-end px-2 pb-1.5">
+                <Button size="sm" className="h-6 px-2 text-xs" onClick={sendThreadReply} disabled={!threadInput.trim() || threadLoading}>
+                  <Send className="h-3 w-3 mr-1" />Reply
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Members Panel */}
-      {showMembers && !dmAgent && (
+      {showMembers && !dmAgent && !activeThread && (
         <div className="w-64 border-l border-border flex flex-col shrink-0 bg-card/30">
           <div className="flex items-center justify-between px-4 py-2.5 border-b border-border shrink-0">
             <h3 className="font-bold text-sm">Members</h3>
