@@ -84,21 +84,23 @@ export default function TimelinePage() {
       ) : (
         <div className="relative">
           <div className="absolute left-[7px] top-2 bottom-2 w-px bg-border" />
-          <div className="space-y-1">
+          <div className="space-y-2">
             {events.map((event) => (
-              <div key={event.id} className="flex items-start gap-3 relative py-1.5">
-                <div className={cn("h-[15px] w-[15px] rounded-full shrink-0 flex items-center justify-center z-10 bg-background")}>
+              <div key={event.id} className="flex items-start gap-3 relative">
+                <div className={cn("h-[15px] w-[15px] rounded-full shrink-0 flex items-center justify-center z-10 bg-background mt-3")}>
                   <span className={cn("h-[7px] w-[7px] rounded-full", dotColor[event.type] || "bg-muted-foreground")} />
                 </div>
-                <div className="flex-1 min-w-0 flex items-start gap-2">
-                  {event.agentPixelIndex != null && (
-                    <PixelAvatar characterIndex={event.agentPixelIndex} size={20} className="rounded-sm mt-0.5 shrink-0" />
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <p className="text-[13px] font-medium">{event.title}</p>
-                    <p className="text-xs text-muted-foreground truncate">{event.description}</p>
+                <div className="flex-1 min-w-0 bg-card border border-border rounded-md p-3">
+                  <div className="flex items-start gap-2">
+                    {event.agentPixelIndex != null && (
+                      <PixelAvatar characterIndex={event.agentPixelIndex} size={20} className="rounded-sm shrink-0" />
+                    )}
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium">{event.title}</p>
+                      <p className="text-xs text-muted-foreground truncate">{event.description}</p>
+                    </div>
+                    <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{timeAgo(event.timestamp)}</span>
                   </div>
-                  <span className="text-xs text-muted-foreground shrink-0 tabular-nums">{timeAgo(event.timestamp)}</span>
                 </div>
               </div>
             ))}

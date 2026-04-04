@@ -193,17 +193,15 @@ export default function TasksPage() {
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-2 px-6 py-2 border-b border-border shrink-0 overflow-x-auto">
-        <span className="text-xs text-muted-foreground font-medium shrink-0">Team:</span>
-        <button onClick={() => { setFilterTeam(null); setFilterAgent(null) }} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0", !filterTeam && !filterAgent ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>All</button>
+      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-border shrink-0 overflow-x-auto">
+        <button onClick={() => { setFilterTeam(null); setFilterAgent(null) }} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0", !filterTeam && !filterAgent ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>All</button>
         {dbTeams.map((team) => (
-          <button key={team.id} onClick={() => { setFilterTeam(filterTeam === team.id ? null : team.id); setFilterAgent(null) }} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors shrink-0", filterTeam === team.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>{team.icon} {team.name}</button>
+          <button key={team.id} onClick={() => { setFilterTeam(filterTeam === team.id ? null : team.id); setFilterAgent(null) }} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0", filterTeam === team.id ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>{team.icon} {team.name}</button>
         ))}
-        <div className="w-px h-4 bg-border mx-1" />
-        <span className="text-xs text-muted-foreground font-medium shrink-0">Agent:</span>
-        {(filterTeam ? dbAgents.filter((a) => a.teamId === filterTeam) : dbAgents).slice(0, 8).map((agent) => (
-          <button key={agent.id} onClick={() => setFilterAgent(filterAgent === agent.id ? null : agent.id)} className={cn("flex items-center gap-1.5 px-2 py-1 rounded-full text-xs font-medium transition-colors shrink-0", filterAgent === agent.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>
-            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={14} className="rounded-sm" />{agent.name}
+        <div className="w-px h-3 bg-border mx-0.5" />
+        {(filterTeam ? dbAgents.filter((a) => a.teamId === filterTeam) : dbAgents).slice(0, 6).map((agent) => (
+          <button key={agent.id} onClick={() => setFilterAgent(filterAgent === agent.id ? null : agent.id)} className={cn("flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0", filterAgent === agent.id ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>
+            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={12} className="rounded-sm" />{agent.name}
           </button>
         ))}
       </div>
@@ -211,42 +209,41 @@ export default function TasksPage() {
       <div className="flex-1 overflow-y-auto">
         {/* My Tasks */}
         {unresolvedOwner.length > 0 && showMyTasks && (
-          <div className="px-6 py-4 border-b border-border bg-red-500/[0.02]">
+          <div className="px-6 py-4 border-b border-border">
             <div className="flex items-center justify-between mb-3">
               <div className="flex items-center gap-2">
-                <Bell className="h-4 w-4 text-red-400" />
-                <h2 className="text-sm font-bold">My Tasks</h2>
-                <Badge variant="destructive" className="text-xs h-5">{unresolvedOwner.length}</Badge>
+                <span className="section-label">Assigned to You</span>
+                <span className="h-[18px] min-w-[18px] rounded-full bg-red-500 px-1 text-[10px] font-medium text-white flex items-center justify-center">{unresolvedOwner.length}</span>
               </div>
-              <Button variant="ghost" size="sm" className="h-6 text-xs" onClick={() => setShowMyTasks(false)}><X className="h-3 w-3 mr-1" />Hide</Button>
+              <button className="text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowMyTasks(false)}>Hide</button>
             </div>
-            <div className="space-y-3">
+            <div className="space-y-2">
               {myTasks.filter((t) => !t.resolved).map((task) => {
                 const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
-                const priorityColor = priorityColors[task.priority] || "text-muted-foreground"
                 return (
-                  <Card key={task.id} className={cn("p-4 border-l-4", task.priority === "urgent" ? "border-l-red-500" : "border-l-orange-500")}>
-                    <div className="flex items-start gap-3">
-                      {reqAgent && <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={36} className="rounded-lg border border-border shrink-0" />}
+                  <div key={task.id} className="bg-card border border-border rounded-md p-3">
+                    <div className="flex items-start gap-2.5">
+                      {reqAgent && <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={24} className="rounded-sm shrink-0 mt-0.5" />}
                       <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-sm font-bold">{task.title}</h3>
-                          <span className={cn("text-[11px] font-medium capitalize", priorityColor)}>{task.priority}</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[13px] font-medium">{task.title}</span>
+                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", task.priority === "urgent" ? "bg-red-400" : "bg-amber-400")} />
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">Requested by <span className="font-medium text-foreground">{task.requestedBy}</span></p>
-                        <p className="text-sm mt-2">{task.description}</p>
-                        <div className="mt-2 p-2 rounded-md bg-primary/5 border border-primary/10">
-                          <p className="text-xs font-medium text-primary mb-0.5">What's needed:</p>
-                          <p className="text-xs text-foreground/80">{task.instructions}</p>
-                        </div>
-                        <div className="flex items-center gap-2 mt-3">
-                          <Button size="sm" variant="default" className="h-7 text-xs" onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))}><Check className="h-3 w-3 mr-1" />Approve</Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs"><Upload className="h-3 w-3 mr-1" />Upload</Button>
-                          <Button size="sm" variant="outline" className="h-7 text-xs"><MessageSquare className="h-3 w-3 mr-1" />Respond</Button>
+                        <p className="text-xs text-muted-foreground mt-0.5">From {task.requestedBy}</p>
+                        <p className="text-xs text-foreground/80 mt-1.5">{task.description}</p>
+                        {task.instructions && (
+                          <p className="text-xs text-muted-foreground mt-1.5 bg-muted/50 rounded px-2 py-1.5">{task.instructions}</p>
+                        )}
+                        <div className="flex items-center gap-2 mt-2.5">
+                          <button onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))} className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
+                            <Check className="h-3 w-3" />Approve
+                          </button>
+                          <button className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">Upload</button>
+                          <button className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">Respond</button>
                         </div>
                       </div>
                     </div>
-                  </Card>
+                  </div>
                 )
               })}
             </div>
@@ -255,9 +252,9 @@ export default function TasksPage() {
 
         {!showMyTasks && unresolvedOwner.length > 0 && (
           <div className="px-6 py-2 border-b border-border">
-            <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setShowMyTasks(true)}>
-              <Bell className="h-3 w-3 mr-1 text-red-400" />{unresolvedOwner.length} tasks assigned to you — Show
-            </Button>
+            <button className="text-xs text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1" onClick={() => setShowMyTasks(true)}>
+              <Bell className="h-3 w-3 text-red-400" />{unresolvedOwner.length} tasks assigned to you
+            </button>
           </div>
         )}
 
