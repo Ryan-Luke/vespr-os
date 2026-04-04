@@ -74,6 +74,7 @@ interface DBTask {
   status: string; priority: string
   linkedMessageIds: string[]
   instructions: string | null; resources: { label: string; url: string }[] | null; blockedReason: string | null
+  requirement: { type: "file" | "url" | "text" | "checkbox" | null; label: string; fulfilled?: boolean; value?: string; fulfilledAt?: string } | null
   createdAt: string; completedAt: string | null
 }
 
@@ -140,73 +141,7 @@ const TASK_TEMPLATES = [
 
 const TEMPLATE_TAG = "[template]"
 
-// Owner tasks (agents delegate to you)
-const ownerTasks = [
-  {
-    id: "ot1", title: "Upload March bank statement",
-    description: "I need the March bank statement to complete the Q1 P&L report. Without it I can't reconcile expenses or finalize profit margins for last quarter.",
-    instructions: "1. Log in to your bank portal\n2. Navigate to Statements or Documents\n3. Select March 2026 statement\n4. Download as PDF\n5. Come back here and click Upload to attach it",
-    resources: [
-      { label: "Chase Bank Login", url: "https://chase.com/login" },
-      { label: "Q1 P&L Draft (Google Sheet)", url: "#" },
-    ],
-    requestedBy: "Morgan", priority: "urgent", resolved: false,
-  },
-  {
-    id: "ot2", title: "Approve ad creative variations",
-    description: "3 new ad copy variations for the Section 8 campaign are ready. I can't launch the next ad set until you approve at least one — we're losing potential leads every day we wait.",
-    instructions: "1. Open the creative preview link below\n2. Review all 3 ad copy variations\n3. Check that messaging aligns with your brand voice\n4. Click Approve to greenlight, or message me with changes",
-    resources: [
-      { label: "Creative Preview (Figma)", url: "#" },
-      { label: "Campaign Brief", url: "#" },
-      { label: "Current Ad Performance", url: "#" },
-    ],
-    requestedBy: "Maya", priority: "high", resolved: false,
-  },
-  {
-    id: "ot3", title: "Confirm refund for Order #ORD-8834",
-    description: "Customer #4521 is requesting a full refund ($189) for a delayed shipment. Package was 5 days late. I recommend approving — this customer has been with us for 2 years and has a high lifetime value.",
-    instructions: "1. Review the order details in the link below\n2. Check the customer's history (2-year customer, 12 orders)\n3. Decide: approve full refund ($189), partial refund, or deny\n4. Click Approve or message me with your decision",
-    resources: [
-      { label: "Order #ORD-8834 Details", url: "#" },
-      { label: "Customer #4521 Profile", url: "#" },
-      { label: "Refund Policy Doc", url: "#" },
-    ],
-    requestedBy: "Casey", priority: "urgent", resolved: false,
-  },
-  {
-    id: "ot4", title: "Set daily ad spend budget",
-    description: "Ready to scale Section 8 ads. Current metrics support 4-5 calls/day at $140/call with 3-4X ROAS. I need your daily spend limit so I can configure the campaigns — every day without this means missed leads.",
-    instructions: "1. Review current campaign performance in the dashboard link below\n2. Check your available marketing budget for this month\n3. Pick a daily spend limit (e.g., $500/day, $1000/day)\n4. Reply to me with your chosen amount",
-    resources: [
-      { label: "Ad Performance Dashboard", url: "#" },
-      { label: "Monthly Budget Tracker", url: "#" },
-    ],
-    requestedBy: "Zara", priority: "high", resolved: false,
-  },
-  {
-    id: "ot5", title: "Review and approve Q1 content calendar",
-    description: "I've drafted the full Q1 content calendar with 36 posts across Instagram, LinkedIn, and email. I need your sign-off before I start scheduling — some posts reference upcoming product launches that only you can confirm.",
-    instructions: "1. Open the content calendar spreadsheet below\n2. Review post topics, captions, and scheduled dates\n3. Flag any posts that reference unconfirmed launches or sensitive info\n4. Leave comments on anything you want changed\n5. Reply to me with 'Approved' or send your change requests",
-    resources: [
-      { label: "Q1 Content Calendar (Sheet)", url: "#" },
-      { label: "Brand Guidelines", url: "#" },
-      { label: "Product Launch Timeline", url: "#" },
-    ],
-    requestedBy: "Maya", priority: "high", resolved: false,
-  },
-  {
-    id: "ot6", title: "Set brand voice guidelines for social media",
-    description: "I'm building out our social media playbook but I need your input on brand voice — tone, vocabulary, topics to avoid. Without this, I'm guessing at what sounds like 'us' and risk off-brand posts going live.",
-    instructions: "1. Review the brand voice questionnaire linked below (5 min)\n2. Fill in tone preferences (casual vs professional, humorous vs serious)\n3. List any words, phrases, or topics to always avoid\n4. Add 2-3 example posts that feel 'on brand' to you\n5. Send back the completed questionnaire or message me your answers",
-    resources: [
-      { label: "Brand Voice Questionnaire", url: "#" },
-      { label: "Competitor Voice Examples", url: "#" },
-      { label: "Current Social Profiles", url: "#" },
-    ],
-    requestedBy: "Zara", priority: "medium", resolved: false,
-  },
-]
+// Owner tasks are now loaded from the database (tasks where assignedToUser=true)
 
 interface TaskCardProps {
   task: DBTask
@@ -605,11 +540,134 @@ function CalendarView({ tasks, agents, priorityDots: dots }: { tasks: DBTask[]; 
   )
 }
 
+function UserTaskCard({ task, canComplete, onComplete, onFulfill }: {
+  task: DBTask
+  canComplete: boolean
+  onComplete: () => void
+  onFulfill: (value: string) => void
+}) {
+  const [textValue, setTextValue] = useState("")
+  const [urlValue, setUrlValue] = useState("")
+  const [showDetail, setShowDetail] = useState(false)
+  const req = task.requirement
+  const isFulfilled = req?.fulfilled === true
+  const priorityDot = task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-orange-500" : task.priority === "medium" ? "bg-blue-500" : "bg-zinc-500"
+
+  return (
+    <div className={cn("rounded-md border border-l-2 transition-colors", isFulfilled ? "border-l-emerald-500 bg-emerald-500/5" : "border-l-amber-500 bg-card")}>
+      <div className="flex items-start gap-2.5 px-3 py-2">
+        <button
+          onClick={canComplete ? onComplete : undefined}
+          disabled={!canComplete}
+          title={canComplete ? "Mark complete" : `Requirement not fulfilled: ${req?.label}`}
+          className={cn(
+            "h-4 w-4 rounded border shrink-0 flex items-center justify-center transition-colors mt-0.5",
+            canComplete ? "border-amber-400 hover:bg-amber-500/20 cursor-pointer" : "border-border cursor-not-allowed opacity-40"
+          )}
+        >
+          {isFulfilled && <Check className="h-2.5 w-2.5 text-amber-400" />}
+        </button>
+        <button onClick={() => setShowDetail(!showDetail)} className="flex-1 min-w-0 text-left">
+          <div className="flex items-center gap-1.5">
+            <span className="text-[13px] font-medium">{task.title}</span>
+            <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", priorityDot)} />
+            {req?.type && (
+              <span className={cn("text-[9px] uppercase tracking-wider font-medium px-1.5 py-0.5 rounded", isFulfilled ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400")}>
+                {isFulfilled ? "✓ Done" : "Needs " + req.type}
+              </span>
+            )}
+          </div>
+          {task.description && <p className="text-[11px] text-muted-foreground mt-0.5 line-clamp-2">{task.description}</p>}
+        </button>
+      </div>
+
+      {/* Requirement UI */}
+      {showDetail && req?.type && (
+        <div className="px-3 pb-3 pt-1 border-t border-border">
+          <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5">Required: {req.label}</p>
+          {task.instructions && (
+            <p className="text-[11px] text-muted-foreground mb-2 whitespace-pre-wrap">{task.instructions}</p>
+          )}
+
+          {isFulfilled ? (
+            <div className="flex items-center gap-2 text-[11px] text-emerald-400">
+              <Check className="h-3 w-3" />
+              <span>Fulfilled{req.value && req.type !== "checkbox" ? ` — ${req.type === "text" ? `"${req.value.slice(0, 50)}${req.value.length > 50 ? "..." : ""}"` : req.value}` : ""}</span>
+            </div>
+          ) : (
+            <>
+              {req.type === "checkbox" && (
+                <button onClick={() => onFulfill("checked")} className="h-7 px-3 rounded-md bg-amber-500 text-white text-[11px] font-medium hover:bg-amber-600 transition-colors flex items-center gap-1.5">
+                  <Check className="h-3 w-3" />
+                  Confirm Done
+                </button>
+              )}
+              {req.type === "text" && (
+                <div className="space-y-1.5">
+                  <textarea
+                    value={textValue}
+                    onChange={(e) => setTextValue(e.target.value)}
+                    rows={3}
+                    placeholder="Enter your response..."
+                    className="w-full rounded-md border border-border bg-muted/50 px-2.5 py-1.5 text-[12px] outline-none focus:border-muted-foreground/30 transition-colors resize-none"
+                  />
+                  <button onClick={() => textValue.trim() && onFulfill(textValue.trim())} disabled={!textValue.trim()} className="h-7 px-3 rounded-md bg-amber-500 text-white text-[11px] font-medium hover:bg-amber-600 transition-colors disabled:opacity-40">Submit</button>
+                </div>
+              )}
+              {req.type === "url" && (
+                <div className="flex gap-1.5">
+                  <input
+                    value={urlValue}
+                    onChange={(e) => setUrlValue(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 h-7 rounded-md border border-border bg-muted/50 px-2.5 text-[12px] outline-none focus:border-muted-foreground/30 transition-colors"
+                  />
+                  <button onClick={() => urlValue.trim() && onFulfill(urlValue.trim())} disabled={!urlValue.trim()} className="h-7 px-3 rounded-md bg-amber-500 text-white text-[11px] font-medium hover:bg-amber-600 transition-colors disabled:opacity-40">Submit</button>
+                </div>
+              )}
+              {req.type === "file" && (
+                <div className="flex gap-1.5 items-center">
+                  <label className="flex-1 flex items-center gap-2 h-7 px-2.5 rounded-md border border-dashed border-border bg-muted/30 hover:bg-muted/50 cursor-pointer transition-colors">
+                    <Upload className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-[11px] text-muted-foreground">Click to upload file</span>
+                    <input
+                      type="file"
+                      className="hidden"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0]
+                        if (file) onFulfill(file.name) // In real impl, upload to storage first
+                      }}
+                    />
+                  </label>
+                </div>
+              )}
+            </>
+          )}
+
+          {/* Resources */}
+          {task.resources && task.resources.length > 0 && (
+            <div className="flex flex-wrap gap-1 mt-2">
+              {task.resources.map((r, i) => (
+                <a key={i} href={r.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[10px] text-primary hover:underline bg-primary/5 rounded px-2 py-0.5">
+                  <ExternalLink className="h-2.5 w-2.5" />
+                  {r.label}
+                </a>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
 export default function TasksPage() {
   const [tasks, setTasks] = useState<DBTask[]>([])
   const [dbAgents, setDbAgents] = useState<DBAgent[]>([])
   const [dbTeams, setDbTeams] = useState<DBTeam[]>([])
-  const [myTasks, setMyTasks] = useState(ownerTasks)
+  // myTasks = tasks from DB where assignedToUser = true and status != done
+  const myTasks = tasks.filter((t) => t.assignedToUser)
+  const unresolvedMyTasks = myTasks.filter((t) => t.status !== "done")
   const [loading, setLoading] = useState(true)
   const [filterTeam, setFilterTeam] = useState<string | null>(null)
   const [filterAgent, setFilterAgent] = useState<string | null>(null)
@@ -825,13 +883,39 @@ export default function TasksPage() {
     setTemplateLoading(null)
   }
 
-  const unresolvedOwner = myTasks.filter((t) => !t.resolved)
+  const unresolvedOwner = unresolvedMyTasks
   const filteredTasks = tasks.filter((t) => {
+    if (t.assignedToUser) return false // user tasks shown separately
     if (filterTeam && t.teamId !== filterTeam) return false
     if (filterAgent && t.assignedAgentId !== filterAgent) return false
     if (search && !t.title.toLowerCase().includes(search.toLowerCase())) return false
     return true
   })
+
+  async function completeUserTask(taskId: string) {
+    const task = myTasks.find((t) => t.id === taskId)
+    if (!task) return
+    // If task has a requirement, it must be fulfilled
+    if (task.requirement?.type && !task.requirement.fulfilled) return
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: taskId, status: "done", completedAt: new Date().toISOString() }),
+    })
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: "done" } : t))
+  }
+
+  async function fulfillRequirement(taskId: string, value: string) {
+    const task = myTasks.find((t) => t.id === taskId)
+    if (!task || !task.requirement) return
+    const updatedReq = { ...task.requirement, fulfilled: true, value, fulfilledAt: new Date().toISOString() }
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: taskId, requirement: updatedReq }),
+    })
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, requirement: updatedReq } : t))
+  }
 
   if (loading) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
 
@@ -920,39 +1004,28 @@ export default function TasksPage() {
             </button>
 
             {showMyTasks && (
-              <div className="mt-2 space-y-1">
+              <div className="mt-2 space-y-2">
                 {/* Compact progress */}
                 <div className="flex items-center gap-2 mb-2">
                   <div className="flex-1 h-1 bg-muted rounded-full overflow-hidden">
-                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${(myTasks.filter((t) => t.resolved).length / myTasks.length) * 100}%` }} />
+                    <div className="h-full bg-emerald-500 rounded-full transition-all" style={{ width: `${myTasks.length > 0 ? (myTasks.filter((t) => t.status === "done").length / myTasks.length) * 100 : 0}%` }} />
                   </div>
-                  <span className="text-[10px] text-muted-foreground tabular-nums">{myTasks.filter((t) => t.resolved).length}/{myTasks.length}</span>
+                  <span className="text-[10px] text-muted-foreground tabular-nums">{myTasks.filter((t) => t.status === "done").length}/{myTasks.length}</span>
                 </div>
 
-                {myTasks.filter((t) => !t.resolved).map((task) => {
-                  const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
+                {unresolvedMyTasks.map((task) => {
+                  const req = task.requirement
+                  const hasRequirement = !!req?.type
+                  const fulfilled = req?.fulfilled === true
+                  const canComplete = !hasRequirement || fulfilled
                   return (
-                    <div key={task.id} className="flex items-center gap-2.5 py-1.5 px-2 rounded-md hover:bg-accent/50 transition-colors border-l-2 border-l-amber-500">
-                      <button
-                        onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))}
-                        className="h-4 w-4 rounded border border-border hover:border-amber-400 shrink-0 flex items-center justify-center transition-colors"
-                      >
-                        <Check className="h-2.5 w-2.5 text-transparent hover:text-amber-400" />
-                      </button>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className="text-[13px] font-medium truncate">{task.title}</span>
-                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-orange-500" : task.priority === "medium" ? "bg-blue-500" : "bg-zinc-500")} />
-                        </div>
-                        <p className="text-[11px] text-muted-foreground truncate">{task.description}</p>
-                      </div>
-                      {reqAgent && (
-                        <div className="flex items-center gap-1 shrink-0">
-                          <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={16} className="rounded-sm" />
-                          <span className="text-[11px] text-muted-foreground">{task.requestedBy}</span>
-                        </div>
-                      )}
-                    </div>
+                    <UserTaskCard
+                      key={task.id}
+                      task={task}
+                      canComplete={canComplete}
+                      onComplete={() => completeUserTask(task.id)}
+                      onFulfill={(value) => fulfillRequirement(task.id, value)}
+                    />
                   )
                 })}
               </div>

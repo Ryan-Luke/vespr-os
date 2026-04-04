@@ -469,6 +469,11 @@ async function seed() {
     { title: "Monitor 8 active client project milestones", description: "Track and report on milestone completion across all active client projects", assignedAgentId: agent("Drew").id, teamId: fulfillment.id, status: "in_progress", priority: "medium" },
     { title: "Create 3 new Facebook ad variations for VERSPR strategy call funnel", description: "Create 3 new ad creative variations targeting 7-figure founders for strategy call bookings", assignedAgentId: agent("Maya").id, teamId: marketing.id, status: "todo", priority: "urgent" },
     { title: "Prepare QBR presentation for TechFlow Inc Q1 review", description: "Build Q1 business review deck for TechFlow Inc covering AI implementation results and Q2 roadmap", assignedAgentId: agent("Casey").id, teamId: fulfillment.id, status: "review", priority: "urgent" },
+    // User-assigned tasks with deliverable requirements
+    { title: "Upload March Stripe transaction export", description: "Morgan needs this to finish the Q1 P&L report. Export from Stripe dashboard → Reports → Balance.", assignedToUser: true, status: "todo", priority: "urgent", instructions: "1. Go to Stripe dashboard\n2. Navigate to Reports → Balance\n3. Select March 1-31, 2026\n4. Export as CSV\n5. Upload below", resources: [{ label: "Stripe Reports", url: "https://dashboard.stripe.com/reports/balance" }], requirement: { type: "file", label: "Upload March Stripe CSV export", fulfilled: false } },
+    { title: "Approve Facebook ad creatives", description: "Zara has 3 new ad variations ready for the VERSPR strategy call funnel. Need your approval before scaling spend.", assignedToUser: true, status: "todo", priority: "high", instructions: "Review the 3 creative variations in the linked Google Drive folder and confirm which ones to launch.", resources: [{ label: "Ad Creatives Folder", url: "https://drive.google.com/drive/folders/example" }], requirement: { type: "checkbox", label: "I've reviewed and approved the ad creatives", fulfilled: false } },
+    { title: "Share founder intro video for TechFlow QBR", description: "Casey is preparing the TechFlow QBR and wants to include a short intro from you (60-90 seconds) about the relationship.", assignedToUser: true, status: "todo", priority: "medium", instructions: "Record a short Loom (60-90s) about the partnership. Drop the Loom URL below when done.", requirement: { type: "url", label: "Paste Loom video URL", fulfilled: false } },
+    { title: "Write VERSPR mission statement", description: "Maya needs a refined mission statement for the new website and LinkedIn profile.", assignedToUser: true, status: "todo", priority: "medium", instructions: "Write 2-3 sentences that capture what VERSPR stands for and why it exists. Should resonate with founders of 7-9 figure companies.", requirement: { type: "text", label: "Enter mission statement (2-3 sentences)", fulfilled: false } },
   ])
 
   // Insert team goals
@@ -565,7 +570,11 @@ async function seed() {
     { name: "Slack", provider: "slack", category: "communication", status: "connected", config: { workspace: "verspr" }, connectedAt: new Date(now - 60 * 86400000) },
     { name: "Gmail", provider: "gmail", category: "communication", status: "connected", config: { email: "team@verspr.com" }, connectedAt: new Date(now - 55 * 86400000) },
     { name: "GoHighLevel", provider: "ghl", category: "crm", status: "connected", config: { subaccount: "VERSPR" }, connectedAt: new Date(now - 50 * 86400000) },
-    { name: "Stripe", provider: "stripe", category: "finance", status: "connected", config: { mode: "live" }, connectedAt: new Date(now - 90 * 86400000) },
+    { name: "Stripe", provider: "stripe", category: "payments", status: "connected", config: { mode: "live" }, connectedAt: new Date(now - 90 * 86400000) },
+    { name: "Whop", provider: "whop", category: "payments", status: "connected", config: {}, connectedAt: new Date(now - 40 * 86400000) },
+    { name: "PayPal", provider: "paypal", category: "payments", status: "connected", config: {}, connectedAt: new Date(now - 80 * 86400000) },
+    { name: "Square", provider: "square", category: "payments", status: "disconnected", config: {} },
+    { name: "Shopify Payments", provider: "shopify_payments", category: "payments", status: "disconnected", config: {} },
     { name: "Mercury", provider: "mercury", category: "finance", status: "connected", config: {}, connectedAt: new Date(now - 90 * 86400000) },
     { name: "QuickBooks Online", provider: "quickbooks", category: "finance", status: "connected", config: {}, connectedAt: new Date(now - 45 * 86400000) },
     { name: "n8n Cloud", provider: "n8n", category: "operations", status: "connected", config: { plan: "pro" }, connectedAt: new Date(now - 40 * 86400000) },

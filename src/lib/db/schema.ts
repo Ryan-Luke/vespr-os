@@ -133,6 +133,14 @@ export const tasks = pgTable("tasks", {
   instructions: text("instructions"), // step-by-step markdown
   resources: jsonb("resources").$type<{ label: string; url: string }[]>(),
   blockedReason: text("blocked_reason"), // what's waiting on this task
+  // Deliverable requirement — what must be submitted before task can be completed
+  requirement: jsonb("requirement").$type<{
+    type: "file" | "url" | "text" | "checkbox" | null // null = no requirement
+    label: string // e.g. "Upload the signed contract"
+    fulfilled?: boolean
+    value?: string // file url, text response, or url
+    fulfilledAt?: string
+  }>(),
   result: jsonb("result").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
