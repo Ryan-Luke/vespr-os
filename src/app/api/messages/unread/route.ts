@@ -1,15 +1,29 @@
 import { db } from "@/lib/db"
 import { messages } from "@/lib/db/schema"
-import { gte } from "drizzle-orm"
-import { sql } from "drizzle-orm"
+import { gte, sql } from "drizzle-orm"
 
-export async function GET() {
-  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000)
+export async function GET(req: Request) {
+  const url = new URL(req.url)
+  const since = url.searchParams.get("since")
 
+  // Default: messages from last 4 hours
+  const sinceDate = since ? new Date(since) : new Date(Date.now() - 4 * 60 * 60 * 1000)
+
+  // Per-channel unread counts
   const result = await db
-    .select({ count: sql<number>`count(*)::int` })
+    .select({
+      channelId: messages.channelId,
+      count: sql<number>`count(*)::int`,
+    })
     .from(messages)
-    .where(gte(messages.createdAt, oneHourAgo))
+    .where(gte(messages.createdAt, sinceDate))
+    .groupBy(messages.channelId)
 
-  return Response.json({ count: result[0]?.count ?? 0 })
+  // Total count
+  const total = result.reduce((sum, r) => sum + (r.count ?? 0), 0)
+
+  return Response.json({
+    total,
+    byChannel: Object.fromEntries(result.map((r) => [r.channelId, r.count])),
+  })
 }

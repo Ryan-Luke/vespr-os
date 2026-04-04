@@ -262,6 +262,7 @@ export default function ChatPage() {
   const [mentionIndex, setMentionIndex] = useState(0)
   const [showEmojiInput, setShowEmojiInput] = useState(false)
   const [showMembers, setShowMembers] = useState(false)
+  const [unreadCounts, setUnreadCounts] = useState<Record<string, number>>({})
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -274,6 +275,23 @@ export default function ChatPage() {
       setDataLoaded(true)
     })
   }, [])
+
+  // Fetch unread counts and poll
+  useEffect(() => {
+    function fetchUnread() {
+      fetch("/api/messages/unread").then((r) => r.json()).then((data) => {
+        if (data.byChannel) setUnreadCounts(data.byChannel)
+      }).catch(() => {})
+    }
+    fetchUnread()
+    const poll = setInterval(fetchUnread, 15000)
+    return () => clearInterval(poll)
+  }, [])
+
+  // Clear unread for active channel
+  useEffect(() => {
+    if (activeChannel) setUnreadCounts((prev) => ({ ...prev, [activeChannel]: 0 }))
+  }, [activeChannel])
 
   // Load messages when channel changes + poll every 5 seconds
   useEffect(() => {
@@ -512,7 +530,11 @@ export default function ChatPage() {
             <div className="space-y-0.5 mt-1">
               {dbChannels.map((channel) => (
                 <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null) }} className={cn("flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm transition-colors", activeChannel === channel.id && !dmAgent ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground")}>
-                  {channelIcon(channel.type)}<span className="truncate flex-1 text-left">{channel.name}</span>
+                  {channelIcon(channel.type)}
+                  <span className={cn("truncate flex-1 text-left", unreadCounts[channel.id] > 0 && activeChannel !== channel.id && "font-semibold text-foreground")}>{channel.name}</span>
+                  {unreadCounts[channel.id] > 0 && activeChannel !== channel.id && (
+                    <span className="bg-primary text-primary-foreground text-xs font-mono rounded-full h-5 min-w-5 flex items-center justify-center px-1">{unreadCounts[channel.id]}</span>
+                  )}
                 </button>
               ))}
             </div>
@@ -563,9 +585,32 @@ export default function ChatPage() {
             <div className="py-4 px-4">
               {channelMessages.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-                  <Hash className="h-10 w-10 mb-3 opacity-30" />
-                  <p className="text-sm font-medium">No messages yet</p>
-                  <p className="text-xs mt-1">Send a message in #{activeChannelData?.name}</p>
+                  {(() => {
+                    const channelAgents = getChannelAgents()
+                    const lead = channelAgents.find((a: any) => a.isTeamLead)
+                    const isTeamLeaders = activeChannelData?.name === "team-leaders"
+                    const nova = channelAgents.find((a) => !a.teamId)
+
+                    if (isTeamLeaders && nova) {
+                      return <>
+                        <PixelAvatar characterIndex={nova.pixelAvatarIndex} size={48} className="rounded-xl border border-border mb-3" />
+                        <p className="text-sm font-medium">Nova is ready to coordinate</p>
+                        <p className="text-xs mt-1">Say hello to your Chief of Staff — she'll get the team leads talking.</p>
+                      </>
+                    }
+                    if (lead) {
+                      return <>
+                        <PixelAvatar characterIndex={lead.pixelAvatarIndex} size={48} className="rounded-xl border border-border mb-3" />
+                        <p className="text-sm font-medium">{lead.name} is waiting to hear from you</p>
+                        <p className="text-xs mt-1 max-w-xs text-center">Your {lead.role} is ready. Try: &ldquo;Hey {lead.name}, what are you working on?&rdquo; or &ldquo;What should we focus on this week?&rdquo;</p>
+                      </>
+                    }
+                    return <>
+                      <Hash className="h-10 w-10 mb-3 opacity-30" />
+                      <p className="text-sm font-medium">Start a conversation</p>
+                      <p className="text-xs mt-1">Send a message in #{activeChannelData?.name}</p>
+                    </>
+                  })()}
                 </div>
               ) : (
                 <div className="space-y-1">
