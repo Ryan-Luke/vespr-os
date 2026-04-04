@@ -150,8 +150,8 @@ function MessageBubble({
         {message.reactions.length > 0 && (
           <div className="flex items-center gap-1 mt-1.5 flex-wrap">
             {message.reactions.map((r) => (
-              <button key={r.emoji} className="inline-flex items-center gap-1 rounded-full border border-border bg-muted/50 px-2 py-0.5 text-xs hover:bg-muted transition-colors" onClick={() => onAddReaction(message.id, r.emoji)}>
-                <span>{r.emoji}</span><span className="text-muted-foreground font-mono">{r.count}</span>
+              <button key={r.emoji} className="inline-flex items-center gap-1 rounded-md border border-border bg-muted/50 px-1.5 py-0.5 text-[11px] hover:bg-muted transition-colors" onClick={() => onAddReaction(message.id, r.emoji)} title={r.agentNames.join(", ")}>
+                <span>{r.emoji}</span><span className="text-muted-foreground tabular-nums">{r.count}</span>
               </button>
             ))}
           </div>
@@ -689,16 +689,21 @@ export default function ChatPage() {
             </div>
           </div>
 
-          {/* DMs */}
+          {/* DMs — sorted by status: working > idle > paused */}
           <div className="px-3 mt-5">
-            <p className="section-label px-1 mb-1.5">Direct Messages</p>
+            <p className="section-label px-1 mb-1.5">Agents</p>
             <div className="space-y-px">
-              {dbAgents.map((agent) => {
+              {[...dbAgents].sort((a, b) => {
+                const order: Record<string, number> = { working: 0, idle: 1, error: 2, paused: 3 }
+                return (order[a.status] ?? 4) - (order[b.status] ?? 4)
+              }).map((agent) => {
                 const isActive = dmAgent?.id === agent.id
+                const isOnline = agent.status === "working" || agent.status === "idle"
                 return (
                   <button key={agent.id} onClick={() => setDmAgent(agent)} className={cn(
                     "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
-                    isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                    isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
+                    !isOnline && !isActive && "opacity-50"
                   )}>
                     <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm" />
                     <span className="truncate flex-1 text-left">{agent.name}</span>
