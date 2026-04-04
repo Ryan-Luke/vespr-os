@@ -5,18 +5,25 @@ import { eq, desc, and, isNull } from "drizzle-orm"
 export async function GET(req: Request) {
   const url = new URL(req.url)
   const channelId = url.searchParams.get("channelId")
+  const includeThreads = url.searchParams.get("includeThreads") === "true"
 
   if (!channelId) {
     return Response.json({ error: "channelId required" }, { status: 400 })
   }
 
-  const channelMessages = await db
+  // Fetch all messages for the channel (including thread replies for counting)
+  const allMessages = await db
     .select()
     .from(messages)
-    .where(and(eq(messages.channelId, channelId), isNull(messages.threadId)))
+    .where(eq(messages.channelId, channelId))
     .orderBy(messages.createdAt)
 
-  return Response.json(channelMessages)
+  if (includeThreads) {
+    return Response.json(allMessages)
+  }
+
+  // Default: return all messages (top-level + thread replies) so client can compute thread counts
+  return Response.json(allMessages)
 }
 
 export async function POST(req: Request) {

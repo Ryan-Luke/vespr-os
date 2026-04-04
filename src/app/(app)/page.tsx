@@ -13,6 +13,7 @@ import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
   Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Mic, MicOff, Trophy, Coffee, Pin, Code,
+  ExternalLink, Link2, Headphones, BookOpen,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
