@@ -685,7 +685,11 @@ export default function ChatPage() {
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0">
             {activeChannelData && channelIcon(activeChannelData.type)}
-            <h2 className="font-bold text-sm">{activeChannelData?.name}</h2>
+            <div>
+              <h2 className="font-bold text-sm">{activeChannelData?.name}</h2>
+              {activeChannelData?.name === "team-leaders" && <p className="text-xs text-muted-foreground">Executive coordination — department leads + Chief of Staff</p>}
+              {activeChannelData?.name === "general" && <p className="text-xs text-muted-foreground">Company-wide announcements and cross-functional discussions</p>}
+            </div>
             {/* Channel member avatars */}
             {(() => {
               const members = getChannelAgents()
