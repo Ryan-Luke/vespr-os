@@ -591,6 +591,84 @@ async function seed() {
     { name: "Airtable", provider: "airtable", category: "operations", status: "error", config: {}, connectedAt: new Date(now - 20 * 86400000) },
   ])
 
+  // Seed agent memories — each agent has 3-5 memories that make them feel alive and contextual
+  await db.insert(schema.agentMemories).values([
+    // Maya — Content Strategist
+    { agentId: agent("Maya").id, memoryType: "observation", content: "Luke prefers specific numbers over vague claims. Every article needs concrete metrics.", importance: 0.9, source: "conversation" },
+    { agentId: agent("Maya").id, memoryType: "learning", content: "LinkedIn articles with case studies get 5x the engagement of generic thought leadership.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Maya").id, memoryType: "preference", content: "Prefers to write in mornings, edit in afternoons — output quality is noticeably higher on that schedule.", importance: 0.7, source: "feedback" },
+    { agentId: agent("Maya").id, memoryType: "relationship", content: "Works closely with Alex on SEO — he catches keyword opportunities Maya misses.", importance: 0.7, source: "system", relatedAgentId: agent("Alex").id },
+
+    // Alex — Growth Analyst
+    { agentId: agent("Alex").id, memoryType: "observation", content: "VERSPR ranks well for long-tail 'AI for [industry]' keywords but struggles with broad terms like 'AI agency'.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Alex").id, memoryType: "learning", content: "Competitors are outranking us on comparison pages — we need more side-by-side content to capture that traffic.", importance: 0.8, source: "task_outcome" },
+    { agentId: agent("Alex").id, memoryType: "skill", content: "Got 40% better at forecasting traffic after the March algorithm update — new baseline model is working.", importance: 0.75, source: "feedback" },
+
+    // Zara — Social Media Manager
+    { agentId: agent("Zara").id, memoryType: "observation", content: "Reels with 'before/after' format consistently outperform tutorials — the transformation story hooks founders immediately.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Zara").id, memoryType: "learning", content: "Posting between 7–9am EST gets 2x engagement for founder audience — they check feeds before the day chaos hits.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Zara").id, memoryType: "preference", content: "Uses Canva for quick graphics, Figma for polished assets — never mixes them up.", importance: 0.65, source: "system" },
+    { agentId: agent("Zara").id, memoryType: "relationship", content: "Collaborates with Maya on cross-posting LinkedIn content to Instagram — Maya writes long-form, Zara adapts it for short-form.", importance: 0.7, source: "system", relatedAgentId: agent("Maya").id },
+
+    // Jordan — Lead Researcher
+    { agentId: agent("Jordan").id, memoryType: "observation", content: "DTC founders respond best when cold emails reference a specific product issue — generic openers get ignored.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Jordan").id, memoryType: "learning", content: "Prospects with Shopify + Klaviyo stack convert 3x better than those with WooCommerce — signals higher growth intent.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Jordan").id, memoryType: "skill", content: "Can identify AI readiness from a company's careers page in under 2 minutes — hiring for 'ops' or 'automation' roles is the signal.", importance: 0.8, source: "feedback" },
+    { agentId: agent("Jordan").id, memoryType: "relationship", content: "Jordan and Riley sync daily on which prospects to prioritize — Jordan sources, Riley sequences, tight loop.", importance: 0.75, source: "system", relatedAgentId: agent("Riley").id },
+
+    // Riley — Outreach Specialist
+    { agentId: agent("Riley").id, memoryType: "observation", content: "Shorter subject lines (4–6 words) outperform longer ones by 34% — founder inboxes are noisy, brevity wins.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Riley").id, memoryType: "learning", content: "Day 3 follow-up is the highest reply-rate touchpoint in our sequence — not day 1, not day 7.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Riley").id, memoryType: "preference", content: "Tests one variable at a time in A/B tests (subject vs copy vs CTA) — mixing variables produces unreadable data.", importance: 0.75, source: "system" },
+
+    // Sam — CRM Manager
+    { agentId: agent("Sam").id, memoryType: "observation", content: "Leads tagged with 'high intent' in GHL close at 42% vs 12% for untagged — tagging discipline directly impacts revenue.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Sam").id, memoryType: "skill", content: "Can deduplicate contact records across 3 systems in minutes — built a custom matching script that handles fuzzy name matching.", importance: 0.8, source: "feedback" },
+    { agentId: agent("Sam").id, memoryType: "preference", content: "Prefers automation over manual data entry always — if something takes more than 5 minutes manually, it gets automated.", importance: 0.85, source: "system" },
+
+    // Nyx — Automation Architect
+    { agentId: agent("Nyx").id, memoryType: "observation", content: "Clients adopt automations faster when Nyx explains the time savings upfront — ROI framing removes resistance.", importance: 0.85, source: "feedback" },
+    { agentId: agent("Nyx").id, memoryType: "learning", content: "n8n error branching saves 2+ hours of debugging per workflow — every node needs an error handler, no exceptions.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Nyx").id, memoryType: "skill", content: "Built 47 automations this quarter with 0 critical failures — error handling and pre-deploy testing are non-negotiable.", importance: 0.95, source: "task_outcome" },
+    { agentId: agent("Nyx").id, memoryType: "relationship", content: "Quinn documents Nyx's workflows — they're a great pair. Nyx builds fast, Quinn ensures future Nyx can understand it.", importance: 0.7, source: "system", relatedAgentId: agent("Quinn").id },
+
+    // Quinn — Process Manager
+    { agentId: agent("Quinn").id, memoryType: "observation", content: "SOPs without screenshots get 60% less compliance — visual steps reduce ambiguity and friction dramatically.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Quinn").id, memoryType: "preference", content: "Uses Loom for walkthroughs, Notion for written SOPs — never mixes the formats.", importance: 0.75, source: "system" },
+    { agentId: agent("Quinn").id, memoryType: "learning", content: "'Living SOPs' with last-updated dates get more respect from the team — stale docs get ignored.", importance: 0.8, source: "feedback" },
+
+    // Finley — Bookkeeper
+    { agentId: agent("Finley").id, memoryType: "observation", content: "VERSPR's biggest expense category is AI API costs — up 40% QoQ as agent usage scales.", importance: 0.85, source: "task_outcome" },
+    { agentId: agent("Finley").id, memoryType: "preference", content: "Reconciles every Monday, closes books by the 5th — deviating from this cadence causes cascading delays.", importance: 0.8, source: "system" },
+    { agentId: agent("Finley").id, memoryType: "skill", content: "Can spot fraudulent or duplicate charges within 24 hours based on pattern recognition across payment processors.", importance: 0.9, source: "feedback" },
+
+    // Morgan — P&L Generator
+    { agentId: agent("Morgan").id, memoryType: "observation", content: "Missing data is the #1 reason reports are delayed — always ask for access upfront before starting any analysis.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Morgan").id, memoryType: "learning", content: "Q1 gross margins were 12% higher than projected due to automation savings — operations efficiency is materially improving profitability.", importance: 0.85, source: "task_outcome" },
+
+    // Casey — Client Success Lead
+    { agentId: agent("Casey").id, memoryType: "observation", content: "Clients who miss 2 weekly check-ins in a row are 80% likely to churn — early intervention on missed check-ins is critical.", importance: 0.95, source: "task_outcome" },
+    { agentId: agent("Casey").id, memoryType: "learning", content: "Proactive outreach on day 14 of onboarding prevents most confusion — clients feel lost around day 14 without a check-in.", importance: 0.9, source: "feedback" },
+    { agentId: agent("Casey").id, memoryType: "preference", content: "Likes ending check-ins with a clear next step, never open-ended — ambiguous endings correlate with lower satisfaction scores.", importance: 0.8, source: "system" },
+    { agentId: agent("Casey").id, memoryType: "relationship", content: "Works closely with Drew on milestone tracking — they coordinate daily so Casey is never surprised on client calls.", importance: 0.75, source: "system", relatedAgentId: agent("Drew").id },
+
+    // Drew — Deliverables Tracker
+    { agentId: agent("Drew").id, memoryType: "observation", content: "Most missed milestones are because of client-side blockers, not team delays — tracking client dependencies is as important as team tasks.", importance: 0.9, source: "task_outcome" },
+    { agentId: agent("Drew").id, memoryType: "skill", content: "Can predict deliverable completion dates with 85% accuracy based on historical velocity — early flags prevent last-minute scrambles.", importance: 0.85, source: "feedback" },
+    { agentId: agent("Drew").id, memoryType: "learning", content: "Friday status updates get read 3x more than Monday ones — end-of-week reports land when clients are reflecting on the week.", importance: 0.8, source: "task_outcome" },
+
+    // Nova — Chief of Staff
+    { agentId: chiefOfStaff.id, memoryType: "observation", content: "Team productivity drops 20% on days without morning sync — the brief alignment has outsized impact on output quality.", importance: 0.9, source: "task_outcome" },
+    { agentId: chiefOfStaff.id, memoryType: "learning", content: "Decisions made in writing stick better than verbal agreements — always follow up spoken decisions with a written summary.", importance: 0.85, source: "feedback" },
+    { agentId: chiefOfStaff.id, memoryType: "skill", content: "Facilitated 30+ cross-team conflicts with 100% resolution rate — neutral framing and structured formats are the secret.", importance: 0.95, source: "task_outcome" },
+    { agentId: chiefOfStaff.id, memoryType: "preference", content: "Prefers async written updates over calls for status checks — reserves calls for decisions and conflicts only.", importance: 0.8, source: "system" },
+
+    // Aria — QA & People Ops
+    { agentId: qaAgent.id, memoryType: "observation", content: "Agents with 7+ day streaks deliver 40% higher quality work — consistency compounds, streaks are a leading indicator of output quality.", importance: 0.9, source: "task_outcome" },
+    { agentId: qaAgent.id, memoryType: "learning", content: "Performance reviews work better weekly than quarterly for AI agents — quarterly cadence lets issues compound too long before surfacing.", importance: 0.85, source: "feedback" },
+    { agentId: qaAgent.id, memoryType: "preference", content: "Specific, actionable feedback beats vague praise every time — 'great work' is noise, 'this metric moved because of X' is signal.", importance: 0.9, source: "system" },
+  ])
+
   // Seed milestones based on current agent stats
   const allAgents = [...insertedAgents, chiefOfStaff, qaAgent]
   const milestoneDefs = [

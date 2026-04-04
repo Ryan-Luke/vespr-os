@@ -108,7 +108,7 @@ export function ApprovalQueue() {
     // Track approval count and maybe show auto-approve prompt
     if (status === "approved" && req) {
       const count = bumpApprovalCount(req.agentId, req.actionType)
-      if (count >= 3 && !isAutoApproved(req.agentId, req.actionType)) {
+      if (count >= 5 && !isAutoApproved(req.agentId, req.actionType)) {
         setShowPrompt((prev) => ({ ...prev, [`${req.agentId}:${req.actionType}`]: count }))
       }
     }

@@ -2,6 +2,7 @@ import { db } from "@/lib/db"
 import { agents, teams, channels, messages, tasks, agentSops, agentFeedback, activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules, automations, knowledgeEntries, workspaces } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
+import { getStarterContent } from "@/lib/onboarding-starter-content"
 
 interface BusinessTemplate {
   id: string
@@ -333,6 +334,56 @@ export async function POST(req: Request) {
   }
 
   await db.insert(messages).values(welcomeMessages)
+
+  // Seed starter content based on business type (knowledge, SOPs, user tasks)
+  const starter = getStarterContent(newWorkspace.businessType)
+
+  if (starter.knowledgeEntries.length > 0) {
+    await db.insert(knowledgeEntries).values(
+      starter.knowledgeEntries.map((k) => ({
+        title: k.title,
+        content: k.content,
+        category: k.category,
+        tags: k.tags,
+        createdByAgentId: chiefOfStaff.id,
+        createdByName: "Nova",
+      }))
+    )
+  }
+
+  if (starter.sops.length > 0) {
+    // Match SOPs to appropriate agents by roleHint (fallback: first team lead)
+    const sopValues = starter.sops.map((sop, i) => {
+      let ownerAgent = insertedAgents.find((a) => {
+        if (!sop.roleHint) return false
+        return a.role.toLowerCase().includes(sop.roleHint.toLowerCase())
+      })
+      if (!ownerAgent) ownerAgent = insertedAgents.find((a) => a.isTeamLead) || insertedAgents[0]
+      return {
+        agentId: ownerAgent.id,
+        title: sop.title,
+        content: sop.content,
+        category: sop.category,
+        sortOrder: i,
+        version: 1,
+      }
+    })
+    await db.insert(agentSops).values(sopValues)
+  }
+
+  if (starter.userTasks.length > 0) {
+    await db.insert(tasks).values(
+      starter.userTasks.map((t) => ({
+        title: t.title,
+        description: t.description,
+        priority: t.priority,
+        assignedToUser: true,
+        status: "todo",
+        instructions: t.instructions || null,
+        requirement: t.requirement ? { ...t.requirement, fulfilled: false } : null,
+      }))
+    )
+  }
 
   return Response.json({
     success: true,
