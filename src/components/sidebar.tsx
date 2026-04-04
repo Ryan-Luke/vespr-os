@@ -26,6 +26,16 @@ import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
 import { NotificationBell } from "@/components/notification-bell"
 import { useState, useEffect, useCallback } from "react"
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
+
+interface Workspace {
+  id: string
+  name: string
+  slug: string
+  icon: string
+  description: string | null
+  businessType: string
+}
 
 /* ────────────────────────────────────────────────────────────
    Navigation grouped by concern.
@@ -69,6 +79,29 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   const pathname = usePathname()
   const router = useRouter()
   const [badges, setBadges] = useState<BadgeCounts>({ chatUnread: 0, tasksPending: 0, approvalsPending: 0 })
+  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
+  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
+  const [showNewWs, setShowNewWs] = useState(false)
+  const [newWsName, setNewWsName] = useState("")
+
+  useEffect(() => {
+    fetch("/api/workspaces").then((r) => r.json()).then((ws: Workspace[]) => {
+      setWorkspaces(ws)
+      if (ws.length > 0 && !activeWorkspace) setActiveWorkspace(ws[0])
+    }).catch(() => {})
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  async function createWorkspace() {
+    if (!newWsName.trim()) return
+    const res = await fetch("/api/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newWsName.trim() }) })
+    if (res.ok) {
+      const ws = await res.json()
+      setWorkspaces((prev) => [...prev, ws])
+      setActiveWorkspace(ws)
+      setNewWsName("")
+      setShowNewWs(false)
+    }
+  }
 
   const fetchBadges = useCallback(async () => {
     try {
@@ -109,9 +142,59 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
 
   return (
     <aside className="flex flex-col w-52 border-r border-border bg-sidebar h-full max-md:w-60">
-      {/* Header */}
-      <div className="flex items-center justify-between h-12 px-4 border-b border-border shrink-0">
-        <span className="text-[13px] font-semibold text-sidebar-primary-foreground tracking-tight">Business OS</span>
+      {/* Header — Workspace switcher */}
+      <div className="flex items-center justify-between h-12 px-3 border-b border-border shrink-0">
+        <Popover>
+          <PopoverTrigger className="flex items-center gap-2 hover:bg-accent rounded-md px-1.5 py-1 transition-colors -ml-1">
+            {activeWorkspace ? (
+              <>
+                <span className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center text-sm shrink-0">{activeWorkspace.icon}</span>
+                <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px]">{activeWorkspace.name}</span>
+              </>
+            ) : (
+              <span className="text-[13px] font-semibold tracking-tight">Business OS</span>
+            )}
+            <ChevronRight className="h-3 w-3 text-muted-foreground rotate-90" />
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-56 p-1.5">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider px-2 py-1">Workspaces</p>
+            {workspaces.map((ws) => (
+              <button
+                key={ws.id}
+                onClick={() => setActiveWorkspace(ws)}
+                className={cn(
+                  "flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] transition-colors",
+                  activeWorkspace?.id === ws.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                )}
+              >
+                <span className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center text-xs shrink-0">{ws.icon}</span>
+                <span className="truncate flex-1 text-left">{ws.name}</span>
+                {activeWorkspace?.id === ws.id && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+              </button>
+            ))}
+            {!showNewWs ? (
+              <button onClick={() => setShowNewWs(true)} className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors mt-1 border-t border-border pt-1.5">
+                <PlusCircle className="h-3.5 w-3.5" />
+                New Workspace
+              </button>
+            ) : (
+              <div className="mt-1 border-t border-border pt-1.5 px-1">
+                <input
+                  value={newWsName}
+                  onChange={(e) => setNewWsName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") createWorkspace(); if (e.key === "Escape") setShowNewWs(false) }}
+                  placeholder="Business name..."
+                  className="w-full h-7 rounded-md border border-border bg-muted/50 px-2 text-[12px] outline-none focus:border-muted-foreground/30 transition-colors"
+                  autoFocus
+                />
+                <div className="flex gap-1 mt-1">
+                  <button onClick={createWorkspace} className="flex-1 h-6 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90">Create</button>
+                  <button onClick={() => setShowNewWs(false)} className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent">Cancel</button>
+                </div>
+              </div>
+            )}
+          </PopoverContent>
+        </Popover>
         <div className="flex items-center gap-1">
           <NotificationBell />
           <Button variant="ghost" size="sm" className="h-6 w-6 p-0 md:hidden" onClick={onMobileClose}>

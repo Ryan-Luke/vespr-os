@@ -9,9 +9,32 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core"
 
+// ── Workspaces ────────────────────────────────────────────
+export const workspaces = pgTable("workspaces", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  name: text("name").notNull(), // e.g. "VERSPR"
+  slug: text("slug").notNull(), // URL-friendly: "verspr"
+  icon: text("icon").notNull().default("🏢"), // emoji or letter
+  description: text("description"), // what the business does
+  businessType: text("business_type").notNull().default("agency"), // agency, saas, ecommerce, info_product, consulting, other
+  industry: text("industry"), // e.g. "AI Services"
+  website: text("website"),
+  businessProfile: jsonb("business_profile").$type<{
+    mission?: string
+    icp?: string
+    verticals?: string[]
+    teamSize?: string
+    revenue?: string
+    tools?: string[]
+  }>().default({}),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 // ── Teams ──────────────────────────────────────────────────
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   description: text("description"),
   icon: text("icon").notNull().default("⚙️"),
