@@ -662,7 +662,7 @@ export default function ChatPage() {
       {/* Sidebar */}
       <div className="w-56 border-r border-border flex flex-col bg-sidebar shrink-0">
         <div className="p-3 border-b border-border">
-          <h2 className="font-bold text-sm gradient-text">Business OS</h2>
+          <h2 className="font-bold text-sm text-foreground">Business OS</h2>
           <p className="text-xs text-muted-foreground">{dbAgents.length} agents online</p>
         </div>
         <div className="flex-1 overflow-y-auto">

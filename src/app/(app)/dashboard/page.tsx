@@ -44,10 +44,10 @@ export default async function DashboardPage() {
   const hoursSaved = Math.round(totalTasksCompleted * 0.15)
 
   const kpis = [
-    { label: "Tasks Completed", value: totalTasksCompleted.toLocaleString(), change: 12.5, changeLabel: "vs last month", icon: CheckCircle2, gradient: "from-emerald-500 to-green-600", glow: "shadow-emerald-500/20", valueColor: "text-emerald-400" },
-    { label: "Hours Saved", value: hoursSaved.toLocaleString(), change: 18.3, changeLabel: "vs last month", icon: Timer, gradient: "from-amber-500 to-orange-500", glow: "shadow-amber-500/20", valueColor: "text-amber-400" },
-    { label: "Active Agents", value: allAgents.length.toString(), change: 0, changeLabel: `${workingAgents} working`, icon: Users, gradient: "from-pink-500 to-rose-600", glow: "shadow-pink-500/20", valueColor: "text-pink-400" },
-    { label: "Monthly Cost", value: `$${totalCost.toFixed(0)}`, change: -8.2, changeLabel: "vs last month", icon: DollarSign, gradient: "from-red-500 to-rose-600", glow: "shadow-red-500/20", valueColor: "text-red-400" },
+    { label: "Tasks Completed", value: totalTasksCompleted.toLocaleString(), change: 12.5, changeLabel: "vs last month", icon: CheckCircle2, gradient: "from-violet-600 to-purple-500", glow: "shadow-violet-500/25", valueColor: "text-violet-300" },
+    { label: "Hours Saved", value: hoursSaved.toLocaleString(), change: 18.3, changeLabel: "vs last month", icon: Timer, gradient: "from-pink-600 to-rose-500", glow: "shadow-pink-500/25", valueColor: "text-pink-300" },
+    { label: "Active Agents", value: allAgents.length.toString(), change: 0, changeLabel: `${workingAgents} working`, icon: Users, gradient: "from-cyan-600 to-blue-500", glow: "shadow-cyan-500/25", valueColor: "text-cyan-300" },
+    { label: "Monthly Cost", value: `$${totalCost.toFixed(0)}`, change: -8.2, changeLabel: "vs last month", icon: DollarSign, gradient: "from-amber-600 to-orange-500", glow: "shadow-amber-500/25", valueColor: "text-amber-300" },
   ]
 
   const costByTeamData = allTeams.map((team) => {
