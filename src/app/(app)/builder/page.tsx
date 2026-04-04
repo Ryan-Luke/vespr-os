@@ -172,128 +172,85 @@ function BuilderPageInner() {
 
       {/* Step 0: Template Selection */}
       {step === 0 && (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
           {templates.map((template) => (
-            <Card
+            <button
               key={template.id}
               className={cn(
-                "cursor-pointer transition-colors hover:border-primary/50",
-                selectedTemplate === template.id && "border-primary"
+                "text-left rounded-md border p-3 transition-all hover:border-muted-foreground/30",
+                selectedTemplate === template.id ? "border-primary" : "border-border"
               )}
               onClick={() => selectTemplate(template.id)}
             >
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-2 mb-2">
-                  {template.id === "custom" ? (
-                    <Wrench className="h-5 w-5 text-muted-foreground" />
-                  ) : (
-                    <Bot className="h-5 w-5 text-primary" />
-                  )}
-                  <h3 className="font-medium text-sm">{template.name}</h3>
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  {template.description}
-                </p>
-                {template.team && (
-                  <Badge variant="secondary" className="mt-3 text-xs">
-                    {template.team}
-                  </Badge>
-                )}
-              </CardContent>
-            </Card>
+              <div className="flex items-center gap-1.5 mb-1">
+                {template.id === "custom" ? <Wrench className="h-3.5 w-3.5 text-muted-foreground" /> : <Bot className="h-3.5 w-3.5 text-muted-foreground" />}
+                <span className="text-[13px] font-medium">{template.name}</span>
+              </div>
+              <p className="text-xs text-muted-foreground">{template.description}</p>
+              {template.team && <p className="text-[11px] text-muted-foreground mt-1.5">{template.team}</p>}
+            </button>
           ))}
         </div>
       )}
 
       {/* Step 1: Agent Details */}
       {step === 1 && (
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Agent Details</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Name</Label>
-                <Input
-                  placeholder="e.g., Maya, Jordan, Casey"
-                  value={agentName}
-                  onChange={(e) => setAgentName(e.target.value)}
-                />
-              </div>
-              <div className="space-y-2">
-                <Label>Role</Label>
-                <Input
-                  placeholder="e.g., Content Writer, Lead Researcher"
-                  value={agentRole}
-                  onChange={(e) => setAgentRole(e.target.value)}
-                />
-              </div>
+        <div className="bg-card border border-border rounded-md p-4 space-y-4">
+          <p className="section-label">Agent Details</p>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Name</label>
+              <input placeholder="e.g., Maya, Jordan" value={agentName} onChange={(e) => setAgentName(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
             </div>
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <Label>Team</Label>
-                <Select value={agentTeam} onValueChange={(v) => setAgentTeam(v ?? "")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select a team" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {dbTeams.map((t) => (
-                      <SelectItem key={t.id} value={t.name}>{t.icon} {t.name}</SelectItem>
-                    ))}
-                    {dbTeams.length === 0 && <SelectItem value="" disabled>Loading teams...</SelectItem>}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <Label>AI Provider</Label>
-                <Select value={agentProvider} onValueChange={(v) => setAgentProvider(v ?? "")}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select provider" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
-                    <SelectItem value="openai">OpenAI (GPT)</SelectItem>
-                    <SelectItem value="google">Google (Gemini)</SelectItem>
-                    <SelectItem value="custom">Custom / Self-hosted</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Role</label>
+              <input placeholder="e.g., Content Writer" value={agentRole} onChange={(e) => setAgentRole(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
             </div>
-            <div className="space-y-2">
-              <Label>Autonomy Level</Label>
-              <Select value={agentAutonomy} onValueChange={(v) => setAgentAutonomy(v ?? "supervised")}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
+          </div>
+          <div className="grid gap-3 md:grid-cols-2">
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Team</label>
+              <Select value={agentTeam} onValueChange={(v) => setAgentTeam(v ?? "")}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select team" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="full_auto">Full Auto — works independently 24/7</SelectItem>
-                  <SelectItem value="supervised">Supervised — asks before key actions</SelectItem>
-                  <SelectItem value="manual">Manual — only works when you ask</SelectItem>
+                  {dbTeams.map((t) => <SelectItem key={t.id} value={t.name}>{t.icon} {t.name}</SelectItem>)}
                 </SelectContent>
               </Select>
-              <p className="text-xs text-muted-foreground">
-                {agentAutonomy === "full_auto" && "This agent will work continuously without asking for permission."}
-                {agentAutonomy === "supervised" && "This agent will flag important decisions for your approval."}
-                {agentAutonomy === "manual" && "This agent only acts when you directly assign work."}
-              </p>
             </div>
-            <div className="space-y-2">
-              <Label>Description</Label>
-              <Textarea
-                placeholder="Describe what this agent should do in plain language... e.g., 'Research our competitors' pricing pages daily and alert me if anything changes.'"
-                value={agentDescription}
-                onChange={(e) => setAgentDescription(e.target.value)}
-                rows={3}
-              />
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Provider</label>
+              <Select value={agentProvider} onValueChange={(v) => setAgentProvider(v ?? "")}>
+                <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Select" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="anthropic">Anthropic (Claude)</SelectItem>
+                  <SelectItem value="openai">OpenAI (GPT)</SelectItem>
+                  <SelectItem value="google">Google (Gemini)</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
-            <div className="flex justify-end">
-              <Button onClick={() => setStep(2)}>
-                Next: Personality
-              </Button>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-medium">Autonomy</label>
+            <Select value={agentAutonomy} onValueChange={(v) => setAgentAutonomy(v ?? "supervised")}>
+              <SelectTrigger className="h-8 text-xs"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="full_auto">Full Auto</SelectItem>
+                <SelectItem value="supervised">Supervised</SelectItem>
+                <SelectItem value="manual">Manual</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[11px] text-muted-foreground">
+              {agentAutonomy === "full_auto" ? "Works independently." : agentAutonomy === "supervised" ? "Asks before key actions." : "Only works when asked."}
+            </p>
+          </div>
+          <div className="space-y-1.5">
+            <label className="text-[13px] font-medium">Description</label>
+            <textarea placeholder="Describe what this agent should do..." value={agentDescription} onChange={(e) => setAgentDescription(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
             </div>
-          </CardContent>
-        </Card>
+          <div className="flex justify-end pt-2">
+            <button onClick={() => setStep(2)} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Next</button>
+          </div>
+        </div>
       )}
 
       {/* Step 2: Personality */}
@@ -652,15 +609,9 @@ function BuilderPageInner() {
       {/* Step 3: Skills */}
       {step === 3 && (
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
-                <Brain className="h-4 w-4" />
-                Select Skills
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
+          <div className="bg-card border border-border rounded-md p-4">
+            <p className="section-label mb-3">Select Skills</p>
+              <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
                 {skillOptions.map((skill) => {
                   const isSelected = selectedSkills.has(skill.id)
                   return (
@@ -668,37 +619,23 @@ function BuilderPageInner() {
                       key={skill.id}
                       onClick={() => toggleSkill(skill.id)}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg border p-3 text-left transition-colors",
-                        isSelected
-                          ? "border-primary bg-primary/5"
-                          : "border-border hover:border-primary/30"
+                        "flex items-center gap-2.5 rounded-md border p-2.5 text-left transition-all",
+                        isSelected ? "border-primary" : "border-border hover:border-muted-foreground/30"
                       )}
                     >
-                      <skill.icon
-                        className={cn(
-                          "h-5 w-5 shrink-0",
-                          isSelected ? "text-primary" : "text-muted-foreground"
-                        )}
-                      />
+                      <skill.icon className={cn("h-3.5 w-3.5 shrink-0", isSelected ? "text-primary" : "text-muted-foreground")} />
                       <div>
-                        <p className="text-sm font-medium">{skill.name}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {skill.description}
-                        </p>
+                        <p className="text-[13px] font-medium">{skill.name}</p>
+                        <p className="text-[11px] text-muted-foreground">{skill.description}</p>
                       </div>
                     </button>
                   )
                 })}
               </div>
-            </CardContent>
-          </Card>
+          </div>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(2)}>
-              Back
-            </Button>
-            <Button onClick={() => setStep(4)}>
-              Next: Review
-            </Button>
+            <button onClick={() => setStep(2)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+            <button onClick={() => setStep(4)} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Next</button>
           </div>
         </div>
       )}
@@ -706,95 +643,49 @@ function BuilderPageInner() {
       {/* Step 4: Review */}
       {step === 4 && (
         <div className="space-y-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base">Review Your Agent</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div>
-                  <p className="text-sm text-muted-foreground">Name</p>
-                  <p className="font-medium">{agentName || "Not set"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Role</p>
-                  <p className="font-medium">{agentRole || "Not set"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Team</p>
-                  <p className="font-medium">{agentTeam || "Not set"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Provider</p>
-                  <p className="font-medium capitalize">{agentProvider || "Not set"}</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Autonomy</p>
-                  <p className="font-medium">{agentAutonomy === "full_auto" ? "Full Auto" : agentAutonomy === "supervised" ? "Supervised" : "Manual"}</p>
-                </div>
-              </div>
-              {agentDescription && (
-                <div>
-                  <p className="text-sm text-muted-foreground">Description</p>
-                  <p className="text-sm mt-1">{agentDescription}</p>
-                </div>
-              )}
-              <Separator />
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Personality</p>
-                {selectedPreset ? (
-                  <div className="flex items-center gap-2">
-                    <Badge variant="default">{selectedPreset.name}</Badge>
-                    <span className="text-xs text-muted-foreground">{selectedPreset.description}</span>
+          <div className="bg-card border border-border rounded-md divide-y divide-border">
+            <div className="p-4">
+              <p className="section-label mb-3">Review</p>
+              <div className="grid gap-2 md:grid-cols-2">
+                {[
+                  { label: "Name", value: agentName || "—" },
+                  { label: "Role", value: agentRole || "—" },
+                  { label: "Team", value: agentTeam || "—" },
+                  { label: "Provider", value: agentProvider || "—" },
+                  { label: "Autonomy", value: agentAutonomy === "full_auto" ? "Full Auto" : agentAutonomy === "supervised" ? "Supervised" : "Manual" },
+                ].map((r) => (
+                  <div key={r.label} className="flex justify-between text-[13px]">
+                    <span className="text-muted-foreground">{r.label}</span>
+                    <span className="font-medium capitalize">{r.value}</span>
                   </div>
-                ) : personalityMode === "custom" ? (
-                  <div className="space-y-2">
-                    <div className="flex flex-wrap gap-1.5">
-                      <Badge variant="secondary" className="text-xs">{customConfig.communication.formality === "formal" ? "Formal" : "Casual"}</Badge>
-                      <Badge variant="secondary" className="text-xs">{customConfig.communication.verbosity === "detailed" ? "Detailed" : "Brief"}</Badge>
-                      <Badge variant="secondary" className="text-xs">{customConfig.communication.directness === "blunt" ? "Blunt" : "Diplomatic"}</Badge>
-                      <Badge variant="secondary" className="text-xs">{customConfig.communication.vocabulary === "elevated" ? "Elevated" : "Plain"}</Badge>
-                    </div>
-                    <div className="flex flex-wrap gap-1.5">
-                      {customConfig.temperament.map((t) => <Badge key={t} variant="outline" className="text-xs capitalize">{t}</Badge>)}
-                      {customConfig.social.map((s) => <Badge key={s} variant="outline" className="text-xs capitalize">{s.replace("-", " ")}</Badge>)}
-                      {customConfig.humor.map((h) => <Badge key={h} variant="outline" className="text-xs capitalize">{h}</Badge>)}
-                      <Badge variant="outline" className="text-xs capitalize">{customConfig.energy.replace("-", " ")}</Badge>
-                      {customConfig.quirks.map((q) => <Badge key={q} variant="outline" className="text-xs capitalize">{q.replace("-", " ")}</Badge>)}
-                    </div>
-                    {customConfig.catchphrases.length > 0 && (
-                      <p className="text-xs text-muted-foreground italic">Catchphrases: {customConfig.catchphrases.map((c) => `"${c}"`).join(", ")}</p>
-                    )}
-                  </div>
-                ) : (
-                  <p className="text-sm text-muted-foreground">Default personality</p>
-                )}
+                ))}
               </div>
-              <Separator />
-              <div>
-                <p className="text-sm text-muted-foreground mb-2">Skills</p>
-                <div className="flex flex-wrap gap-2">
-                  {selectedSkills.size === 0 ? (
-                    <p className="text-sm text-muted-foreground">No skills selected</p>
-                  ) : (
-                    Array.from(selectedSkills).map((skillId) => {
-                      const skill = skillOptions.find((s) => s.id === skillId)
-                      return (
-                        <Badge key={skillId} variant="secondary">
-                          {skill?.name}
-                        </Badge>
-                      )
-                    })
-                  )}
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Personality</p>
+              {selectedPreset ? (
+                <p className="text-[13px]"><span className="font-medium">{selectedPreset.name}</span> <span className="text-muted-foreground">— {selectedPreset.description}</span></p>
+              ) : personalityMode === "custom" ? (
+                <div className="flex flex-wrap gap-1">
+                  {[customConfig.communication.formality, customConfig.communication.directness, ...customConfig.temperament, ...customConfig.humor, customConfig.energy].map((t) => (
+                    <span key={t} className="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5 capitalize">{t.replace("-", " ")}</span>
+                  ))}
                 </div>
+              ) : <p className="text-xs text-muted-foreground">Default</p>}
+            </div>
+            <div className="p-4">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Skills</p>
+              <div className="flex flex-wrap gap-1">
+                {selectedSkills.size === 0 ? <p className="text-xs text-muted-foreground">None</p> : Array.from(selectedSkills).map((id) => {
+                  const skill = skillOptions.find((s) => s.id === id)
+                  return <span key={id} className="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5">{skill?.name}</span>
+                })}
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(3)}>
-              Back
-            </Button>
-            <Button disabled={creating} onClick={async () => {
+            <button onClick={() => setStep(3)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+            <button disabled={creating} className="h-7 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1 disabled:opacity-50" onClick={async () => {
               setCreating(true)
               try {
                 const team = dbTeams.find((t) => t.name === agentTeam)
@@ -819,9 +710,9 @@ function BuilderPageInner() {
               } catch (e) { console.error(e) }
               setCreating(false)
             }}>
-              {creating ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <PlusCircle className="h-4 w-4 mr-2" />}
-              {creating ? "Creating..." : "Create Agent"}
-            </Button>
+              {creating ? <Loader2 className="h-3 w-3 animate-spin" /> : <PlusCircle className="h-3 w-3" />}
+              {creating ? "Creating..." : "Create"}
+            </button>
           </div>
         </div>
       )}
