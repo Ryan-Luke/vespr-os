@@ -12,6 +12,9 @@ async function seed() {
   console.log("Seeding database...")
 
   // Clear existing data (order matters for FK constraints)
+  await db.delete(schema.rosterUnlocks)
+  await db.delete(schema.agentBonds)
+  await db.delete(schema.agentTraits)
   await db.delete(schema.trophyEvents)
   await db.delete(schema.evolutionEvents)
   await db.delete(schema.milestones)
@@ -751,6 +754,81 @@ async function seed() {
   await db.update(schema.agents)
     .set({ currentForm: "Automation Architect", tier: "epic", evolvedFromForm: "Senior Builder" })
     .where(eq(schema.agents.name, "Nyx"))
+
+  // Seed roster unlocks — archetypes VERSPR has already earned
+  // One unacknowledged so the unlock modal shows on next login
+  await db.insert(schema.rosterUnlocks).values([
+    { workspaceId: verspr.id, archetype: "closer", tier: "common", triggerMetric: "first_customer", triggerValue: "First paying customer", unlockedAt: new Date(trophyNow - 90 * 86400000), acknowledgedAt: new Date(trophyNow - 89 * 86400000) },
+    { workspaceId: verspr.id, archetype: "communicator", tier: "common", triggerMetric: "ten_customers", triggerValue: "10 paying customers", unlockedAt: new Date(trophyNow - 60 * 86400000), acknowledgedAt: new Date(trophyNow - 59 * 86400000) },
+    { workspaceId: verspr.id, archetype: "analyst", tier: "uncommon", triggerMetric: "mrr_10k", triggerValue: "$10K MRR", unlockedAt: new Date(trophyNow - 30 * 86400000), acknowledgedAt: new Date(trophyNow - 29 * 86400000) },
+    { workspaceId: verspr.id, archetype: "operator", tier: "uncommon", triggerMetric: "mrr_25k", triggerValue: "$25K MRR", unlockedAt: new Date(trophyNow - 14 * 86400000), acknowledgedAt: new Date(trophyNow - 13 * 86400000) },
+    // Unacknowledged — just crossed $50K MRR → Builder unlocks
+    { workspaceId: verspr.id, archetype: "builder", tier: "rare", triggerMetric: "mrr_50k", triggerValue: "$50K MRR", unlockedAt: new Date(trophyNow - 3 * 3600000), acknowledgedAt: null },
+  ])
+
+  // Seed agent bonds — high-synergy pairings (spec Section 10)
+  const bondPairs = [
+    { a: "Maya", b: "Alex", workflows: 34, lift: 0.22, liftLabel: "content performance", context: "when pairing SEO with content strategy" },
+    { a: "Jordan", b: "Riley", workflows: 47, lift: 0.31, liftLabel: "reply rate", context: "on cold outreach sequences" },
+    { a: "Nyx", b: "Quinn", workflows: 23, lift: 0.18, liftLabel: "SOP adoption", context: "when documenting automations" },
+    { a: "Casey", b: "Drew", workflows: 56, lift: 0.15, liftLabel: "on-time delivery", context: "on client milestone tracking" },
+    { a: "Maya", b: "Zara", workflows: 28, lift: 0.24, liftLabel: "engagement", context: "when cross-posting content to Instagram" },
+    { a: "Finley", b: "Morgan", workflows: 19, lift: 0.12, liftLabel: "report accuracy", context: "on monthly financial close" },
+  ]
+  await db.insert(schema.agentBonds).values(
+    bondPairs.map((b) => ({
+      agentAId: agent(b.a).id,
+      agentBId: agent(b.b).id,
+      workflowCount: b.workflows,
+      outcomeLift: b.lift,
+      liftLabel: b.liftLabel,
+      context: b.context,
+    }))
+  )
+
+  // Seed emergent traits — derived from fictional performance history
+  await db.insert(schema.agentTraits).values([
+    // Maya
+    { agentId: agent("Maya").id, trait: "Writes in mornings, edits in afternoons", sourceMetric: "publish_time", sourceValue: "73% of published work finalized before 2pm" },
+    { agentId: agent("Maya").id, trait: "Builds content around specific numbers and case studies", sourceMetric: "content_pattern", sourceValue: "94% of articles contain concrete metrics" },
+    // Alex
+    { agentId: agent("Alex").id, trait: "Thinks in keyword clusters, not single terms", sourceMetric: "seo_approach", sourceValue: "Averages 12 related keywords per audit" },
+    { agentId: agent("Alex").id, trait: "Catches ranking opportunities others miss", sourceMetric: "unique_finds", sourceValue: "Identifies 8 gaps per competitor audit" },
+    // Zara
+    { agentId: agent("Zara").id, trait: "Best performance on Reels posted 7-9am EST", sourceMetric: "post_timing", sourceValue: "2.3x engagement vs other time windows" },
+    { agentId: agent("Zara").id, trait: "Before/after format outperforms tutorials by 4x", sourceMetric: "content_format", sourceValue: "Analyzed across 120 posts" },
+    // Jordan
+    { agentId: agent("Jordan").id, trait: "Sources best leads from LinkedIn comparison pages", sourceMetric: "lead_source", sourceValue: "42% of qualified leads from this channel" },
+    { agentId: agent("Jordan").id, trait: "Identifies AI readiness from careers pages", sourceMetric: "research_speed", sourceValue: "Under 2 minutes per prospect" },
+    // Riley
+    { agentId: agent("Riley").id, trait: "Follow-up on day 3 drives highest replies", sourceMetric: "reply_timing", sourceValue: "34% reply rate on day-3 follow-ups" },
+    { agentId: agent("Riley").id, trait: "Tests one variable at a time", sourceMetric: "ab_testing_discipline", sourceValue: "Never stacks more than one change per test" },
+    // Sam
+    { agentId: agent("Sam").id, trait: "Deduplicates across systems in minutes", sourceMetric: "efficiency", sourceValue: "Handles 500+ records per session" },
+    { agentId: agent("Sam").id, trait: "Prefers automation over manual entry", sourceMetric: "workflow_preference", sourceValue: "89% of tasks handled via automation" },
+    // Nyx
+    { agentId: agent("Nyx").id, trait: "Error branching on every workflow", sourceMetric: "build_standards", sourceValue: "Zero critical failures across 47 builds" },
+    { agentId: agent("Nyx").id, trait: "Explains automations in plain time-savings", sourceMetric: "communication_style", sourceValue: "Always leads with hours saved" },
+    // Quinn
+    { agentId: agent("Quinn").id, trait: "Documents with Loom + Notion combo", sourceMetric: "sop_format", sourceValue: "60% higher compliance than text-only" },
+    { agentId: agent("Quinn").id, trait: "Flags process drift within a week", sourceMetric: "vigilance", sourceValue: "Catches 95% of SOP violations in under 7 days" },
+    // Finley
+    { agentId: agent("Finley").id, trait: "Reconciles weekly, closes by the 5th", sourceMetric: "cadence", sourceValue: "100% on-time closes last 12 months" },
+    { agentId: agent("Finley").id, trait: "Spots fraudulent charges within 24 hours", sourceMetric: "anomaly_detection", sourceValue: "Pattern-based flagging" },
+    // Morgan
+    { agentId: agent("Morgan").id, trait: "Asks for data upfront before starting", sourceMetric: "blockers_prevented", sourceValue: "Reduces mid-project blockers by 70%" },
+    // Casey
+    { agentId: agent("Casey").id, trait: "Spots churn risk from missed check-ins", sourceMetric: "retention_signal", sourceValue: "80% accuracy flagging at-risk clients" },
+    { agentId: agent("Casey").id, trait: "Ends every check-in with a clear next step", sourceMetric: "communication_pattern", sourceValue: "Never leaves calls open-ended" },
+    // Drew
+    { agentId: agent("Drew").id, trait: "Predicts delivery dates with 85% accuracy", sourceMetric: "forecasting", sourceValue: "Based on velocity history" },
+    { agentId: agent("Drew").id, trait: "Friday status updates drive most engagement", sourceMetric: "comms_timing", sourceValue: "3x more read than Monday updates" },
+    // Nova (Chief of Staff)
+    { agentId: chiefOfStaff.id, trait: "Resolves cross-team conflicts in writing", sourceMetric: "resolution_style", sourceValue: "100% resolution rate on 30+ conflicts" },
+    { agentId: chiefOfStaff.id, trait: "Prefers async written updates over calls", sourceMetric: "communication_preference", sourceValue: "Drives 20% higher team productivity" },
+    // Aria
+    { agentId: qaAgent.id, trait: "Gives specific, actionable feedback", sourceMetric: "feedback_quality", sourceValue: "95% of reviews include concrete next steps" },
+  ])
 
   // Seed milestones based on current agent stats
   const allAgents = [...insertedAgents, chiefOfStaff, qaAgent]

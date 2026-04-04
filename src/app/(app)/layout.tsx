@@ -7,6 +7,7 @@ import { TutorialOverlay } from "@/components/tutorial-overlay"
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay"
 import { WorkspaceProvider } from "@/lib/workspace-context"
 import { EvolutionMoment } from "@/components/evolution-moment"
+import { RosterUnlockMoment } from "@/components/roster-unlock-moment"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -42,6 +43,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <TutorialOverlay />
       <ShortcutsOverlay />
       <EvolutionMoment />
+      <RosterUnlockMoment />
     </div>
     </WorkspaceProvider>
   )

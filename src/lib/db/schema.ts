@@ -128,6 +128,45 @@ export const evolutionEvents = pgTable("evolution_events", {
   acknowledgedAt: timestamp("acknowledged_at"),
 })
 
+// ── Roster Unlocks ────────────────────────────────────────
+// New archetypes become available as the business hits milestones (spec Section 11)
+export const rosterUnlocks = pgTable("roster_unlocks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  archetype: text("archetype").notNull(), // Scout, Closer, Analyst, etc.
+  tier: text("tier").notNull().default("common"), // common/uncommon/rare/epic/legendary
+  triggerMetric: text("trigger_metric").notNull(), // first_customer, mrr_10k, etc.
+  triggerValue: text("trigger_value"), // human-readable, e.g. "$10K MRR"
+  unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
+  acknowledgedAt: timestamp("acknowledged_at"),
+})
+
+// ── Agent Bonds (Synergy) ──────────────────────────────────
+// Tracks collaboration between agents and their outcome lift (spec Section 10)
+export const agentBonds = pgTable("agent_bonds", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentAId: uuid("agent_a_id").notNull(),
+  agentBId: uuid("agent_b_id").notNull(),
+  workflowCount: integer("workflow_count").notNull().default(0),
+  outcomeLift: real("outcome_lift"), // e.g. 0.15 for +15%
+  liftLabel: text("lift_label"), // "conversion", "close rate", "delivery speed"
+  context: text("context"), // "on enterprise deals", "on client onboarding"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// ── Agent Emergent Traits ──────────────────────────────────
+// Derived from performance data — descriptive, never judgmental (spec Section 9)
+export const agentTraits = pgTable("agent_traits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  trait: text("trait").notNull(), // "Follows up within 2 hours"
+  sourceMetric: text("source_metric").notNull(), // traceable back to data
+  sourceValue: text("source_value"), // human-readable backing value
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
 // ── Trophy Feed Events ────────────────────────────────────
 // Home screen highlight reel — wins only, per engagement spec Section 7
 export const trophyEvents = pgTable("trophy_events", {

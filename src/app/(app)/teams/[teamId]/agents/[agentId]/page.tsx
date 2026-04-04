@@ -420,6 +420,8 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [feedback, setFeedback] = useState<FeedbackStats | null>(null)
   const [decisions, setDecisions] = useState<DecisionEntry[]>([])
   const [memories, setMemories] = useState<{ id: string; memoryType: string; content: string; importance: number; createdAt: string }[]>([])
+  const [bonds, setBonds] = useState<Array<{ id: string; workflowCount: number; outcomeLift: number | null; liftLabel: string | null; context: string | null; otherAgent: { id: string; name: string; pixelAvatarIndex: number } | null }>>([])
+  const [traits, setTraits] = useState<Array<{ id: string; trait: string; sourceMetric: string; sourceValue: string | null }>>([])
   const [skillLevels, setSkillLevels] = useState<SkillLevelsMap>({})
   const [reviewLoading, setReviewLoading] = useState(false)
   const [reviewData, setReviewData] = useState<{ rating: number; summary: string; strengths: string[]; improvements: string[]; recommendations: string } | null>(null)
@@ -565,13 +567,17 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
       fetch(`/api/feedback?agentId=${agentId}`).then((r) => r.json()),
       fetch(`/api/decisions?agentId=${agentId}&limit=10`).then((r) => r.json()),
       fetch(`/api/memory?agentId=${agentId}&limit=20`).then((r) => r.json()),
-    ]).then(([agents, agentSops, agentMilestones, fb, decs, mems]) => {
+      fetch(`/api/agent-bonds?agentId=${agentId}`).then((r) => r.json()),
+      fetch(`/api/agent-traits?agentId=${agentId}`).then((r) => r.json()),
+    ]).then(([agents, agentSops, agentMilestones, fb, decs, mems, bondsData, traitsData]) => {
       setAgent(agents.find((a: DBAgent) => a.id === agentId) || null)
       setSops(agentSops)
       setMilestones(Array.isArray(agentMilestones) ? agentMilestones : [])
       setFeedback(fb)
       setDecisions(Array.isArray(decs) ? decs : [])
       setMemories(Array.isArray(mems) ? mems : [])
+      setBonds(Array.isArray(bondsData) ? bondsData : [])
+      setTraits(Array.isArray(traitsData) ? traitsData : [])
       setLoading(false)
     })
   }, [agentId])
@@ -857,13 +863,60 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          {/* ── Overview: Identity Card + Personality + Skills ── */}
+          {/* ── Overview: Identity Card + Traits + Bonds + Personality + Skills ── */}
           <TabsContent value="overview" className="mt-4 space-y-6">
             {/* Identity Card */}
             <div>
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Identity</p>
               <IdentityCard agent={agent as any} />
             </div>
+
+            {/* Emergent Traits — derived from performance */}
+            {traits.length > 0 && (
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">How {agent.name} works</p>
+                <div className="space-y-1.5">
+                  {traits.map((t) => (
+                    <div key={t.id} className="flex items-start gap-2 bg-muted/30 border border-border rounded-md px-3 py-2" title={`${t.sourceMetric}: ${t.sourceValue}`}>
+                      <span className="h-1 w-1 rounded-full bg-primary/60 mt-2 shrink-0" />
+                      <div className="flex-1">
+                        <p className="text-[13px] text-foreground/85 leading-snug">{t.trait}</p>
+                        {t.sourceValue && <p className="text-[10px] text-muted-foreground/60 mt-0.5 italic">{t.sourceValue}</p>}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Bonds — synergy with other agents */}
+            {bonds.length > 0 && (
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Strongest collaborations</p>
+                <div className="space-y-2">
+                  {bonds.slice(0, 3).map((b) => (
+                    <div key={b.id} className="flex items-center gap-3 bg-card border border-border rounded-md p-3 hover:border-muted-foreground/20 transition-colors">
+                      {b.otherAgent && <PixelAvatar characterIndex={b.otherAgent.pixelAvatarIndex} size={28} className="rounded-sm shrink-0" />}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span className="text-[13px] font-medium">{agent.name} + {b.otherAgent?.name}</span>
+                          {b.outcomeLift && (
+                            <span className="text-[11px] font-semibold text-emerald-400 tabular-nums">
+                              +{Math.round(b.outcomeLift * 100)}%
+                            </span>
+                          )}
+                          {b.liftLabel && <span className="text-[11px] text-muted-foreground">{b.liftLabel}</span>}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">
+                          {b.context && <span>{b.context} · </span>}
+                          <span>{b.workflowCount} joint workflows</span>
+                        </p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Personality */}
             <div>

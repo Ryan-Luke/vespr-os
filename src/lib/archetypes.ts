@@ -190,6 +190,37 @@ export function getCurrentForm(
   return archetype.forms[0]
 }
 
+/** Unlock ladder — new archetypes become available as business hits milestones.
+ * Per engagement spec Section 11. Tied to verifiable business metrics, not usage.
+ */
+export interface UnlockRequirement {
+  archetype: ArchetypeId
+  tier: Tier
+  trigger: {
+    metric: "first_customer" | "mrr_10k" | "mrr_25k" | "mrr_50k" | "mrr_100k" | "first_hire" | "ten_customers" | "first_enterprise_deal"
+    label: string // human-readable requirement
+  }
+  tagline: string // one-liner for the unlock modal
+}
+
+export const UNLOCK_LADDER: UnlockRequirement[] = [
+  // Starter roster is always available — listed for completeness
+  // { archetype: "scout", tier: "common", ... } — unlocked from day 1
+  // { archetype: "researcher", tier: "common", ... } — unlocked from day 1
+  // { archetype: "writer", tier: "common", ... } — unlocked from day 1
+
+  { archetype: "closer", tier: "common", trigger: { metric: "first_customer", label: "First paying customer" }, tagline: "You need someone to turn warm leads into signed revenue." },
+  { archetype: "communicator", tier: "common", trigger: { metric: "ten_customers", label: "10 paying customers" }, tagline: "Your clients need a dedicated point of contact." },
+  { archetype: "analyst", tier: "uncommon", trigger: { metric: "mrr_10k", label: "$10K MRR" }, tagline: "Your numbers are getting serious. Time for someone who reads the story they're telling." },
+  { archetype: "operator", tier: "uncommon", trigger: { metric: "mrr_25k", label: "$25K MRR" }, tagline: "Growth requires systems. Your Operator builds the machine that runs the business." },
+  { archetype: "builder", tier: "rare", trigger: { metric: "mrr_50k", label: "$50K MRR" }, tagline: "Time to build the infrastructure that lets you scale without linear hires." },
+  { archetype: "strategist", tier: "epic", trigger: { metric: "mrr_100k", label: "$100K MRR" }, tagline: "You're past tactical. You need someone who sees the full board." },
+  // Legendary — first enterprise deal unlocks the Enterprise Closer form
+  // (This is a tier upgrade on Closer, not a separate archetype)
+]
+
+export const STARTER_ARCHETYPES: ArchetypeId[] = ["scout", "researcher", "writer"]
+
 /** Pick a sensible archetype for an agent based on their role */
 export function inferArchetype(role: string): ArchetypeId {
   const r = role.toLowerCase()
