@@ -63,14 +63,74 @@ const skillOptions = [
   { id: "coding", name: "Code Generation", icon: Code, description: "Write and review code" },
 ]
 
-const templates = [
-  { id: "content-writer", name: "Content Writer", role: "Content Writer", team: "Marketing", description: "Writes blog posts, articles, and marketing copy" },
-  { id: "lead-gen", name: "Lead Generator", role: "Lead Researcher", team: "Sales", description: "Finds and qualifies prospects matching your ICP" },
-  { id: "support-agent", name: "Support Agent", role: "Customer Support", team: "Fulfillment", description: "Handles customer inquiries and support tickets" },
-  { id: "bookkeeper", name: "Bookkeeper", role: "Bookkeeper", team: "Finance", description: "Categorizes transactions and maintains financial records" },
-  { id: "social-mgr", name: "Social Media Manager", role: "Social Media Manager", team: "Marketing", description: "Creates and schedules social media content" },
-  { id: "custom", name: "Custom Agent", role: "", team: "", description: "Build from scratch with full customization" },
+const genericTemplates = [
+  { id: "content-writer", name: "Content Writer", role: "Content Writer", team: "Marketing", description: "Writes blog posts, articles, and marketing copy", suggestedSkills: ["web-search", "file-mgmt", "social"] },
+  { id: "lead-gen", name: "Lead Generator", role: "Lead Researcher", team: "Sales", description: "Finds and qualifies prospects matching your ICP", suggestedSkills: ["web-search", "crm", "email", "research"] },
+  { id: "support-agent", name: "Support Agent", role: "Customer Support", team: "Fulfillment", description: "Handles customer inquiries and support tickets", suggestedSkills: ["support", "messaging", "crm"] },
+  { id: "bookkeeper", name: "Bookkeeper", role: "Bookkeeper", team: "Finance", description: "Categorizes transactions and maintains financial records", suggestedSkills: ["file-mgmt", "analytics"] },
+  { id: "social-mgr", name: "Social Media Manager", role: "Social Media Manager", team: "Marketing", description: "Creates and schedules social media content", suggestedSkills: ["social", "analytics", "file-mgmt", "calendar"] },
 ]
+
+const departmentTemplates: Record<string, typeof genericTemplates> = {
+  Marketing: [
+    { id: "mkt-content-writer", name: "Content Writer", role: "Content Writer", team: "Marketing", description: "Writes blog posts, articles, and marketing copy", suggestedSkills: ["web-search", "file-mgmt", "social", "research"] },
+    { id: "mkt-seo", name: "SEO Specialist", role: "SEO Specialist", team: "Marketing", description: "Optimizes content for search engines and tracks rankings", suggestedSkills: ["web-search", "analytics", "research"] },
+    { id: "mkt-social", name: "Social Media Manager", role: "Social Media Manager", team: "Marketing", description: "Creates and schedules social media content across platforms", suggestedSkills: ["social", "analytics", "file-mgmt", "calendar"] },
+    { id: "mkt-ads", name: "Ad Campaign Manager", role: "Ad Campaign Manager", team: "Marketing", description: "Manages paid advertising campaigns and optimizes spend", suggestedSkills: ["analytics", "web-search", "research"] },
+    { id: "mkt-brand", name: "Brand Strategist", role: "Brand Strategist", team: "Marketing", description: "Develops brand voice, positioning, and messaging guidelines", suggestedSkills: ["research", "file-mgmt", "web-search"] },
+    { id: "mkt-email", name: "Email Marketing Specialist", role: "Email Marketing Specialist", team: "Marketing", description: "Creates email campaigns, sequences, and newsletters", suggestedSkills: ["email", "analytics", "crm", "file-mgmt"] },
+  ],
+  Sales: [
+    { id: "sales-researcher", name: "Lead Researcher", role: "Lead Researcher", team: "Sales", description: "Finds and qualifies prospects matching your ICP", suggestedSkills: ["web-search", "crm", "email", "research"] },
+    { id: "sales-ae", name: "Account Executive", role: "Account Executive", team: "Sales", description: "Manages deals through the pipeline and closes opportunities", suggestedSkills: ["crm", "email", "calendar", "messaging"] },
+    { id: "sales-sdr", name: "SDR (Sales Dev Rep)", role: "Sales Development Rep", team: "Sales", description: "Handles outbound outreach and books qualified meetings", suggestedSkills: ["email", "crm", "web-search", "calendar"] },
+    { id: "sales-ops", name: "Sales Ops Analyst", role: "Sales Ops Analyst", team: "Sales", description: "Analyzes pipeline data and optimizes sales processes", suggestedSkills: ["analytics", "crm", "file-mgmt"] },
+    { id: "sales-partner", name: "Partnership Manager", role: "Partnership Manager", team: "Sales", description: "Identifies and manages strategic partnership opportunities", suggestedSkills: ["web-search", "email", "crm", "research"] },
+  ],
+  Operations: [
+    { id: "ops-automation", name: "Automation Architect", role: "Automation Architect", team: "Operations", description: "Designs and builds workflow automations across tools", suggestedSkills: ["coding", "file-mgmt", "messaging", "analytics"] },
+    { id: "ops-pm", name: "Project Manager", role: "Project Manager", team: "Operations", description: "Tracks project timelines, tasks, and team coordination", suggestedSkills: ["calendar", "messaging", "file-mgmt"] },
+    { id: "ops-process", name: "Process Analyst", role: "Process Analyst", team: "Operations", description: "Maps and optimizes business processes for efficiency", suggestedSkills: ["analytics", "file-mgmt", "research"] },
+    { id: "ops-sysadmin", name: "Systems Admin", role: "Systems Admin", team: "Operations", description: "Manages integrations, permissions, and system health", suggestedSkills: ["coding", "analytics", "messaging"] },
+  ],
+  Finance: [
+    { id: "fin-bookkeeper", name: "Bookkeeper", role: "Bookkeeper", team: "Finance", description: "Categorizes transactions and maintains financial records", suggestedSkills: ["file-mgmt", "analytics"] },
+    { id: "fin-analyst", name: "Financial Analyst", role: "Financial Analyst", team: "Finance", description: "Analyzes financial data, trends, and forecasts", suggestedSkills: ["analytics", "research", "file-mgmt"] },
+    { id: "fin-budget", name: "Budget Manager", role: "Budget Manager", team: "Finance", description: "Tracks budgets, spending, and cost optimization", suggestedSkills: ["analytics", "file-mgmt", "email"] },
+    { id: "fin-ap-ar", name: "Accounts Payable/Receivable", role: "AP/AR Specialist", team: "Finance", description: "Manages invoices, payments, and collections", suggestedSkills: ["email", "file-mgmt", "analytics"] },
+  ],
+  Fulfillment: [
+    { id: "ful-support", name: "Customer Support", role: "Customer Support", team: "Fulfillment", description: "Handles customer inquiries and resolves support tickets", suggestedSkills: ["support", "messaging", "crm", "email"] },
+    { id: "ful-shipping", name: "Shipping Coordinator", role: "Shipping Coordinator", team: "Fulfillment", description: "Tracks shipments, manages logistics, and handles delays", suggestedSkills: ["ecommerce", "email", "messaging"] },
+    { id: "ful-returns", name: "Returns Manager", role: "Returns Manager", team: "Fulfillment", description: "Processes returns, exchanges, and refund requests", suggestedSkills: ["support", "ecommerce", "email"] },
+    { id: "ful-qa", name: "Quality Assurance", role: "Quality Assurance", team: "Fulfillment", description: "Monitors service quality and ensures standards are met", suggestedSkills: ["analytics", "support", "file-mgmt"] },
+  ],
+  Product: [
+    { id: "prod-pm", name: "Product Manager", role: "Product Manager", team: "Product", description: "Prioritizes features, manages roadmap, and gathers requirements", suggestedSkills: ["research", "analytics", "file-mgmt", "messaging"] },
+    { id: "prod-ux", name: "UX Researcher", role: "UX Researcher", team: "Product", description: "Conducts user research and synthesizes feedback", suggestedSkills: ["research", "web-search", "analytics", "file-mgmt"] },
+    { id: "prod-feature", name: "Feature Analyst", role: "Feature Analyst", team: "Product", description: "Analyzes feature usage, impact, and competitive landscape", suggestedSkills: ["analytics", "research", "web-search"] },
+  ],
+  Engineering: [
+    { id: "eng-fullstack", name: "Full Stack Developer", role: "Full Stack Developer", team: "Engineering", description: "Builds and maintains frontend and backend features", suggestedSkills: ["coding", "web-search", "file-mgmt"] },
+    { id: "eng-devops", name: "DevOps Engineer", role: "DevOps Engineer", team: "Engineering", description: "Manages CI/CD, infrastructure, and deployments", suggestedSkills: ["coding", "analytics", "messaging"] },
+    { id: "eng-qa", name: "QA Tester", role: "QA Tester", team: "Engineering", description: "Writes and runs tests, reports bugs, ensures quality", suggestedSkills: ["coding", "file-mgmt", "analytics"] },
+  ],
+  Design: [
+    { id: "des-ui", name: "UI Designer", role: "UI Designer", team: "Design", description: "Designs interfaces, components, and design systems", suggestedSkills: ["file-mgmt", "web-search", "research"] },
+    { id: "des-brand", name: "Brand Designer", role: "Brand Designer", team: "Design", description: "Creates brand assets, guidelines, and visual identity", suggestedSkills: ["file-mgmt", "web-search", "research"] },
+    { id: "des-motion", name: "Motion Designer", role: "Motion Designer", team: "Design", description: "Creates animations, transitions, and video content", suggestedSkills: ["file-mgmt", "web-search"] },
+  ],
+}
+
+const customTemplate = { id: "custom", name: "Custom Agent", role: "", team: "", description: "Build from scratch with full customization", suggestedSkills: [] as string[] }
+
+function getTemplatesForTeam(teamName: string | null): typeof genericTemplates {
+  if (!teamName) return [...genericTemplates, customTemplate]
+  const normalized = teamName.charAt(0).toUpperCase() + teamName.slice(1).toLowerCase()
+  const deptTemplates = departmentTemplates[normalized] || departmentTemplates[teamName]
+  if (deptTemplates) return [...deptTemplates, customTemplate]
+  return [...genericTemplates, customTemplate]
+}
 
 export default function BuilderPageWrapper() {
   return <Suspense><BuilderPageInner /></Suspense>
@@ -158,12 +218,17 @@ function BuilderPageInner() {
     })
   }
 
+  const activeTemplates = useMemo(() => getTemplatesForTeam(prefillTeam), [prefillTeam])
+
   function selectTemplate(id: string) {
-    const template = templates.find((t) => t.id === id)
+    const template = activeTemplates.find((t) => t.id === id)
     if (template) {
       setSelectedTemplate(id)
       if (template.role) setAgentRole(template.role)
       if (template.team) setAgentTeam(template.team)
+      if (template.suggestedSkills && template.suggestedSkills.length > 0) {
+        setSelectedSkills(new Set(template.suggestedSkills))
+      }
       setStep(1)
     }
   }
@@ -199,8 +264,12 @@ function BuilderPageInner() {
 
       {/* Step 0: Template Selection */}
       {step === 0 && (
+        <div className="space-y-3">
+        {prefillTeam && (
+          <p className="text-xs text-muted-foreground">Showing roles for <span className="font-medium text-foreground">{prefillTeam}</span> team</p>
+        )}
         <div className="grid gap-2 md:grid-cols-2 lg:grid-cols-3">
-          {templates.map((template) => (
+          {activeTemplates.map((template) => (
             <button
               key={template.id}
               className={cn(
@@ -217,6 +286,7 @@ function BuilderPageInner() {
               {template.team && <p className="text-[11px] text-muted-foreground mt-1.5">{template.team}</p>}
             </button>
           ))}
+        </div>
         </div>
       )}
 

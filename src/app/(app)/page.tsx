@@ -863,7 +863,11 @@ export default function ChatPage() {
         "**Available Commands & Shortcuts**",
         "",
         "`/task [title]` — Create a new task",
+        "`/assign @agent Task title` — Assign task to agent",
+        "`/budget` — View spending summary",
+        "`/handoff @agent` — Hand off conversation",
         "`/poll Question | Opt A | Opt B` — Create a poll",
+        "`/status` — System status overview",
         "`/help` — Show this help",
         "`@` — Mention an agent",
         "`Cmd+K` — Global search",
@@ -967,6 +971,57 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       }
       setChannelMessages((prev) => [...prev, statusMsg])
+      return
+    }
+
+    // Assign command: /assign @agent Task title
+    if (text.trim().toLowerCase().startsWith("/assign ")) {
+      const assignMatch = /^\/assign\s+@(\w+)\s+(.+)$/i.exec(text.trim())
+      if (!assignMatch) {
+        const errMsg: DBMessage = { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: null, senderUserId: null, senderName: "System", senderAvatar: "⚠️", content: "Usage: `/assign @AgentName Task title`", messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+        setChannelMessages((prev) => [...prev, errMsg])
+        return
+      }
+      const [, agentName, taskTitle] = assignMatch
+      const targetAgent = dbAgents.find((a) => a.name.toLowerCase() === agentName.toLowerCase())
+      if (!targetAgent) {
+        const errMsg: DBMessage = { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: null, senderUserId: null, senderName: "System", senderAvatar: "⚠️", content: `Agent "${agentName}" not found.`, messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+        setChannelMessages((prev) => [...prev, errMsg])
+        return
+      }
+      try {
+        const task = await fetch("/api/tasks", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: taskTitle, assignedAgentId: targetAgent.id, teamId: targetAgent.teamId, status: "todo", priority: "medium" }) }).then((r) => r.json())
+        const sysMsg = await fetch("/api/messages", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ channelId: activeChannel, senderName: "System", senderAvatar: "📋", content: `Task assigned to **@${targetAgent.name}**: ${taskTitle}`, messageType: "status" }) }).then((r) => r.json())
+        setChannelMessages((prev) => [...prev, sysMsg])
+      } catch { /* silent */ }
+      return
+    }
+
+    // Budget command: /budget — quick spending summary
+    if (text.trim().toLowerCase() === "/budget") {
+      const totalCost = dbAgents.reduce((sum, a) => sum + (a.costThisMonth ?? 0), 0)
+      const teamCosts: string[] = []
+      const teamIds = [...new Set(dbAgents.map((a) => a.teamId).filter(Boolean))] as string[]
+      for (const tid of teamIds) {
+        const ch = dbChannels.find((c) => c.teamId === tid)
+        const teamName = ch ? ch.name : tid
+        const cost = dbAgents.filter((a) => a.teamId === tid).reduce((sum, a) => sum + (a.costThisMonth ?? 0), 0)
+        teamCosts.push(`• **${teamName}**: $${cost.toFixed(2)}`)
+      }
+      const topSpenders = [...dbAgents].sort((a, b) => (b.costThisMonth ?? 0) - (a.costThisMonth ?? 0)).slice(0, 3)
+      const budgetContent = [
+        "**Budget Summary**",
+        "",
+        `💰 Total spend this month: **$${totalCost.toFixed(2)}**`,
+        "",
+        "**By Team**",
+        ...teamCosts,
+        "",
+        "**Top Spenders**",
+        ...topSpenders.map((a, i) => `${i + 1}. ${a.name} — $${(a.costThisMonth ?? 0).toFixed(2)}`),
+      ].join("\n")
+      const budgetMsg: DBMessage = { id: `budget-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: null, senderUserId: null, senderName: "System", senderAvatar: "💰", content: budgetContent, messageType: "status", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+      setChannelMessages((prev) => [...prev, budgetMsg])
       return
     }
 

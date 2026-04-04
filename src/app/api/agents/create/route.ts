@@ -1,8 +1,35 @@
 import { db } from "@/lib/db"
-import { agents, channels, messages } from "@/lib/db/schema"
+import { agents, channels, messages, teams } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { DEFAULT_TRAITS } from "@/lib/personality-presets"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
+import type { PersonalityTraits } from "@/lib/personality-presets"
+
+// ── Personality-aware intro message ───────────────────────
+function buildIntroMessage(agent: {
+  name: string
+  role: string
+  skills: string[]
+  personality: PersonalityTraits
+}): string {
+  const { name, role, skills, personality } = agent
+  const skillsSummary = skills.length > 0
+    ? skills.slice(0, 3).join(", ")
+    : "whatever the team needs"
+
+  // High formality (>= 70): professional tone
+  if (personality.formality >= 70) {
+    return `Good to be here. I'm ${name}, joining as your ${role}. My focus areas include ${skillsSummary}.\n\nLooking forward to contributing. Boss — where would you like me to start?`
+  }
+
+  // High humor (>= 70): lighter, more casual
+  if (personality.humor >= 70) {
+    return `Heyyy what's up! 😄 I'm ${name}, the new ${role} around here. I'm pretty handy with ${skillsSummary} — basically I'm here to make everyone's life easier (and maybe crack a few jokes along the way).\n\nBoss — point me at something fun!`
+  }
+
+  // Default: friendly and eager
+  return `Hey team! 👋 I'm ${name}, your new ${role}. I'm here to help with ${skillsSummary}.\n\nBoss — what should I focus on first?`
+}
 
 export async function POST(req: Request) {
   const body = await req.json()
@@ -32,20 +59,58 @@ export async function POST(req: Request) {
     costThisMonth: 0,
   }).returning()
 
-  // Post welcome message from team lead in the team channel
+  // Post welcome message from team lead + agent intro in the team channel
   if (newAgent.teamId) {
-    const teamChannel = await db.select().from(channels).where(eq(channels.teamId, newAgent.teamId)).limit(1)
-    const teamLead = await db.select().from(agents).where(eq(agents.teamId, newAgent.teamId)).limit(10)
-      .then((all) => all.find((a) => a.isTeamLead && a.id !== newAgent.id))
+    const [teamChannel, teamLead, team] = await Promise.all([
+      db.select().from(channels).where(eq(channels.teamId, newAgent.teamId)).limit(1).then((r) => r[0]),
+      db.select().from(agents).where(eq(agents.teamId, newAgent.teamId)).limit(10)
+        .then((all) => all.find((a) => a.isTeamLead && a.id !== newAgent.id)),
+      db.select().from(teams).where(eq(teams.id, newAgent.teamId)).limit(1).then((r) => r[0]),
+    ])
 
-    if (teamChannel[0] && teamLead) {
+    if (teamChannel) {
+      // 1. Team lead welcome (if one exists)
+      if (teamLead) {
+        await db.insert(messages).values({
+          channelId: teamChannel.id,
+          senderAgentId: teamLead.id,
+          senderName: teamLead.name,
+          senderAvatar: teamLead.avatar,
+          content: `Welcome to the team, ${newAgent.name}! 👋 You're joining us as ${newAgent.role}. Glad to have you — let's get you up to speed.`,
+          messageType: "text",
+        })
+      }
+
+      // 2. Agent's own intro message (personality-aware)
+      const introContent = buildIntroMessage({
+        name: newAgent.name,
+        role: newAgent.role,
+        skills: (newAgent.skills as string[]) || [],
+        personality: newAgent.personality as PersonalityTraits,
+      })
+
       await db.insert(messages).values({
-        channelId: teamChannel[0].id,
-        senderAgentId: teamLead.id,
-        senderName: teamLead.name,
-        senderAvatar: teamLead.avatar,
-        content: `Welcome to the team, ${newAgent.name}! 👋 You're joining us as ${newAgent.role}. Glad to have you — let's get you up to speed.`,
+        channelId: teamChannel.id,
+        senderAgentId: newAgent.id,
+        senderName: newAgent.name,
+        senderAvatar: newAgent.avatar,
+        content: introContent,
         messageType: "text",
+      })
+    }
+
+    // 3. System message in #wins channel
+    const winsChannel = await db.select().from(channels).where(eq(channels.name, "wins")).limit(1).then((r) => r[0])
+
+    if (winsChannel) {
+      const teamName = team?.name || "the team"
+      await db.insert(messages).values({
+        channelId: winsChannel.id,
+        senderAgentId: null,
+        senderName: "System",
+        senderAvatar: "🎉",
+        content: `🎉 Welcome ${newAgent.name}! New ${newAgent.role} just joined ${teamName}.`,
+        messageType: "system",
       })
     }
   }

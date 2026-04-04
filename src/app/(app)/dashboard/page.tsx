@@ -20,6 +20,7 @@ import { GoalTracker } from "@/components/goal-tracker"
 import { ROICalculator } from "@/components/roi-calculator"
 import { WeeklyReportButton } from "@/components/weekly-report"
 import { DailyDigestButton } from "@/components/daily-digest"
+import { UtilizationHeatmap } from "@/components/utilization-heatmap"
 
 export const dynamic = "force-dynamic"
 
@@ -218,6 +219,18 @@ export default async function DashboardPage() {
             </div>
           )
         })()}
+
+        {/* ── UTILIZATION HEATMAP ────────────────────────────── */}
+        <CollapsibleSection id="dashboard-utilization" title="Utilization">
+          <UtilizationHeatmap agents={allAgents.map((a) => ({
+            id: a.id,
+            name: a.name,
+            pixelAvatarIndex: a.pixelAvatarIndex,
+            status: a.status,
+            tasksCompleted: a.tasksCompleted ?? 0,
+            currentTask: a.currentTask,
+          }))} />
+        </CollapsibleSection>
 
         {/* ── AGENT GRID ───────────────────────────────────── */}
         <CollapsibleSection id="dashboard-agents" title="Agent Grid">
