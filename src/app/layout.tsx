@@ -1,6 +1,7 @@
 import type { Metadata } from "next"
 import { Geist, Geist_Mono } from "next/font/google"
 import { TooltipProvider } from "@/components/ui/tooltip"
+import { ToastProvider } from "@/components/toast-provider"
 import { Sidebar } from "@/components/sidebar"
 import "./globals.css"
 
@@ -31,7 +32,9 @@ export default function RootLayout({
     >
       <body className="h-screen overflow-hidden">
         <TooltipProvider>
-          {children}
+          <ToastProvider>
+            {children}
+          </ToastProvider>
         </TooltipProvider>
       </body>
     </html>

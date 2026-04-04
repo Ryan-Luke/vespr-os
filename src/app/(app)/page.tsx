@@ -12,7 +12,7 @@ import { StatusDot } from "@/components/status-dot"
 import { AgentProfileCard } from "@/components/agent-profile-card"
 import type { AgentStatus } from "@/lib/types"
 import {
-  Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users,
+  Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
   Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search,
 } from "lucide-react"
@@ -176,6 +176,9 @@ function MessageBubble({
               </button>
             </>
           )}
+          <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground transition-colors" title="Bookmark">
+            <Bookmark className="h-3 w-3" />
+          </button>
           {onReply && (
             <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-foreground transition-colors" onClick={() => onReply(message.id)}>
               <MessageSquare className="h-3 w-3" />
@@ -702,15 +705,29 @@ export default function ChatPage() {
                 const isActive = dmAgent?.id === agent.id
                 const isOnline = agent.status === "working" || agent.status === "idle"
                 return (
-                  <button key={agent.id} onClick={() => setDmAgent(agent)} className={cn(
-                    "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
+                  <div key={agent.id} className={cn(
+                    "flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition-colors group/agent",
                     isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
                     !isOnline && !isActive && "opacity-50"
                   )}>
-                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm" />
-                    <span className="truncate flex-1 text-left">{agent.name}</span>
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
-                  </button>
+                    <button onClick={() => setDmAgent(agent)} className="flex items-center gap-2 flex-1 min-w-0">
+                      <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm shrink-0" />
+                      <span className="truncate flex-1 text-left">{agent.name}</span>
+                    </button>
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
+                    <button
+                      onClick={async (e) => {
+                        e.stopPropagation()
+                        const newStatus = agent.status === "paused" ? "idle" : "paused"
+                        await fetch(`/api/agents/${agent.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ status: newStatus }) })
+                        setDbAgents((prev) => prev.map((a) => a.id === agent.id ? { ...a, status: newStatus } : a))
+                      }}
+                      className="hidden group-hover/agent:flex h-4 w-4 items-center justify-center rounded hover:bg-accent shrink-0"
+                      title={agent.status === "paused" ? "Resume" : "Pause"}
+                    >
+                      {agent.status === "paused" ? <Play className="h-2.5 w-2.5" /> : <Pause className="h-2.5 w-2.5" />}
+                    </button>
+                  </div>
                 )
               })}
             </div>
