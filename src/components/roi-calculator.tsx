@@ -65,7 +65,7 @@ export function ROICalculator() {
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-[11px] text-muted-foreground">Your hourly rate</label>
+            <label className="text-[11px] text-muted-foreground">Human labor cost (what a person would cost to do this work)</label>
             <div className="flex items-center gap-2">
               <span className="text-xs text-muted-foreground">$</span>
               <input type="number" value={hourlyRate} onChange={(e) => { const v = Number(e.target.value); setHourlyRate(v); localStorage.setItem("bos-hourly-rate", String(v)) }} className="h-7 w-20 rounded-md border border-border bg-muted/50 px-2 text-xs outline-none tabular-nums" />
@@ -73,7 +73,7 @@ export function ROICalculator() {
             </div>
           </div>
 
-          <p className="text-[11px] text-muted-foreground/60">Based on {totalTasks} tasks · ~{hoursPerTask * 60}min saved per task · ${costPerHour}/h effective cost</p>
+          <p className="text-[11px] text-muted-foreground/60">Based on {totalTasks} tasks · ~{hoursPerTask * 60}min saved per task · AI cost: ${costPerHour}/h effective</p>
         </div>
       )}
     </div>
