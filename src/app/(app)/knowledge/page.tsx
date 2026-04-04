@@ -1,10 +1,6 @@
 "use client"
 
 import { useState, useRef, useEffect, useCallback } from "react"
-import { Card } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { agents } from "@/lib/mock-data"
@@ -46,7 +42,7 @@ function RenderContent({ content, entries, onNavigate }: { content: string; entr
       {content.split("\n").map((line, i) => {
         // Headers
         if (line.startsWith("## ")) return <h2 key={i} className="text-base font-bold mt-4 mb-2 text-foreground">{line.slice(3)}</h2>
-        if (line.startsWith("### ")) return <h3 key={i} className="text-sm font-bold mt-3 mb-1 text-foreground">{line.slice(4)}</h3>
+        if (line.startsWith("### ")) return <h3 key={i} className="text-[13px] font-bold mt-3 mb-1 text-foreground">{line.slice(4)}</h3>
 
         // Tables
         if (line.startsWith("|")) {
@@ -55,7 +51,7 @@ function RenderContent({ content, entries, onNavigate }: { content: string; entr
           return (
             <div key={i} className="flex text-xs font-mono">
               {cells.map((cell, j) => (
-                <span key={j} className={cn("px-2 py-1 border-b border-border flex-1", line.includes("**") ? "font-bold" : "text-muted-foreground")}>
+                <span key={j} className={cn("px-2 py-1 border-b border-border flex-1 tabular-nums", line.includes("**") ? "font-bold" : "text-muted-foreground")}>
                   {cell.replace(/\*\*/g, "")}
                 </span>
               ))}
@@ -64,14 +60,14 @@ function RenderContent({ content, entries, onNavigate }: { content: string; entr
         }
 
         // Checkboxes
-        if (line.startsWith("- [x]")) return <p key={i} className="text-sm text-foreground/80 pl-2 my-0.5">✅ {line.slice(6)}</p>
-        if (line.startsWith("- [ ]")) return <p key={i} className="text-sm text-foreground/80 pl-2 my-0.5">⬜ {line.slice(6)}</p>
+        if (line.startsWith("- [x]")) return <p key={i} className="text-[13px] text-foreground/80 pl-2 my-0.5">✅ {line.slice(6)}</p>
+        if (line.startsWith("- [ ]")) return <p key={i} className="text-[13px] text-foreground/80 pl-2 my-0.5">⬜ {line.slice(6)}</p>
 
         // Bullets
-        if (line.startsWith("- ")) return <p key={i} className="text-sm text-foreground/80 pl-3 my-0.5">• {renderInline(line.slice(2), entries, onNavigate)}</p>
+        if (line.startsWith("- ")) return <p key={i} className="text-[13px] text-foreground/80 pl-3 my-0.5">• {renderInline(line.slice(2), entries, onNavigate)}</p>
 
         // Numbered
-        if (line.match(/^\d+\.\s/)) return <p key={i} className="text-sm text-foreground/80 pl-3 my-0.5">{renderInline(line, entries, onNavigate)}</p>
+        if (line.match(/^\d+\.\s/)) return <p key={i} className="text-[13px] text-foreground/80 pl-3 my-0.5">{renderInline(line, entries, onNavigate)}</p>
 
         // Blockquotes (wiki-link references)
         if (line.startsWith("> ")) return <div key={i} className="text-xs text-muted-foreground border-l-2 border-primary/30 pl-3 my-2 italic">{renderInline(line.slice(2), entries, onNavigate)}</div>
@@ -80,7 +76,7 @@ function RenderContent({ content, entries, onNavigate }: { content: string; entr
         if (line.startsWith("```")) return null
         if (line.trim() === "") return <br key={i} />
 
-        return <p key={i} className="text-sm text-foreground/80 my-0.5">{renderInline(line, entries, onNavigate)}</p>
+        return <p key={i} className="text-[13px] text-foreground/80 my-0.5">{renderInline(line, entries, onNavigate)}</p>
       })}
     </div>
   )
@@ -100,7 +96,7 @@ function renderInline(text: string, entries: KnowledgeEntry[], onNavigate: (id: 
     // Italic
     if (part.startsWith("*") && part.endsWith("*")) return <em key={i}>{part.slice(1, -1)}</em>
     // Code
-    if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="px-1 py-0.5 rounded bg-muted text-xs font-mono">{part.slice(1, -1)}</code>
+    if (part.startsWith("`") && part.endsWith("`")) return <code key={i} className="px-1 py-0.5 rounded-md bg-muted text-xs font-mono">{part.slice(1, -1)}</code>
     return <span key={i}>{part}</span>
   })
 }
@@ -193,40 +189,40 @@ function NewEntryForm({ onSave, onCancel, saving }: { onSave: (entry: { title: s
   return (
     <div className="flex flex-col h-full">
       <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-        <h2 className="text-sm font-bold">New Knowledge Entry</h2>
-        <button onClick={onCancel} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
+        <h2 className="text-[13px] font-semibold">New Knowledge Entry</h2>
+        <button onClick={onCancel} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
       </div>
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Entry title..." className="h-8 text-sm" />
+          <label className="section-label mb-1 block">Title</label>
+          <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="Entry title..." className="h-8 w-full rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Category</label>
+          <label className="section-label mb-1 block">Category</label>
           <div className="flex gap-1 flex-wrap">
             {categories.filter((c) => c.id !== "all").map((cat) => (
-              <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors", category === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+              <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
             ))}
           </div>
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Tags (comma separated)</label>
-          <Input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tag1, tag2, tag3" className="h-8 text-sm" />
+          <label className="section-label mb-1 block">Tags (comma separated)</label>
+          <input value={tagsInput} onChange={(e) => setTagsInput(e.target.value)} placeholder="tag1, tag2, tag3" className="h-8 w-full rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Author</label>
-          <Input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Name" className="h-8 text-sm" />
+          <label className="section-label mb-1 block">Author</label>
+          <input value={authorName} onChange={(e) => setAuthorName(e.target.value)} placeholder="Name" className="h-8 w-full rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
         </div>
         <div>
-          <label className="text-xs font-medium text-muted-foreground mb-1 block">Content (Markdown)</label>
-          <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={16} className="font-mono text-xs" placeholder="Write your knowledge entry in markdown..." />
+          <label className="section-label mb-1 block">Content (Markdown)</label>
+          <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={16} className="font-mono text-xs rounded-md" placeholder="Write your knowledge entry in markdown..." />
           <p className="text-xs text-muted-foreground mt-1">Use **bold**, *italic*, `code`, [[Wiki Links]], ## Headers, - bullets, | tables |</p>
         </div>
-        <div className="flex gap-2">
-          <Button size="sm" disabled={!title.trim() || !content.trim() || saving} onClick={() => onSave({ title: title.trim(), content, category, tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean), createdByName: authorName.trim() || "You" })}>
-            {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
-          </Button>
-          <Button size="sm" variant="ghost" onClick={onCancel}>Cancel</Button>
+        <div className="flex items-center gap-2">
+          <button disabled={!title.trim() || !content.trim() || saving} onClick={() => onSave({ title: title.trim(), content, category, tags: tagsInput.split(",").map((t) => t.trim()).filter(Boolean), createdByName: authorName.trim() || "You" })} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1 disabled:opacity-50">
+            {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}Save
+          </button>
+          <button onClick={onCancel} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
         </div>
       </div>
     </div>
@@ -333,25 +329,25 @@ export default function KnowledgePage() {
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-400" />
             <h1 className="text-lg font-semibold tracking-tight">Knowledge</h1>
-            <Badge variant="secondary" className="text-xs">{entries.length} entries</Badge>
+            <span className="text-xs text-muted-foreground tabular-nums">{entries.length} entries</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="flex rounded-md border border-border overflow-hidden">
               <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><List className="h-3.5 w-3.5" /></button>
               <button onClick={() => setViewMode("graph")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "graph" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Network className="h-3.5 w-3.5" /></button>
             </div>
-            <Button size="sm" className="h-8" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5 mr-1" />New Entry</Button>
+            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5" />New Entry</button>
           </div>
         </div>
 
         <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
           <div className="relative flex-1 max-w-xs">
             <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <Input placeholder="Search knowledge..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 text-xs pl-8" />
+            <input placeholder="Search knowledge..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 w-full rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
           </div>
           <div className="flex gap-1 overflow-x-auto">
             {categories.map((cat) => (
-              <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-full text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+              <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
             ))}
           </div>
         </div>
@@ -367,13 +363,13 @@ export default function KnowledgePage() {
                   <div className="flex items-start gap-3">
                     {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                     <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium truncate">{entry.title}</h3>
+                      <h3 className="text-[13px] font-medium truncate">{entry.title}</h3>
                       <p className="text-xs text-muted-foreground mt-0.5">
-                        by {entry.createdByName} · {Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago
+                        by {entry.createdByName} · <span className="tabular-nums">{Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago</span>
                         {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
                       </p>
                       <div className="flex gap-1 mt-1.5 flex-wrap">
-                        {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded bg-muted text-muted-foreground">#{tag}</span>)}
+                        {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
                       </div>
                     </div>
                   </div>
@@ -395,12 +391,12 @@ export default function KnowledgePage() {
       {selected && !showNewForm && (
         <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
-            <h2 className="text-sm font-bold truncate flex-1 mr-2">{selected.title}</h2>
+            <h2 className="text-[13px] font-semibold truncate flex-1 mr-2">{selected.title}</h2>
             <div className="flex items-center gap-1">
-              <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => { if (editing) { setEditing(false) } else { setEditing(true); setEditContent(selected.content); setEditTitle(selected.title) } }}>
-                <Edit3 className="h-3 w-3 mr-1" />{editing ? "Preview" : "Edit"}
-              </Button>
-              <button onClick={() => setSelectedEntry(null)} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
+              <button className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={() => { if (editing) { setEditing(false) } else { setEditing(true); setEditContent(selected.content); setEditTitle(selected.title) } }}>
+                <Edit3 className="h-3 w-3" />{editing ? "Preview" : "Edit"}
+              </button>
+              <button onClick={() => setSelectedEntry(null)} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent"><X className="h-4 w-4 text-muted-foreground" /></button>
             </div>
           </div>
 
@@ -409,28 +405,28 @@ export default function KnowledgePage() {
             <div className="flex items-center gap-3">
               {(() => { const a = agents.find((a) => a.id === selected.createdByAgentId); return a ? <PixelAvatar characterIndex={a.pixelAvatarIndex} size={28} className="rounded-md border border-border" /> : null })()}
               <div>
-                <p className="text-xs"><span className="font-medium">{selected.createdByName}</span> created this</p>
+                <p className="text-[13px]"><span className="font-medium">{selected.createdByName}</span> created this</p>
                 <p className="text-xs text-muted-foreground">Updated {new Date(selected.updatedAt).toLocaleDateString()}</p>
               </div>
             </div>
 
             <div className="flex flex-wrap gap-1">
-              {selected.tags.map((tag) => <Badge key={tag} variant="secondary" className="text-xs">#{tag}</Badge>)}
+              {selected.tags.map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
             </div>
 
             {/* Content */}
             {editing ? (
               <div className="space-y-2">
                 <div>
-                  <label className="text-xs font-medium text-muted-foreground mb-1 block">Title</label>
-                  <Input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 text-sm" />
+                  <label className="section-label mb-1 block">Title</label>
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} className="h-8 w-full rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
                 </div>
-                <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={20} className="font-mono text-xs" />
-                <div className="flex gap-2">
-                  <Button size="sm" disabled={saving} onClick={handleSaveEdit}>
-                    {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
-                  </Button>
-                  <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>Cancel</Button>
+                <Textarea value={editContent} onChange={(e) => setEditContent(e.target.value)} rows={20} className="font-mono text-xs rounded-md" />
+                <div className="flex items-center gap-2">
+                  <button disabled={saving} onClick={handleSaveEdit} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1 disabled:opacity-50">
+                    {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Save className="h-3.5 w-3.5" />}Save
+                  </button>
+                  <button onClick={() => setEditing(false)} className="text-xs text-muted-foreground hover:text-foreground">Cancel</button>
                 </div>
                 <p className="text-xs text-muted-foreground">Use **bold**, *italic*, `code`, [[Wiki Links]], ## Headers, - bullets, | tables |</p>
               </div>
@@ -443,7 +439,7 @@ export default function KnowledgePage() {
               <div className="border-t border-border pt-4 space-y-3">
                 {linkedEntries.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><Link2 className="h-3 w-3" /> Outgoing Links</p>
+                    <p className="section-label mb-2 flex items-center gap-1"><Link2 className="h-3 w-3" /> Outgoing Links</p>
                     {linkedEntries.map((l) => (
                       <button key={l.id} onClick={() => setSelectedEntry(l.id)} className="flex items-center gap-2 w-full text-left rounded-md p-2 hover:bg-accent transition-colors">
                         <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" /><span className="text-xs truncate">{l.title}</span>
@@ -453,7 +449,7 @@ export default function KnowledgePage() {
                 )}
                 {backlinks.length > 0 && (
                   <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2 flex items-center gap-1"><ArrowLeft className="h-3 w-3" /> Backlinks</p>
+                    <p className="section-label mb-2 flex items-center gap-1"><ArrowLeft className="h-3 w-3" /> Backlinks</p>
                     {backlinks.map((l) => (
                       <button key={l.id} onClick={() => setSelectedEntry(l.id)} className="flex items-center gap-2 w-full text-left rounded-md p-2 hover:bg-accent transition-colors">
                         <ChevronRight className="h-3 w-3 text-muted-foreground shrink-0" /><span className="text-xs truncate">{l.title}</span>

@@ -123,7 +123,7 @@ function MessageBubble({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}>{nameEl}</AgentProfileCard> : nameEl}
-          {agent && <StatusDot status={agent.status as AgentStatus} />}
+          {agent && <span className={cn("h-1.5 w-1.5 rounded-full", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />}
           {agent && (agent.level ?? 0) > 0 && (
             <span className="text-xs font-mono text-muted-foreground bg-muted/50 rounded px-1 py-0.5">Lv.{agent.level}</span>
           )}
@@ -961,7 +961,7 @@ export default function ChatPage() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-sm font-medium truncate">{agent.name}</span>
-                          <StatusDot status={agent.status as AgentStatus} />
+                          <span className={cn("h-1.5 w-1.5 rounded-full", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                         </div>
                         <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
                       </div>
