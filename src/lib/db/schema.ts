@@ -98,6 +98,17 @@ export const agents = pgTable("agents", {
     execution?: number
     creativity?: number
   }>().notNull().default({}),
+  // Cumulative outcome counters — used by evolution engine
+  outcomeStats: jsonb("outcome_stats").$type<{
+    qualified_leads?: number
+    deals_closed?: number
+    meetings_booked?: number
+    tasks_shipped?: number
+    sops_authored?: number
+    documents_delivered?: number
+    revenue_sourced?: number
+  }>().notNull().default({}),
+  currentForm: text("current_form"), // e.g. "Senior Scout"
   evolvedFromForm: text("evolved_from_form"), // previous form name, if evolved
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),

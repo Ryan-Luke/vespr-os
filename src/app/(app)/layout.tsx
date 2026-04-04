@@ -6,6 +6,7 @@ import { GlobalSearch } from "@/components/global-search"
 import { TutorialOverlay } from "@/components/tutorial-overlay"
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay"
 import { WorkspaceProvider } from "@/lib/workspace-context"
+import { EvolutionMoment } from "@/components/evolution-moment"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
@@ -40,6 +41,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <GlobalSearch />
       <TutorialOverlay />
       <ShortcutsOverlay />
+      <EvolutionMoment />
     </div>
     </WorkspaceProvider>
   )

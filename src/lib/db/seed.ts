@@ -720,6 +720,38 @@ async function seed() {
     { workspaceId: verspr.id, agentId: agent("Drew").id, agentName: "Drew", type: "milestone", title: "12 deliverables shipped this week, 0 overdue", description: "Perfect delivery week across all active clients.", icon: "⚡", createdAt: new Date(trophyNow - 72 * 3600000) },
   ])
 
+  // Seed an unacknowledged evolution event — shows modal on next login
+  await db.insert(schema.evolutionEvents).values([
+    {
+      agentId: agent("Jordan").id,
+      fromForm: "Scout",
+      toForm: "Senior Scout",
+      triggerMetric: "qualified_leads",
+      triggerValue: 89,
+      unlockedCapabilities: ["Multi-source enrichment", "ICP scoring"],
+      occurredAt: new Date(trophyNow - 1 * 3600000),
+      acknowledgedAt: null, // will show modal
+    },
+    {
+      agentId: agent("Nyx").id,
+      fromForm: "Senior Builder",
+      toForm: "Automation Architect",
+      triggerMetric: "tasks_shipped",
+      triggerValue: 78,
+      unlockedCapabilities: ["System-wide orchestration", "Custom AI agents"],
+      occurredAt: new Date(trophyNow - 5 * 86400000),
+      acknowledgedAt: new Date(trophyNow - 4 * 86400000), // already acknowledged
+    },
+  ])
+
+  // Update Jordan's currentForm/tier to reflect the unacknowledged evolution
+  await db.update(schema.agents)
+    .set({ currentForm: "Senior Scout", tier: "uncommon", evolvedFromForm: "Scout" })
+    .where(eq(schema.agents.name, "Jordan"))
+  await db.update(schema.agents)
+    .set({ currentForm: "Automation Architect", tier: "epic", evolvedFromForm: "Senior Builder" })
+    .where(eq(schema.agents.name, "Nyx"))
+
   // Seed milestones based on current agent stats
   const allAgents = [...insertedAgents, chiefOfStaff, qaAgent]
   const milestoneDefs = [
