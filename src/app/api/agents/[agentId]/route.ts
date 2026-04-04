@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { agents, channels, messages } from "@/lib/db/schema"
+import { agents, channels, messages, tasks, agentFeedback, agentSops, agentMemories, activityLog, knowledgeEntries, agentSchedules, approvalRequests, approvalLog, autoApprovals, decisionLog, automations, milestones, companyMemories } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
 export async function PATCH(
@@ -15,12 +15,22 @@ export async function PATCH(
 
   const updates: Record<string, unknown> = {}
 
+  if (body.name !== undefined) updates.name = body.name
+  if (body.role !== undefined) updates.role = body.role
+  if (body.avatar !== undefined) updates.avatar = body.avatar
+  if (body.pixelAvatarIndex !== undefined) updates.pixelAvatarIndex = body.pixelAvatarIndex
+  if (body.provider !== undefined) updates.provider = body.provider
+  if (body.model !== undefined) updates.model = body.model
+  if (body.teamId !== undefined) updates.teamId = body.teamId || null
   if (body.status !== undefined) updates.status = body.status
   if (body.currentTask !== undefined) updates.currentTask = body.currentTask
   if (body.systemPrompt !== undefined) updates.systemPrompt = body.systemPrompt
   if (body.isTeamLead !== undefined) updates.isTeamLead = body.isTeamLead
   if (body.autonomyLevel !== undefined) updates.autonomyLevel = body.autonomyLevel
   if (body.skills !== undefined) updates.skills = body.skills
+  if (body.personality !== undefined) updates.personality = body.personality
+  if (body.personalityPresetId !== undefined) updates.personalityPresetId = body.personalityPresetId
+  if (body.personalityConfig !== undefined) updates.personalityConfig = body.personalityConfig
 
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: "No valid fields to update" }, { status: 400 })
@@ -57,4 +67,52 @@ export async function PATCH(
   }
 
   return Response.json(updated)
+}
+
+export async function DELETE(
+  _req: Request,
+  { params }: { params: Promise<{ agentId: string }> }
+) {
+  const { agentId } = await params
+
+  const [current] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
+  if (!current) return Response.json({ error: "Agent not found" }, { status: 404 })
+
+  // Delete related records first (FK constraints)
+  await db.delete(agentFeedback).where(eq(agentFeedback.agentId, agentId))
+  await db.delete(agentSops).where(eq(agentSops.agentId, agentId))
+  await db.delete(agentMemories).where(eq(agentMemories.agentId, agentId))
+  await db.delete(activityLog).where(eq(activityLog.agentId, agentId))
+  await db.delete(knowledgeEntries).where(eq(knowledgeEntries.createdByAgentId, agentId))
+  await db.delete(agentSchedules).where(eq(agentSchedules.agentId, agentId))
+  await db.delete(approvalRequests).where(eq(approvalRequests.agentId, agentId))
+  await db.delete(approvalLog).where(eq(approvalLog.agentId, agentId))
+  await db.delete(autoApprovals).where(eq(autoApprovals.agentId, agentId))
+  await db.delete(decisionLog).where(eq(decisionLog.agentId, agentId))
+  await db.delete(milestones).where(eq(milestones.agentId, agentId))
+  await db.update(automations).set({ managedByAgentId: null }).where(eq(automations.managedByAgentId, agentId))
+  await db.update(companyMemories).set({ sourceAgentId: null }).where(eq(companyMemories.sourceAgentId, agentId))
+  await db.update(messages).set({ senderAgentId: null }).where(eq(messages.senderAgentId, agentId))
+
+  // Unassign tasks (don't delete them)
+  await db.update(tasks).set({ assignedAgentId: null }).where(eq(tasks.assignedAgentId, agentId))
+
+  // Post departure message in team channel
+  if (current.teamId) {
+    const teamChannel = await db.select().from(channels).where(eq(channels.teamId, current.teamId)).limit(1)
+    if (teamChannel[0]) {
+      await db.insert(messages).values({
+        channelId: teamChannel[0].id,
+        senderName: "System",
+        senderAvatar: "⚙️",
+        content: `${current.name} (${current.role}) has been removed from the team.`,
+        messageType: "status",
+      })
+    }
+  }
+
+  // Delete the agent
+  await db.delete(agents).where(eq(agents.id, agentId))
+
+  return Response.json({ success: true, name: current.name })
 }

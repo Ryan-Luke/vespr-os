@@ -431,6 +431,14 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [sopSuggestions, setSopSuggestions] = useState<Record<string, string>>({})
   const [showSuggestion, setShowSuggestion] = useState<string | null>(null)
 
+  // ── Edit / Delete state ──
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editForm, setEditForm] = useState({ name: "", role: "", model: "", provider: "", autonomyLevel: "" })
+  const [editSaving, setEditSaving] = useState(false)
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
+  const [deleting, setDeleting] = useState(false)
+  const [teams, setTeams] = useState<{ id: string; name: string }[]>([])
+
   // ── OKR state ──
   const [okrs, setOkrs] = useState<Objective[]>([])
   const [showOkrForm, setShowOkrForm] = useState(false)
@@ -565,6 +573,69 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
     })
   }, [agentId])
 
+  // Load teams for edit modal
+  useEffect(() => {
+    fetch("/api/teams").then((r) => r.json()).then((t) => setTeams(Array.isArray(t) ? t : [])).catch(() => {})
+  }, [])
+
+  function openEditModal() {
+    if (!agent) return
+    setEditForm({
+      name: agent.name,
+      role: agent.role,
+      model: agent.model,
+      provider: agent.provider,
+      autonomyLevel: agent.autonomyLevel,
+    })
+    setShowEditModal(true)
+  }
+
+  async function saveEdit() {
+    if (!agent || editSaving) return
+    setEditSaving(true)
+    try {
+      const updates: Record<string, unknown> = {}
+      if (editForm.name.trim() && editForm.name !== agent.name) {
+        updates.name = editForm.name.trim()
+        updates.avatar = editForm.name.trim().slice(0, 2).toUpperCase()
+      }
+      if (editForm.role.trim() && editForm.role !== agent.role) updates.role = editForm.role.trim()
+      if (editForm.model !== agent.model) updates.model = editForm.model
+      if (editForm.provider !== agent.provider) updates.provider = editForm.provider
+      if (editForm.autonomyLevel !== agent.autonomyLevel) updates.autonomyLevel = editForm.autonomyLevel
+
+      if (Object.keys(updates).length === 0) {
+        setShowEditModal(false)
+        setEditSaving(false)
+        return
+      }
+
+      const res = await fetch(`/api/agents/${agentId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(updates),
+      })
+      if (res.ok) {
+        const updated = await res.json()
+        setAgent(updated)
+        setShowEditModal(false)
+      }
+    } catch {}
+    setEditSaving(false)
+  }
+
+  async function deleteAgent() {
+    if (deleting) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/agents/${agentId}`, { method: "DELETE" })
+      if (res.ok) {
+        router.push("/teams")
+      }
+    } catch {}
+    setDeleting(false)
+  }
+
   async function createSop() {
     if (!newSopTitle.trim() || !newSopContent.trim()) return
     setSaving(true)
@@ -678,6 +749,8 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
                 if (agent.autonomyLevel) params.set("autonomy", agent.autonomyLevel)
                 router.push(`/builder?${params.toString()}`)
               }} className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"><Copy className="h-3.5 w-3.5" />Clone</button>
+              <button onClick={() => { openEditModal() }} className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"><Edit3 className="h-3.5 w-3.5" />Edit</button>
+              <button onClick={() => setShowDeleteConfirm(true)} className="w-full flex items-center gap-2 rounded-md px-2 py-1.5 text-[13px] text-red-400 hover:bg-red-500/10 hover:text-red-300 transition-colors"><Trash2 className="h-3.5 w-3.5" />Delete</button>
             </PopoverContent>
           </Popover>
         </div>
@@ -1264,6 +1337,104 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* ── Edit Modal ── */}
+      {showEditModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowEditModal(false)}>
+          <div className="bg-card border border-border rounded-lg w-full max-w-md mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+              <h3 className="text-sm font-semibold">Edit Agent</h3>
+              <button onClick={() => setShowEditModal(false)} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent"><X className="h-3.5 w-3.5 text-muted-foreground" /></button>
+            </div>
+            <div className="p-4 space-y-3">
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Name</label>
+                <input value={editForm.name} onChange={(e) => setEditForm({ ...editForm, name: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/40 transition-colors" />
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Role</label>
+                <input value={editForm.role} onChange={(e) => setEditForm({ ...editForm, role: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/40 transition-colors" />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Provider</label>
+                  <select value={editForm.provider} onChange={(e) => setEditForm({ ...editForm, provider: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/40 transition-colors">
+                    <option value="anthropic">Anthropic</option>
+                    <option value="openai">OpenAI</option>
+                    <option value="google">Google</option>
+                    <option value="custom">Custom</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Model</label>
+                  <select value={editForm.model} onChange={(e) => setEditForm({ ...editForm, model: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/40 transition-colors">
+                    {editForm.provider === "anthropic" ? (
+                      <>
+                        <option value="Claude Haiku">Claude Haiku</option>
+                        <option value="Claude Sonnet">Claude Sonnet</option>
+                        <option value="Claude Opus">Claude Opus</option>
+                      </>
+                    ) : editForm.provider === "openai" ? (
+                      <>
+                        <option value="GPT-4o">GPT-4o</option>
+                        <option value="GPT-4o Mini">GPT-4o Mini</option>
+                        <option value="o1">o1</option>
+                      </>
+                    ) : editForm.provider === "google" ? (
+                      <>
+                        <option value="Gemini Pro">Gemini Pro</option>
+                        <option value="Gemini Flash">Gemini Flash</option>
+                      </>
+                    ) : (
+                      <option value="Custom">Custom</option>
+                    )}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="text-[11px] text-muted-foreground uppercase tracking-wider">Autonomy Level</label>
+                <select value={editForm.autonomyLevel} onChange={(e) => setEditForm({ ...editForm, autonomyLevel: e.target.value })} className="mt-1 w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/40 transition-colors">
+                  <option value="manual">Manual</option>
+                  <option value="supervised">Supervised</option>
+                  <option value="full_auto">Full Auto</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+              <button onClick={() => setShowEditModal(false)} className="px-3 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent transition-colors">Cancel</button>
+              <button onClick={saveEdit} disabled={editSaving || !editForm.name.trim() || !editForm.role.trim()} className="px-3 py-1.5 rounded-md text-[13px] bg-primary text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                {editSaving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* ── Delete Confirmation ── */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowDeleteConfirm(false)}>
+          <div className="bg-card border border-border rounded-lg w-full max-w-sm mx-4 shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="p-4 space-y-3">
+              <div className="flex items-center gap-2 text-red-400">
+                <Trash2 className="h-4 w-4" />
+                <h3 className="text-sm font-semibold">Delete {agent.name}?</h3>
+              </div>
+              <p className="text-[13px] text-muted-foreground leading-relaxed">
+                This will permanently remove {agent.name} from the team, including all their SOPs, memories, feedback, and activity history. Tasks will be unassigned but not deleted.
+              </p>
+              <p className="text-[13px] text-muted-foreground">This action cannot be undone.</p>
+            </div>
+            <div className="flex items-center justify-end gap-2 px-4 py-3 border-t border-border">
+              <button onClick={() => setShowDeleteConfirm(false)} className="px-3 py-1.5 rounded-md text-[13px] text-muted-foreground hover:bg-accent transition-colors">Cancel</button>
+              <button onClick={deleteAgent} disabled={deleting} className="px-3 py-1.5 rounded-md text-[13px] bg-red-500 text-white hover:bg-red-600 transition-colors disabled:opacity-50 flex items-center gap-1.5">
+                {deleting ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trash2 className="h-3 w-3" />}
+                Delete Agent
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
