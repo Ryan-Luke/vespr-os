@@ -465,6 +465,71 @@ export default function ChatPage() {
     setInputValue("")
     setMentionQuery(null)
 
+    // Inline task creation via /task command
+    if (text.startsWith("/task ")) {
+      const taskTitle = text.slice(6).trim()
+      if (!taskTitle) return
+      try {
+        await fetch("/api/tasks", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: taskTitle,
+            teamId: activeChannelData?.teamId,
+            status: "todo",
+            priority: "medium",
+          }),
+        })
+        // Post a system message to the channel
+        const sysMsg = await fetch("/api/messages", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            channelId: activeChannel,
+            senderName: "System",
+            senderAvatar: "⚡",
+            content: `Task created: ${taskTitle}`,
+            messageType: "status",
+          }),
+        }).then((r) => r.json())
+        setChannelMessages((prev) => [...prev, sysMsg])
+      } catch (err) {
+        console.error("Failed to create task:", err)
+      }
+      return
+    }
+
+    // Show help message via /help command (local-only, not saved to DB)
+    if (text.trim().toLowerCase() === "/help") {
+      const helpContent = [
+        "**Available Commands & Shortcuts**",
+        "",
+        "`/task [title]` — Create a new task",
+        "`/help` — Show this help",
+        "`@` — Mention an agent",
+        "`Cmd+K` — Global search",
+        "`Cmd+F` — Search messages",
+        "`Cmd+1-9` — Switch channels",
+        "`Cmd+/` — Keyboard shortcuts",
+      ].join("\n")
+      const helpMsg: DBMessage = {
+        id: `help-${Date.now()}`,
+        channelId: activeChannel,
+        threadId: null,
+        senderAgentId: null,
+        senderUserId: null,
+        senderName: "System",
+        senderAvatar: "❓",
+        content: helpContent,
+        messageType: "status",
+        linkedTaskId: null,
+        reactions: [],
+        createdAt: new Date().toISOString(),
+      }
+      setChannelMessages((prev) => [...prev, helpMsg])
+      return
+    }
+
     // Save user message to DB
     const userMsg = await fetch("/api/messages", {
       method: "POST",

@@ -20,6 +20,7 @@ import {
   X,
   Shield,
   TrendingUp,
+  GitCompareArrows,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -44,6 +45,7 @@ const navGroups = [
       { href: "/tasks", label: "Tasks", icon: ClipboardList },
       { href: "/knowledge", label: "Knowledge", icon: Brain },
       { href: "/automations", label: "Automations", icon: Zap },
+      { href: "/compare", label: "Compare", icon: GitCompareArrows },
     ],
   },
   {
