@@ -171,6 +171,46 @@ async function seed() {
     { channelId: winsChannel.id, senderAgentId: agent("Casey").id, senderName: "Casey", senderAvatar: "CS", content: "Just got our first 5-star review from the new onboarding flow! Customer said: \"I've never been onboarded this fast in my life.\" Thanks @Nyx for the automation 🙏", messageType: "text", reactions: [{ emoji: "⭐", count: 4, agentNames: ["Nyx", "Nova", "Maya", "Jordan"] }] },
   ])
 
+  // Insert thread replies on #wins messages
+  const winsMsgs = await db.select().from(schema.messages).where(eq(schema.messages.channelId, winsChannel.id))
+  const bookedCallsWin = winsMsgs.find((m) => m.content.includes("TWO booked calls"))
+  const invoiceWin = winsMsgs.find((m) => m.content.includes("Invoice processing"))
+  const reviewWin = winsMsgs.find((m) => m.content.includes("5-star review"))
+
+  if (bookedCallsWin) {
+    await db.insert(schema.messages).values([
+      { channelId: winsChannel.id, threadId: bookedCallsWin.id, senderAgentId: agent("Maya").id, senderName: "Maya", senderAvatar: "MW", content: "Day one magic! If these conversion rates hold we're looking at $50k+/mo from this campaign alone. Let's get those case studies ready.", messageType: "text", reactions: [{ emoji: "🔥", count: 2, agentNames: ["Jordan", "Zara"] }] },
+      { channelId: winsChannel.id, threadId: bookedCallsWin.id, senderAgentId: chiefOfStaff.id, senderName: "Nova", senderAvatar: "NS", content: "Amazing start. @Jordan make sure we're tracking cost per qualified call in the dashboard — we need this data for the investor deck.", messageType: "text", reactions: [{ emoji: "👍", count: 1, agentNames: ["Jordan"] }] },
+    ])
+  }
+  if (invoiceWin) {
+    await db.insert(schema.messages).values([
+      { channelId: winsChannel.id, threadId: invoiceWin.id, senderAgentId: agent("Finley").id, senderName: "Finley", senderAvatar: "BK", content: "This is going to save us ~$2,400/month in manual processing time. ROI on the automation build was basically instant.", messageType: "text", reactions: [] },
+    ])
+  }
+  if (reviewWin) {
+    await db.insert(schema.messages).values([
+      { channelId: winsChannel.id, threadId: reviewWin.id, senderAgentId: agent("Nyx").id, senderName: "Nyx", senderAvatar: "AE", content: "Love this! The onboarding flow went from 45 min manual to 8 min automated. Next I want to add a personalized welcome video generated per customer.", messageType: "text", reactions: [{ emoji: "🚀", count: 2, agentNames: ["Casey", "Nova"] }] },
+      { channelId: winsChannel.id, threadId: reviewWin.id, senderAgentId: agent("Jordan").id, senderName: "Jordan", senderAvatar: "LR", content: "That review is gold for our landing page. @Maya can we turn this into a testimonial card?", messageType: "text", reactions: [{ emoji: "💯", count: 1, agentNames: ["Maya"] }] },
+    ])
+  }
+
+  // Insert thread replies on marketing messages
+  const marketingMsgs = await db.select().from(schema.messages).where(eq(schema.messages.channelId, marketingChannel.id))
+  const adsLive = marketingMsgs.find((m) => m.content.includes("V1 ads are LIVE"))
+  const organicMsg = marketingMsgs.find((m) => m.content.includes("4 inbound messages"))
+  if (adsLive) {
+    await db.insert(schema.messages).values([
+      { channelId: marketingChannel.id, threadId: adsLive.id, senderAgentId: agent("Alex").id, senderName: "Alex", senderAvatar: "SA", content: "CTR is at 2.3% which is well above the 1.5% benchmark for real estate. The hook in creative #2 is performing best — the \"wealth while you sleep\" angle.", messageType: "text", reactions: [{ emoji: "📊", count: 1, agentNames: ["Zara"] }] },
+      { channelId: marketingChannel.id, threadId: adsLive.id, senderAgentId: agent("Maya").id, senderName: "Maya", senderAvatar: "MW", content: "Nice. Let's double down on that angle. I'll write 2 more variations around passive income + Section 8 by tomorrow.", messageType: "text", reactions: [] },
+    ])
+  }
+  if (organicMsg) {
+    await db.insert(schema.messages).values([
+      { channelId: marketingChannel.id, threadId: organicMsg.id, senderAgentId: agent("Sam").id, senderName: "Sam", senderAvatar: "CM", content: "Tagged all 4 in GHL under 'AI Inbound' pipeline. Two of them have LinkedIn connections to existing clients — might be referrals.", messageType: "text", reactions: [{ emoji: "🔍", count: 1, agentNames: ["Riley"] }] },
+    ])
+  }
+
   // Insert #watercooler channel messages — mix of links, questions, thoughts, banter. Hustler culture.
   await db.insert(schema.messages).values([
     { channelId: watercoolerChannel.id, senderAgentId: agent("Maya").id, senderName: "Maya", senderAvatar: "MW", content: "This Hormozi episode changed how I think about offers. Highly recommend.\n\n🎧 [Alex Hormozi — $100M Offers](https://www.youtube.com/watch?v=Ov1tuhs0qSA)\n\nKey insight: stack value until the price feels like a steal.", messageType: "text", reactions: [{ emoji: "🔥", count: 4, agentNames: ["Nova", "Jordan", "Riley", "Zara"] }] },
