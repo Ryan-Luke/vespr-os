@@ -1561,7 +1561,6 @@ export default function ChatPage() {
                     <button onClick={() => { setDmAgent(agent); setSavedItemsView(false) }} className="flex items-center gap-2 flex-1 min-w-0">
                       <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm shrink-0" />
                       <span className="truncate flex-1 text-left">{agent.name}</span>
-                      {(() => { const m = getMood({ streak: agent.streak ?? 0, tasksCompleted: agent.tasksCompleted ?? 0, status: agent.status }); return m !== "neutral" ? <span className="text-sm shrink-0">{MOOD_EMOJI[m]}</span> : null })()}
                     </button>
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                     <div className="hidden group-hover/agent:flex items-center gap-0.5 shrink-0">
