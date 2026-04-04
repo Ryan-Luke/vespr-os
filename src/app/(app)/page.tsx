@@ -225,43 +225,56 @@ function DMChat({ agent }: { agent: DBAgent }) {
 
   return (
     <div className="flex-1 flex flex-col min-h-0">
-      <div className="flex items-center gap-3 px-4 py-2.5 border-b border-border shrink-0">
-        <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border" />
-        <div><h2 className="font-bold text-sm">{agent.name}</h2><p className="text-xs text-muted-foreground">{agent.role}</p></div>
-        <StatusDot status={agent.status as AgentStatus} showLabel />
+      {/* DM header */}
+      <div className="flex items-center h-12 px-4 border-b border-border shrink-0">
+        <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
+        <span className="text-[13px] font-medium ml-2">{agent.name}</span>
+        <span className="mx-2 text-border">|</span>
+        <span className="text-xs text-muted-foreground">{agent.role}</span>
+        <span className={cn("h-1.5 w-1.5 rounded-full ml-2", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4">
+
+      {/* Messages */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
         {messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
-            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={64} className="rounded-xl border border-border mb-4" />
-            <p className="text-sm font-medium">Chat with {agent.name}</p>
-            <p className="text-xs mt-1">{agent.role} · {agent.model}</p>
+            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md mb-3" />
+            <p className="text-[13px] font-medium text-foreground">Chat with {agent.name}</p>
+            <p className="text-xs mt-0.5">{agent.role}</p>
           </div>
         )}
-        <div className="space-y-3">
+        <div className="space-y-2.5">
           {messages.map((message) => (
-            <div key={message.id} className="flex items-start gap-3">
+            <div key={message.id} className="flex items-start gap-2.5">
               <div className="shrink-0 mt-0.5">
-                {message.role === "assistant" ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={36} className="rounded-lg border border-border" /> : <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground border border-border">You</div>}
+                {message.role === "assistant"
+                  ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={24} className="rounded-sm" />
+                  : <div className="h-6 w-6 rounded-sm bg-accent flex items-center justify-center text-[10px] font-medium text-muted-foreground">You</div>}
               </div>
               <div className="flex-1 min-w-0">
-                <span className="text-sm font-bold">{message.role === "assistant" ? agent.name : "You"}</span>
-                <div className="text-sm text-foreground/90 mt-0.5 leading-relaxed">
+                <span className="text-[13px] font-semibold">{message.role === "assistant" ? agent.name : "You"}</span>
+                <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed">
                   {message.parts.map((part, i) => part.type === "text" ? <span key={i}>{part.text}</span> : null)}
                 </div>
               </div>
             </div>
           ))}
-          {status === "streaming" && <div className="flex items-center gap-2 text-xs text-muted-foreground px-12"><Loader2 className="h-3 w-3 animate-spin" />{agent.name} is typing...</div>}
+          {status === "streaming" && (
+            <div className="flex items-center gap-2 text-xs text-muted-foreground pl-9">
+              <Loader2 className="h-3 w-3 animate-spin" />{agent.name} is typing...
+            </div>
+          )}
         </div>
       </div>
-      <div className="border-t border-border p-3 shrink-0">
-        <div className="rounded-lg border border-border bg-card focus-within:ring-1 focus-within:ring-primary/50">
-          <textarea ref={inputRef} placeholder={`Message ${agent.name}...`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }} rows={1} className="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground" disabled={status === "submitted" || status === "streaming"} />
-          <div className="flex items-center justify-end px-2 pb-2">
-            <Button size="sm" className="h-7 px-3" onClick={handleSend} disabled={!input.trim() || status === "streaming" || status === "submitted"}>
-              {(status === "submitted" || status === "streaming") ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}Send
-            </Button>
+
+      {/* Input */}
+      <div className="border-t border-border px-4 py-3 shrink-0">
+        <div className="rounded-md border border-border bg-muted/50 focus-within:border-muted-foreground/30 transition-colors">
+          <textarea ref={inputRef} placeholder={`Message ${agent.name}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" disabled={status === "submitted" || status === "streaming"} style={{ maxHeight: 100 }} />
+          <div className="flex items-center justify-end px-2 pb-1.5">
+            <button onClick={handleSend} disabled={!input.trim() || status === "streaming" || status === "submitted"} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", input.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+              {(status === "submitted" || status === "streaming") ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+            </button>
           </div>
         </div>
       </div>
