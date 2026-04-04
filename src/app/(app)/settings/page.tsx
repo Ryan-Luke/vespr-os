@@ -1,10 +1,5 @@
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Button } from "@/components/ui/button"
 import { Switch } from "@/components/ui/switch"
-import { Separator } from "@/components/ui/separator"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Badge } from "@/components/ui/badge"
 import { Key, Building2, Bell, CreditCard, Shield } from "lucide-react"
 
 export default function SettingsPage() {
@@ -21,66 +16,46 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md">
-            <div>
-              <p className="section-label mb-2">
-                <Building2 className="h-4 w-4" />
-                Business Profile
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <Label>Business Name</Label>
-                  <Input defaultValue="My Company" />
-                </div>
-                <div className="space-y-2">
-                  <Label>Industry</Label>
-                  <Input defaultValue="Technology" />
-                </div>
+          <div className="bg-card border border-border rounded-md p-4 space-y-4">
+            <p className="section-label">Business Profile</p>
+            <div className="grid gap-3 md:grid-cols-2">
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium">Business Name</label>
+                <input defaultValue="My Company" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
               </div>
-              <div className="space-y-2">
-                <Label>Business Description</Label>
-                <Input defaultValue="SaaS company focused on small business solutions" />
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium">Industry</label>
+                <input defaultValue="Technology" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
               </div>
-              <Button size="sm">Save Changes</Button>
             </div>
+            <div className="space-y-1.5">
+              <label className="text-[13px] font-medium">Description</label>
+              <input defaultValue="SaaS company focused on small business solutions" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+            </div>
+            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save</button>
           </div>
 
-          <div className="bg-card border border-border rounded-md">
-            <div>
-              <p className="section-label mb-2">
-                <Shield className="h-4 w-4" />
-                Agent Controls
-              </p>
-            </div>
-            <div className="space-y-4">
+          <div className="bg-card border border-border rounded-md p-4 space-y-4">
+            <p className="section-label">Agent Controls</p>
+            <div className="space-y-4 divide-y divide-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium">Require approval for external actions</p>
-                  <p className="text-xs text-muted-foreground">
-                    Agents must get your approval before sending emails, posting content, etc.
-                  </p>
+                  <p className="text-[13px] font-medium">Require approval for external actions</p>
+                  <p className="text-xs text-muted-foreground">Agents ask before sending emails, posting content, etc.</p>
                 </div>
                 <Switch defaultChecked />
               </div>
-              <Separator />
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-4">
                 <div>
-                  <p className="text-sm font-medium">Monthly budget cap</p>
-                  <p className="text-xs text-muted-foreground">
-                    Pause all agents if monthly AI costs exceed this amount
-                  </p>
+                  <p className="text-[13px] font-medium">Monthly budget cap</p>
+                  <p className="text-xs text-muted-foreground">Pause agents if costs exceed this amount</p>
                 </div>
-                <Input defaultValue="$500" className="w-24 text-right" />
+                <input defaultValue="$500" className="w-20 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] text-right outline-none focus:border-muted-foreground/30 transition-colors tabular-nums" />
               </div>
-              <Separator />
-              <div className="flex items-center justify-between">
+              <div className="flex items-center justify-between pt-4">
                 <div>
-                  <p className="text-sm font-medium">Auto-pause on errors</p>
-                  <p className="text-xs text-muted-foreground">
-                    Automatically pause agents after 3 consecutive errors
-                  </p>
+                  <p className="text-[13px] font-medium">Auto-pause on errors</p>
+                  <p className="text-xs text-muted-foreground">Pause after 3 consecutive errors</p>
                 </div>
                 <Switch defaultChecked />
               </div>
@@ -89,113 +64,61 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="api-keys" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md">
-            <div>
-              <p className="section-label mb-2">
-                <Key className="h-4 w-4" />
-                AI Provider Keys
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <Label>Anthropic API Key</Label>
-                <div className="flex gap-2">
-                  <Input type="password" defaultValue="sk-ant-•••••••••••" className="font-mono" />
-                  <Badge variant="secondary" className="shrink-0 self-center">
-                    Connected
-                  </Badge>
+          <div className="bg-card border border-border rounded-md p-4 space-y-4">
+            <p className="section-label">AI Provider Keys</p>
+            {[
+              { label: "Anthropic", value: "sk-ant-•••••••••••", connected: true },
+              { label: "OpenAI", value: "sk-•••••••••••", connected: true },
+              { label: "Google AI", value: "", connected: false },
+            ].map((key) => (
+              <div key={key.label} className="space-y-1.5">
+                <label className="text-[13px] font-medium">{key.label}</label>
+                <div className="flex gap-2 items-center">
+                  <input type="password" defaultValue={key.value} placeholder="Enter API key..." className="flex-1 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] font-mono outline-none focus:border-muted-foreground/30 transition-colors" />
+                  <span className={key.connected ? "h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" : "h-1.5 w-1.5 rounded-full bg-muted-foreground/30 shrink-0"} />
                 </div>
               </div>
-              <div className="space-y-2">
-                <Label>OpenAI API Key</Label>
-                <div className="flex gap-2">
-                  <Input type="password" defaultValue="sk-•••••••••••" className="font-mono" />
-                  <Badge variant="secondary" className="shrink-0 self-center">
-                    Connected
-                  </Badge>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Google AI API Key</Label>
-                <div className="flex gap-2">
-                  <Input placeholder="Enter API key..." className="font-mono" />
-                  <Badge variant="outline" className="shrink-0 self-center text-muted-foreground">
-                    Not set
-                  </Badge>
-                </div>
-              </div>
-              <Button size="sm">Save Keys</Button>
-            </div>
+            ))}
+            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save Keys</button>
           </div>
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md">
-            <div>
-              <p className="section-label mb-2">
-                <Bell className="h-4 w-4" />
-                Notification Preferences
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Agent errors</p>
-                  <p className="text-xs text-muted-foreground">Get notified when an agent encounters an error</p>
+          <div className="bg-card border border-border rounded-md p-4">
+            <p className="section-label mb-4">Notification Preferences</p>
+            <div className="space-y-4 divide-y divide-border">
+              {[
+                { label: "Agent errors", desc: "When an agent encounters an error", on: true },
+                { label: "Approval requests", desc: "When an agent needs your approval", on: true },
+                { label: "Daily summary", desc: "Daily email with workforce summary", on: false },
+                { label: "Budget alerts", desc: "When spending exceeds 80% of budget", on: true },
+              ].map((pref, i) => (
+                <div key={pref.label} className={`flex items-center justify-between ${i > 0 ? "pt-4" : ""}`}>
+                  <div>
+                    <p className="text-[13px] font-medium">{pref.label}</p>
+                    <p className="text-xs text-muted-foreground">{pref.desc}</p>
+                  </div>
+                  <Switch defaultChecked={pref.on} />
                 </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Approval requests</p>
-                  <p className="text-xs text-muted-foreground">Get notified when an agent needs your approval</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Daily summary</p>
-                  <p className="text-xs text-muted-foreground">Receive a daily email with your workforce summary</p>
-                </div>
-                <Switch />
-              </div>
-              <Separator />
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium">Budget alerts</p>
-                  <p className="text-xs text-muted-foreground">Alert when spending exceeds 80% of monthly budget</p>
-                </div>
-                <Switch defaultChecked />
-              </div>
+              ))}
             </div>
           </div>
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md">
-            <div>
-              <p className="section-label mb-2">
-                <CreditCard className="h-4 w-4" />
-                Usage & Billing
-              </p>
-            </div>
-            <div className="space-y-4">
-              <div className="grid gap-4 md:grid-cols-3">
-                <div>
-                  <p className="text-sm text-muted-foreground">This Month</p>
-                  <p className="text-2xl font-bold">$174.90</p>
+          <div className="bg-card border border-border rounded-md p-4">
+            <p className="section-label mb-4">Usage</p>
+            <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-3">
+              {[
+                { label: "This Month", value: "$174.90" },
+                { label: "Budget Left", value: "$325.10", color: "text-emerald-500" },
+                { label: "Last Month", value: "$190.40" },
+              ].map((s) => (
+                <div key={s.label} className="bg-card p-4">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
+                  <p className={`text-xl font-semibold tabular-nums mt-0.5 ${s.color || ""}`}>{s.value}</p>
                 </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Budget Remaining</p>
-                  <p className="text-2xl font-bold text-green-500">$325.10</p>
-                </div>
-                <div>
-                  <p className="text-sm text-muted-foreground">Last Month</p>
-                  <p className="text-2xl font-bold">$190.40</p>
-                </div>
-              </div>
+              ))}
             </div>
           </div>
         </TabsContent>
