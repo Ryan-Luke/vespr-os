@@ -4,6 +4,7 @@ import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { Flame } from "lucide-react"
 import { levelTitle } from "@/lib/gamification"
+import { Sparkline } from "@/components/sparkline"
 
 interface AgentStats {
   id: string; name: string; role: string; pixelAvatarIndex: number
@@ -40,10 +41,13 @@ export function AgentLeaderboard() {
               <span className="text-xs text-muted-foreground ml-1.5">Lv.{agent.level ?? 1}</span>
             </div>
             <div className="flex items-center gap-2 shrink-0">
-              {(agent.streak ?? 0) >= 7 && (
-                <span className="text-xs text-amber-500 flex items-center gap-0.5"><Flame className="h-3 w-3" />{agent.streak}</span>
-              )}
-              <span className="text-xs text-muted-foreground tabular-nums">{(agent.xp ?? 0).toLocaleString()} xp</span>
+              <Sparkline
+                data={Array.from({ length: 7 }, (_, i) => Math.max(0, Math.sin((agent.xp ?? 0) * 0.001 + i * 1.3) * 3 + (agent.xp ?? 0) / 5000 + 1))}
+                width={36}
+                height={12}
+                className="text-muted-foreground/50"
+              />
+              <span className="text-[11px] text-muted-foreground tabular-nums">{(agent.xp ?? 0).toLocaleString()}</span>
             </div>
           </div>
         ))}

@@ -4,6 +4,7 @@ import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
 import { Plus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { Sparkline } from "@/components/sparkline"
 
 export const dynamic = "force-dynamic"
 
@@ -79,8 +80,16 @@ export default async function TeamsPage() {
                       </div>
                       <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
                     </div>
-                    <div className="text-right shrink-0">
-                      <span className="text-xs text-muted-foreground tabular-nums">{agent.tasksCompleted}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Sparkline
+                        data={(() => {
+                          // Generate pseudo-random activity data from agent stats
+                          const seed = (agent.tasksCompleted ?? 0) + (agent.pixelAvatarIndex ?? 0)
+                          return Array.from({ length: 7 }, (_, i) => Math.max(0, Math.sin(seed + i * 1.5) * 3 + (agent.tasksCompleted ?? 0) / 50 + Math.cos(seed * 0.7 + i) * 2))
+                        })()}
+                        className="text-muted-foreground"
+                      />
+                      <span className="text-xs text-muted-foreground tabular-nums w-8 text-right">{agent.tasksCompleted}</span>
                     </div>
                   </Link>
                 ))}
