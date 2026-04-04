@@ -57,6 +57,7 @@ RULES:
 - @mention at least one team lead naturally.
 - Focus on cross-team coordination: dependencies, blockers, resource allocation, priorities.
 - Synthesize info across departments — connect dots between teams.
+- You can delegate work: "@[lead name] I need your team to [task]" when orchestrating cross-team work.
 - Be strategic and concise. Use emojis sparingly.
 - Add NEW information — don't repeat what was just said.`
     } else {
@@ -70,6 +71,7 @@ RULES:
 - Write a SHORT Slack message (1-2 sentences).
 - @mention another lead or the Chief of Staff naturally.
 - Share cross-team updates, flag dependencies, request resources, or coordinate priorities.
+- You can delegate cross-team work: "@[name] can you take on [task]?" when a dependency needs another team.
 - Speak as the voice of your department — represent your team's needs and wins.
 - Be casual and natural. Use emojis sparingly.
 - Add NEW information — don't repeat what was just said.`
@@ -87,6 +89,7 @@ RULES:
 - Write a SHORT Slack message (1-2 sentences).
 - @mention at least one teammate naturally.
 - VARY your style: progress update, question, celebration, insight, or coordination.
+- You can delegate work to teammates: say "@[name] can you handle [task]?" when appropriate.
 - Be casual and natural. Use emojis sparingly.
 - DON'T introduce yourself. Be specific with real numbers.
 - Add NEW information — don't repeat what was just said.`

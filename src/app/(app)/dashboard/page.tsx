@@ -7,6 +7,7 @@ import {
 } from "lucide-react"
 import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 import { MorningCheckin } from "@/components/morning-checkin"
+import { OvernightSummary } from "@/components/overnight-summary"
 import { ApprovalQueue } from "@/components/approval-queue"
 import { AgentLeaderboard, CompanyAchievements } from "@/components/gamification-widgets"
 import { PixelAvatar } from "@/components/pixel-avatar"
@@ -46,6 +47,7 @@ export default async function DashboardPage() {
     <div className="h-full overflow-y-auto">
       <div className="p-6 space-y-5 max-w-[1400px]">
         <MorningCheckin />
+        <OvernightSummary />
         <ApprovalQueue />
 
         {/* ── PRIMARY ZONE: KPIs + Activity ────────────────── */}
@@ -162,6 +164,9 @@ export default async function DashboardPage() {
 
           <AgentLeaderboard />
           <CompanyAchievements />
+        </div>
+        <div className="pt-8 pb-4 text-center">
+          <p className="text-[10px] text-muted-foreground/30">Cmd+K to search · Cmd+/ for shortcuts</p>
         </div>
       </div>
     </div>

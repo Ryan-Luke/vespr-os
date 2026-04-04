@@ -2,12 +2,14 @@
 
 import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { Flame } from "lucide-react"
-import { levelTitle } from "@/lib/gamification"
+import { Flame, Trophy, TrendingUp, Star } from "lucide-react"
+import { levelTitle, levelProgress, xpForLevel, MILESTONE_DEFINITIONS } from "@/lib/gamification"
 import { Sparkline } from "@/components/sparkline"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
 
 interface AgentStats {
-  id: string; name: string; role: string; pixelAvatarIndex: number
+  id: string; name: string; role: string; pixelAvatarIndex: number; teamId: string | null
   level: number; xp: number; streak: number; tasksCompleted: number
 }
 
@@ -28,29 +30,68 @@ export function AgentLeaderboard() {
 
   if (!loaded || agents.length === 0) return null
 
+  const topAgent = agents[0]
+
   return (
     <div className="bg-card border border-border rounded-md p-5">
-      <p className="section-label mb-3">Leaderboard</p>
-      <div className="space-y-1.5">
-        {agents.slice(0, 8).map((agent, i) => (
-          <div key={agent.id} className="flex items-center gap-2.5 py-1">
-            <span className="text-xs font-mono w-4 text-center text-muted-foreground">{i + 1}</span>
-            <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
-            <div className="flex-1 min-w-0">
-              <span className="text-[13px] font-medium">{agent.name}</span>
-              <span className="text-xs text-muted-foreground ml-1.5">Lv.{agent.level ?? 1}</span>
+      <div className="flex items-center justify-between mb-3">
+        <p className="section-label">Leaderboard</p>
+        <span className="text-[11px] text-muted-foreground">{agents.length} agents</span>
+      </div>
+
+      {/* Top agent highlight */}
+      {topAgent && (
+        <Link href={`/teams/${topAgent.teamId}/agents/${topAgent.id}`} className="block mb-3 rounded-md bg-amber-500/5 border border-amber-500/10 p-3 hover:bg-amber-500/10 transition-colors">
+          <div className="flex items-center gap-2.5">
+            <div className="relative">
+              <PixelAvatar characterIndex={topAgent.pixelAvatarIndex} size={28} className="rounded-sm" />
+              <span className="absolute -top-1 -right-1 text-[10px]">👑</span>
             </div>
-            <div className="flex items-center gap-2 shrink-0">
-              <Sparkline
-                data={Array.from({ length: 7 }, (_, i) => Math.max(0, Math.sin((agent.xp ?? 0) * 0.001 + i * 1.3) * 3 + (agent.xp ?? 0) / 5000 + 1))}
-                width={36}
-                height={12}
-                className="text-muted-foreground/50"
-              />
-              <span className="text-[11px] text-muted-foreground tabular-nums">{(agent.xp ?? 0).toLocaleString()}</span>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-1.5">
+                <span className="text-[13px] font-semibold">{topAgent.name}</span>
+                <span className="text-[11px] text-amber-400 font-medium">{levelTitle(topAgent.level ?? 1)}</span>
+                {(topAgent.streak ?? 0) >= 3 && (
+                  <span className="text-[11px] text-orange-400 flex items-center gap-0.5"><Flame className="h-3 w-3" />{topAgent.streak}d</span>
+                )}
+              </div>
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-[11px] text-muted-foreground">Lv.{topAgent.level ?? 1}</span>
+                <div className="flex-1 h-1 rounded-full bg-border overflow-hidden max-w-[80px]">
+                  <div className="h-full rounded-full bg-amber-500/50 transition-all" style={{ width: `${levelProgress(topAgent.xp ?? 0)}%` }} />
+                </div>
+                <span className="text-[11px] text-muted-foreground tabular-nums">{(topAgent.xp ?? 0).toLocaleString()} XP</span>
+              </div>
             </div>
           </div>
-        ))}
+        </Link>
+      )}
+
+      <div className="space-y-0.5">
+        {agents.slice(1, 8).map((agent, i) => {
+          const progress = levelProgress(agent.xp ?? 0)
+          return (
+            <Link key={agent.id} href={`/teams/${agent.teamId}/agents/${agent.id}`} className="flex items-center gap-2.5 py-1.5 rounded-md px-1 -mx-1 hover:bg-accent/40 transition-colors">
+              <span className="text-xs font-mono w-4 text-center text-muted-foreground">{i + 2}</span>
+              <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-medium">{agent.name}</span>
+                  <span className="text-[11px] text-muted-foreground">Lv.{agent.level ?? 1}</span>
+                  {(agent.streak ?? 0) >= 7 && (
+                    <span className="text-[10px] text-orange-400 flex items-center"><Flame className="h-2.5 w-2.5" />{agent.streak}</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="w-12 h-1 rounded-full bg-border overflow-hidden">
+                  <div className="h-full rounded-full bg-primary/50 transition-all" style={{ width: `${progress}%` }} />
+                </div>
+                <span className="text-[11px] text-muted-foreground tabular-nums w-12 text-right">{(agent.xp ?? 0).toLocaleString()}</span>
+              </div>
+            </Link>
+          )
+        })}
       </div>
     </div>
   )
@@ -78,6 +119,13 @@ export function CompanyAchievements() {
 
   const totalTasks = agents.reduce((sum, a) => sum + (a.tasksCompleted ?? 0), 0)
   const totalXP = agents.reduce((sum, a) => sum + (a.xp ?? 0), 0)
+  const totalStreakDays = agents.reduce((sum, a) => sum + (a.streak ?? 0), 0)
+  const longestStreak = agents.reduce((max, a) => Math.max(max, a.streak ?? 0), 0)
+
+  // Milestone progress — how many of the 11 milestones are unlocked globally
+  const unlockedIds = new Set(milestones.map((m) => m.id))
+  const totalMilestoneDefs = MILESTONE_DEFINITIONS.length
+  const unlockedCount = MILESTONE_DEFINITIONS.filter((d) => unlockedIds.has(d.id)).length
 
   if (!loaded) return null
 
@@ -85,30 +133,64 @@ export function CompanyAchievements() {
     <div className="bg-card border border-border rounded-md p-5">
       <p className="section-label mb-3">Company Stats</p>
 
-      <div className="grid grid-cols-3 gap-4 mb-4">
-        <div>
-          <p className="text-lg font-semibold tabular-nums">{totalTasks.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">Tasks</p>
+      <div className="grid grid-cols-2 gap-px bg-border rounded-md overflow-hidden mb-4">
+        {[
+          { label: "Tasks Done", value: totalTasks.toLocaleString(), icon: <Star className="h-3 w-3 text-amber-400" /> },
+          { label: "Total XP", value: totalXP.toLocaleString(), icon: <TrendingUp className="h-3 w-3 text-emerald-400" /> },
+          { label: "Agents", value: String(agents.length), icon: null },
+          { label: "Best Streak", value: longestStreak > 0 ? `${longestStreak}d` : "—", icon: longestStreak >= 7 ? <Flame className="h-3 w-3 text-orange-400" /> : null },
+        ].map((s) => (
+          <div key={s.label} className="bg-card p-3">
+            <p className="text-[11px] text-muted-foreground flex items-center gap-1">{s.icon}{s.label}</p>
+            <p className="text-lg font-semibold tabular-nums">{s.value}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Milestone progress bar */}
+      <div className="mb-4">
+        <div className="flex items-center justify-between text-[11px] mb-1">
+          <span className="text-muted-foreground flex items-center gap-1"><Trophy className="h-3 w-3 text-amber-400" />Milestones</span>
+          <span className="text-muted-foreground tabular-nums">{unlockedCount}/{totalMilestoneDefs}</span>
         </div>
-        <div>
-          <p className="text-lg font-semibold tabular-nums">{totalXP.toLocaleString()}</p>
-          <p className="text-xs text-muted-foreground">Total XP</p>
-        </div>
-        <div>
-          <p className="text-lg font-semibold tabular-nums">{agents.length}</p>
-          <p className="text-xs text-muted-foreground">Agents</p>
+        <div className="h-1.5 rounded-full bg-border overflow-hidden">
+          <div className="h-full rounded-full bg-amber-500/60 transition-all" style={{ width: `${totalMilestoneDefs > 0 ? (unlockedCount / totalMilestoneDefs) * 100 : 0}%` }} />
         </div>
       </div>
 
       {milestones.length > 0 && (
         <div>
-          <p className="section-label mb-2">Recent Milestones</p>
-          <div className="space-y-1.5">
-            {milestones.slice(0, 5).map((m) => (
-              <div key={m.id} className="flex items-center gap-2 text-[13px]">
-                <span className="text-sm">{m.icon}</span>
-                <span className="font-medium">{m.name}</span>
-                {m.agentName && <span className="text-muted-foreground">· {m.agentName}</span>}
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Recent Unlocks</p>
+          <div className="space-y-1">
+            {milestones.slice(0, 5).map((m) => {
+              const diffMs = Date.now() - new Date(m.unlockedAt).getTime()
+              const diffHr = Math.floor(diffMs / 3600000)
+              const t = diffHr < 24 ? `${diffHr}h` : `${Math.floor(diffHr / 24)}d`
+              return (
+                <div key={m.id} className="flex items-center gap-2 py-1">
+                  <span className="text-sm">{m.icon}</span>
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-medium">{m.name}</span>
+                    {m.agentName && <span className="text-xs text-muted-foreground ml-1.5">· {m.agentName}</span>}
+                  </div>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">{t}</span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Next milestones to unlock */}
+      {unlockedCount < totalMilestoneDefs && (
+        <div className="mt-3 pt-3 border-t border-border">
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Next Goals</p>
+          <div className="space-y-1">
+            {MILESTONE_DEFINITIONS.filter((d) => !unlockedIds.has(d.id)).slice(0, 3).map((d) => (
+              <div key={d.id} className="flex items-center gap-2 py-0.5">
+                <span className="text-sm opacity-30">{d.icon}</span>
+                <span className="text-[13px] text-muted-foreground">{d.name}</span>
+                <span className="text-[11px] text-muted-foreground/50 ml-auto">{d.description}</span>
               </div>
             ))}
           </div>

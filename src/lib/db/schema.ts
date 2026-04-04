@@ -138,6 +138,10 @@ export const agentSops = pgTable("agent_sops", {
   category: text("category").notNull().default("general"), // general, process, tools, escalation, reference
   sortOrder: integer("sort_order").notNull().default(0),
   version: integer("version").notNull().default(1),
+  positiveFeedback: integer("positive_feedback").notNull().default(0),
+  negativeFeedback: integer("negative_feedback").notNull().default(0),
+  lastImprovedAt: timestamp("last_improved_at"),
+  improvementSource: text("improvement_source"), // "feedback" | "task_outcome" | "manual"
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
@@ -254,6 +258,20 @@ export const agentMemories = pgTable("agent_memories", {
   source: text("source"), // "conversation" | "feedback" | "task_outcome" | "correction" | "system"
   relatedAgentId: uuid("related_agent_id"), // for relationship memories
   createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Company Memory (shared across all agents) ────────────
+export const companyMemories = pgTable("company_memories", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  category: text("category").notNull(), // "client" | "process" | "preference" | "lesson" | "fact"
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  importance: real("importance").notNull().default(0.5),
+  source: text("source"), // "agent" | "user" | "system"
+  sourceAgentId: uuid("source_agent_id").references(() => agents.id),
+  tags: jsonb("tags").$type<string[]>().default([]),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
 // ── Gamification ──────────────────────────────────────────

@@ -107,6 +107,10 @@ export default async function TeamsPage() {
           )
         })}
       </div>
+
+      <div className="pt-8 pb-4 text-center">
+        <p className="text-[10px] text-muted-foreground/30">Cmd+K to search · Cmd+/ for shortcuts</p>
+      </div>
     </div>
   )
 }

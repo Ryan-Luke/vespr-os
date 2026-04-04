@@ -24,6 +24,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
+import { NotificationBell } from "@/components/notification-bell"
 import { useState, useEffect, useCallback } from "react"
 
 /* ────────────────────────────────────────────────────────────
@@ -112,9 +113,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
       {/* Header */}
       <div className="flex items-center justify-between h-12 px-4 border-b border-border shrink-0">
         <span className="text-[13px] font-semibold text-sidebar-primary-foreground tracking-tight">Business OS</span>
-        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 md:hidden" onClick={onMobileClose}>
-          <X className="h-4 w-4" />
-        </Button>
+        <div className="flex items-center gap-1">
+          <NotificationBell />
+          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 md:hidden" onClick={onMobileClose}>
+            <X className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
       {/* Navigation */}

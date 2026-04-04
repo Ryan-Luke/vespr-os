@@ -9,7 +9,7 @@ import {
 import {
   Plus, Clock, CheckCircle2, Loader2, AlertCircle,
   ChevronRight, ChevronLeft, Bell, Upload, Check,
-  MessageSquare, X, Save, Search,
+  MessageSquare, X, Save, Search, ExternalLink,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -48,10 +48,70 @@ const priorityDots: Record<string, string> = {
 
 // Owner tasks (agents delegate to you)
 const ownerTasks = [
-  { id: "ot1", title: "Upload March bank statement", description: "I need the March bank statement to complete the Q1 P&L report. Please upload the PDF from your bank portal.", instructions: "Go to your bank portal → Statements → Download March 2026 → Upload here", requestedBy: "Morgan", priority: "urgent", resolved: false },
-  { id: "ot2", title: "Approve ad creative variations", description: "3 new ad copy variations for the Section 8 campaign are ready. Need your approval before we scale spend.", instructions: "Review the 3 variations and approve, request changes, or reject.", requestedBy: "Maya", priority: "high", resolved: false },
-  { id: "ot3", title: "Confirm refund for Order #ORD-8834", description: "Customer #4521 requesting full refund ($189) for delayed shipment. Package was 5 days late. I recommend approving — customer has been with us 2 years.", instructions: "Approve full refund ($189), partial refund, or deny with reason.", requestedBy: "Casey", priority: "urgent", resolved: false },
-  { id: "ot4", title: "Set daily ad spend budget", description: "Ready to scale Section 8 ads. Current metrics support 4-5 calls/day at $140/call with 3-4X ROAS. Need your daily spend limit.", instructions: "Reply with preferred daily spend (e.g., $500/day, $1000/day).", requestedBy: "Zara", priority: "high", resolved: false },
+  {
+    id: "ot1", title: "Upload March bank statement",
+    description: "I need the March bank statement to complete the Q1 P&L report. Without it I can't reconcile expenses or finalize profit margins for last quarter.",
+    instructions: "1. Log in to your bank portal\n2. Navigate to Statements or Documents\n3. Select March 2026 statement\n4. Download as PDF\n5. Come back here and click Upload to attach it",
+    resources: [
+      { label: "Chase Bank Login", url: "https://chase.com/login" },
+      { label: "Q1 P&L Draft (Google Sheet)", url: "#" },
+    ],
+    requestedBy: "Morgan", priority: "urgent", resolved: false,
+  },
+  {
+    id: "ot2", title: "Approve ad creative variations",
+    description: "3 new ad copy variations for the Section 8 campaign are ready. I can't launch the next ad set until you approve at least one — we're losing potential leads every day we wait.",
+    instructions: "1. Open the creative preview link below\n2. Review all 3 ad copy variations\n3. Check that messaging aligns with your brand voice\n4. Click Approve to greenlight, or message me with changes",
+    resources: [
+      { label: "Creative Preview (Figma)", url: "#" },
+      { label: "Campaign Brief", url: "#" },
+      { label: "Current Ad Performance", url: "#" },
+    ],
+    requestedBy: "Maya", priority: "high", resolved: false,
+  },
+  {
+    id: "ot3", title: "Confirm refund for Order #ORD-8834",
+    description: "Customer #4521 is requesting a full refund ($189) for a delayed shipment. Package was 5 days late. I recommend approving — this customer has been with us for 2 years and has a high lifetime value.",
+    instructions: "1. Review the order details in the link below\n2. Check the customer's history (2-year customer, 12 orders)\n3. Decide: approve full refund ($189), partial refund, or deny\n4. Click Approve or message me with your decision",
+    resources: [
+      { label: "Order #ORD-8834 Details", url: "#" },
+      { label: "Customer #4521 Profile", url: "#" },
+      { label: "Refund Policy Doc", url: "#" },
+    ],
+    requestedBy: "Casey", priority: "urgent", resolved: false,
+  },
+  {
+    id: "ot4", title: "Set daily ad spend budget",
+    description: "Ready to scale Section 8 ads. Current metrics support 4-5 calls/day at $140/call with 3-4X ROAS. I need your daily spend limit so I can configure the campaigns — every day without this means missed leads.",
+    instructions: "1. Review current campaign performance in the dashboard link below\n2. Check your available marketing budget for this month\n3. Pick a daily spend limit (e.g., $500/day, $1000/day)\n4. Reply to me with your chosen amount",
+    resources: [
+      { label: "Ad Performance Dashboard", url: "#" },
+      { label: "Monthly Budget Tracker", url: "#" },
+    ],
+    requestedBy: "Zara", priority: "high", resolved: false,
+  },
+  {
+    id: "ot5", title: "Review and approve Q1 content calendar",
+    description: "I've drafted the full Q1 content calendar with 36 posts across Instagram, LinkedIn, and email. I need your sign-off before I start scheduling — some posts reference upcoming product launches that only you can confirm.",
+    instructions: "1. Open the content calendar spreadsheet below\n2. Review post topics, captions, and scheduled dates\n3. Flag any posts that reference unconfirmed launches or sensitive info\n4. Leave comments on anything you want changed\n5. Reply to me with 'Approved' or send your change requests",
+    resources: [
+      { label: "Q1 Content Calendar (Sheet)", url: "#" },
+      { label: "Brand Guidelines", url: "#" },
+      { label: "Product Launch Timeline", url: "#" },
+    ],
+    requestedBy: "Maya", priority: "high", resolved: false,
+  },
+  {
+    id: "ot6", title: "Set brand voice guidelines for social media",
+    description: "I'm building out our social media playbook but I need your input on brand voice — tone, vocabulary, topics to avoid. Without this, I'm guessing at what sounds like 'us' and risk off-brand posts going live.",
+    instructions: "1. Review the brand voice questionnaire linked below (5 min)\n2. Fill in tone preferences (casual vs professional, humorous vs serious)\n3. List any words, phrases, or topics to always avoid\n4. Add 2-3 example posts that feel 'on brand' to you\n5. Send back the completed questionnaire or message me your answers",
+    resources: [
+      { label: "Brand Voice Questionnaire", url: "#" },
+      { label: "Competitor Voice Examples", url: "#" },
+      { label: "Current Social Profiles", url: "#" },
+    ],
+    requestedBy: "Zara", priority: "medium", resolved: false,
+  },
 ]
 
 function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAgent[]; teams: DBTeam[]; onMove: (id: string, status: string) => void }) {
@@ -76,6 +136,12 @@ function TaskCard({ task, agents, teams, onMove }: { task: DBTask; agents: DBAge
             </div>
           )}
           {task.assignedToUser && <span className="text-[11px] text-amber-400 font-medium">You</span>}
+          {task.linkedMessageIds.length > 0 && (
+            <a href={`/?message=${task.linkedMessageIds[0]}`} className="inline-flex items-center gap-1 text-[11px] text-blue-400 hover:text-blue-300 transition-colors">
+              <MessageSquare className="h-3 w-3" />
+              <span>{task.linkedMessageIds.length}</span>
+            </a>
+          )}
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button disabled={colIndex <= 0} onClick={() => colIndex > 0 && onMove(task.id, columns[colIndex - 1].id)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
@@ -213,29 +279,90 @@ export default function TasksPage() {
               </div>
               <button className="text-xs text-muted-foreground hover:text-foreground transition-colors" onClick={() => setShowMyTasks(false)}>Hide</button>
             </div>
+
+            {/* Progress bar */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-[11px] text-muted-foreground">
+                  {myTasks.filter((t) => t.resolved).length} of {myTasks.length} tasks done
+                </span>
+                <span className="text-[11px] text-muted-foreground tabular-nums">
+                  {Math.round((myTasks.filter((t) => t.resolved).length / myTasks.length) * 100)}%
+                </span>
+              </div>
+              <div className="h-1.5 w-full bg-muted rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-green-500 rounded-full transition-all duration-300"
+                  style={{ width: `${(myTasks.filter((t) => t.resolved).length / myTasks.length) * 100}%` }}
+                />
+              </div>
+            </div>
+
             <div className="space-y-2">
               {myTasks.filter((t) => !t.resolved).map((task) => {
                 const reqAgent = dbAgents.find((a) => a.name === task.requestedBy)
+                const steps = task.instructions ? task.instructions.split("\n").filter((s) => s.trim()) : []
                 return (
-                  <div key={task.id} className="bg-card border border-border rounded-md p-3">
+                  <div key={task.id} className="bg-card border border-border rounded-md p-4 border-l-2 border-l-amber-500">
                     <div className="flex items-start gap-2.5">
-                      {reqAgent && <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={24} className="rounded-sm shrink-0 mt-0.5" />}
+                      {reqAgent && <PixelAvatar characterIndex={reqAgent.pixelAvatarIndex} size={28} className="rounded-sm shrink-0 mt-0.5" />}
                       <div className="flex-1 min-w-0">
+                        {/* Title row with priority dot */}
                         <div className="flex items-center gap-2">
                           <span className="text-[13px] font-medium">{task.title}</span>
-                          <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", task.priority === "urgent" ? "bg-red-400" : "bg-amber-400")} />
+                          <span className={cn("h-2 w-2 rounded-full shrink-0", priorityDots[task.priority] || "bg-zinc-500")} title={task.priority} />
+                          <span className={cn("text-[10px] font-medium uppercase tracking-wide", priorityColors[task.priority] || "text-muted-foreground")}>{task.priority}</span>
                         </div>
-                        <p className="text-xs text-muted-foreground mt-0.5">From {task.requestedBy}</p>
-                        <p className="text-xs text-foreground/80 mt-1.5">{task.description}</p>
-                        {task.instructions && (
-                          <p className="text-xs text-muted-foreground mt-1.5 bg-muted/50 rounded px-2 py-1.5">{task.instructions}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">
+                          From {task.requestedBy}{reqAgent ? ` (${dbAgents.find((a) => a.name === task.requestedBy)?.role || ""})` : ""}
+                        </p>
+
+                        {/* WHY section */}
+                        <div className="mt-2.5 bg-amber-500/5 border border-amber-500/10 rounded px-3 py-2">
+                          <p className="text-[10px] font-semibold uppercase tracking-wide text-amber-400 mb-0.5">Why this needs you</p>
+                          <p className="text-xs text-foreground/80">{task.description}</p>
+                        </div>
+
+                        {/* Step-by-step instructions */}
+                        {steps.length > 0 && (
+                          <div className="mt-2.5">
+                            <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">Steps</p>
+                            <ol className="space-y-1">
+                              {steps.map((step, i) => {
+                                const stepText = step.replace(/^\d+\.\s*/, "")
+                                return (
+                                  <li key={i} className="flex items-start gap-2">
+                                    <span className="h-5 w-5 rounded-full bg-muted text-[11px] font-medium flex items-center justify-center shrink-0 mt-px">{i + 1}</span>
+                                    <span className="text-xs text-foreground/80 leading-relaxed pt-0.5">{stepText}</span>
+                                  </li>
+                                )
+                              })}
+                            </ol>
+                          </div>
                         )}
-                        <div className="flex items-center gap-2 mt-2.5">
-                          <button onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))} className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
-                            <Check className="h-3 w-3" />Approve
+
+                        {/* Resource links */}
+                        {task.resources && task.resources.length > 0 && (
+                          <div className="flex flex-wrap gap-1.5 mt-2.5">
+                            {task.resources.map((res, i) => (
+                              <a key={i} href={res.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-primary hover:underline bg-primary/5 rounded-md px-2 py-1 transition-colors">
+                                <ExternalLink className="h-3 w-3 shrink-0" />
+                                {res.label}
+                              </a>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="flex items-center gap-2 mt-3 pt-2.5 border-t border-border">
+                          <button onClick={() => setMyTasks((p) => p.map((t) => t.id === task.id ? { ...t, resolved: true } : t))} className="h-7 px-3 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors flex items-center gap-1.5">
+                            <Check className="h-3 w-3" />Mark Done
                           </button>
-                          <button className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">Upload</button>
-                          <button className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors">Respond</button>
+                          {reqAgent && (
+                            <a href={`/?dm=${reqAgent.id}`} className="h-7 px-3 rounded-md text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors flex items-center gap-1.5">
+                              <MessageSquare className="h-3 w-3" />Ask {task.requestedBy}
+                            </a>
+                          )}
                         </div>
                       </div>
                     </div>

@@ -1,6 +1,6 @@
 import { db } from "@/lib/db"
 import { agentSops } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
 
 export async function GET(req: Request) {
   const url = new URL(req.url)
@@ -28,8 +28,18 @@ export async function POST(req: Request) {
 }
 
 export async function PATCH(req: Request) {
-  const { id, ...updates } = await req.json()
+  const { id, feedback, ...updates } = await req.json()
   if (!id) return Response.json({ error: "id required" }, { status: 400 })
+
+  // Handle feedback increment (SOP compounding)
+  if (feedback === "positive" || feedback === "negative") {
+    const col = feedback === "positive" ? agentSops.positiveFeedback : agentSops.negativeFeedback
+    const [updated] = await db.update(agentSops)
+      .set({ [feedback === "positive" ? "positiveFeedback" : "negativeFeedback"]: sql`${col} + 1` })
+      .where(eq(agentSops.id, id))
+      .returning()
+    return Response.json(updated)
+  }
 
   const [updated] = await db.update(agentSops)
     .set({ ...updates, updatedAt: new Date(), version: updates.version })

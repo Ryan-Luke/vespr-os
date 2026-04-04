@@ -10,10 +10,11 @@ import {
   ArrowLeft, Brain, DollarSign, CheckCircle2, Pause, Play,
   MessageSquare, Cpu, Plus, FileText, Trash2, Save, Loader2,
   Crown, Edit3, ThumbsUp, ThumbsDown, Shield, Sparkles,
-  Trophy, Zap, Clock,
+  Trophy, Zap, Clock, TrendingUp,
 } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
+import { getAutoApproveSettings, toggleAutoApproveSetting } from "@/components/approval-queue"
 
 interface DBAgent {
   id: string; name: string; role: string; avatar: string; pixelAvatarIndex: number
@@ -80,6 +81,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [decisions, setDecisions] = useState<DecisionEntry[]>([])
   const [memories, setMemories] = useState<{ id: string; memoryType: string; content: string; importance: number; createdAt: string }[]>([])
   const [reviewLoading, setReviewLoading] = useState(false)
+  const [reviewData, setReviewData] = useState<{ rating: number; summary: string; strengths: string[]; improvements: string[]; recommendations: string } | null>(null)
   const [loading, setLoading] = useState(true)
   const [editingSop, setEditingSop] = useState<string | null>(null)
   const [newSopTitle, setNewSopTitle] = useState("")
@@ -87,6 +89,27 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [newSopCategory, setNewSopCategory] = useState("process")
   const [showNewSop, setShowNewSop] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [sopFeedback, setSopFeedback] = useState<Record<string, "positive" | "negative">>({})
+  const [sopSuggestions, setSopSuggestions] = useState<Record<string, string>>({})
+  const [showSuggestion, setShowSuggestion] = useState<string | null>(null)
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem("bos-sop-feedback")
+      if (stored) setSopFeedback(JSON.parse(stored))
+    } catch {}
+  }, [])
+
+  function handleSopFeedback(sopId: string, type: "positive" | "negative") {
+    const next = { ...sopFeedback, [sopId]: type }
+    setSopFeedback(next)
+    localStorage.setItem("bos-sop-feedback", JSON.stringify(next))
+    if (type === "negative") {
+      setShowSuggestion(sopId)
+    } else {
+      setShowSuggestion(null)
+    }
+  }
 
   useEffect(() => {
     Promise.all([
@@ -171,7 +194,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           </div>
           <div className="flex gap-1.5 shrink-0">
             <Link href="/" className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors"><MessageSquare className="h-3 w-3" />Chat</Link>
-            <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }) } catch {} setReviewLoading(false) }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors">
+            <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { const res = await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }); const data = await res.json(); if (data.review) setReviewData(data.review) } catch {} setReviewLoading(false) }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors">
               {reviewLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trophy className="h-3 w-3" />}Review
             </button>
           </div>
@@ -183,6 +206,38 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <p className="text-[13px]">{agent.currentTask}</p>
           </div>
         )}
+
+        {/* Autonomy */}
+        <div className="bg-card border border-border rounded-md p-4">
+          <div className="flex items-center justify-between mb-2">
+            <p className="section-label">Autonomy</p>
+            <span className={cn("text-[11px] px-2 py-0.5 rounded-full font-medium", agent.autonomyLevel === "full_auto" ? "bg-emerald-500/10 text-emerald-400" : agent.autonomyLevel === "supervised" ? "bg-amber-500/10 text-amber-400" : "bg-muted text-muted-foreground")}>{agent.autonomyLevel === "full_auto" ? "Full Auto" : agent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}</span>
+          </div>
+          <p className="text-xs text-muted-foreground mb-3">{agent.autonomyLevel === "full_auto" ? "This agent acts independently without approval." : agent.autonomyLevel === "supervised" ? "This agent requests approval for important decisions." : "All actions require manual approval."}</p>
+          {(() => {
+            const settings = getAutoApproveSettings()
+            const actionTypes = ["task_completed", "message_sent", "sop_updated", "approval_requested", "decision_made", "integration_call"]
+            const actionLabels: Record<string, string> = { task_completed: "Task completion", message_sent: "Send messages", sop_updated: "Update SOPs", approval_requested: "Sub-approvals", decision_made: "Decisions", integration_call: "Integration calls" }
+            const agentRules = actionTypes.filter((t) => settings[`${agent.id}:${t}`] === true)
+            return (
+              <div className="space-y-1.5">
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Auto-approved actions</p>
+                {agentRules.length === 0 ? (
+                  <p className="text-xs text-muted-foreground">No auto-approve rules set. These build up as you approve actions in the queue.</p>
+                ) : (
+                  <div className="space-y-1">
+                    {agentRules.map((type) => (
+                      <div key={type} className="flex items-center justify-between py-1">
+                        <span className="text-[13px] flex items-center gap-1.5"><Zap className="h-3 w-3 text-amber-400" />{actionLabels[type] || type}</span>
+                        <button onClick={() => { toggleAutoApproveSetting(agent.id, type, false); setAgent({ ...agent }) }} className="text-[11px] text-red-400 hover:text-red-300 transition-colors">Remove</button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )
+          })()}
+        </div>
 
         {/* Personality */}
         <div className="bg-card border border-border rounded-md p-4">
@@ -227,6 +282,59 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             </div>
           ))}
         </div>
+
+        {/* Performance Review Results */}
+        {reviewData && (
+          <div className="bg-card border border-border rounded-md p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Performance Review</p>
+              <button onClick={() => setReviewData(null)} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Dismiss</button>
+            </div>
+            {/* Rating */}
+            <div className="flex items-center gap-2">
+              <span className="text-[11px] text-muted-foreground uppercase tracking-wider">Rating</span>
+              <div className="flex gap-1">
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <div key={i} className={cn("h-2.5 w-2.5 rounded-full", i <= reviewData.rating ? "bg-amber-400" : "bg-border")} />
+                ))}
+              </div>
+              <span className="text-xs text-muted-foreground">{reviewData.rating}/5</span>
+            </div>
+            {/* Summary */}
+            <p className="text-[13px] leading-relaxed">{reviewData.summary}</p>
+            {/* Strengths */}
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Strengths</p>
+              <ul className="space-y-1">
+                {reviewData.strengths.map((s, i) => (
+                  <li key={i} className="text-[13px] text-emerald-400 flex items-start gap-1.5">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-emerald-400 shrink-0" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Improvements */}
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Areas for Improvement</p>
+              <ul className="space-y-1">
+                {reviewData.improvements.map((s, i) => (
+                  <li key={i} className="text-[13px] text-amber-400 flex items-start gap-1.5">
+                    <span className="mt-1.5 h-1 w-1 rounded-full bg-amber-400 shrink-0" />
+                    <span>{s}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            {/* Recommendations */}
+            {reviewData.recommendations && (
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Recommendation</p>
+                <p className="text-[13px] text-foreground/80">{reviewData.recommendations}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {milestones.length > 0 && (
           <div className="flex items-center gap-3 flex-wrap">
@@ -281,20 +389,28 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             )}
 
             {sops.length === 0 && !showNewSop && (
-              <div className="text-center py-8 text-xs text-muted-foreground">No SOPs yet. They auto-generate as {agent.name} completes tasks.</div>
+              <div className="bg-muted/30 border border-dashed border-border rounded-md p-3 text-center">
+                <Sparkles className="h-4 w-4 text-muted-foreground mx-auto mb-1.5" />
+                <p className="text-xs text-muted-foreground">SOPs auto-generate as <span className="font-medium text-foreground">{agent.name}</span> completes tasks. You can also create them manually.</p>
+              </div>
             )}
 
             {sops.map((sop) => {
               const cat = sopCategories.find((c) => c.id === sop.category)
               const isEditing = editingSop === sop.id
+              const fb = sopFeedback[sop.id]
               return (
                 <div key={sop.id} className="bg-card border border-border rounded-md p-4">
                   <div className="flex items-start justify-between">
                     <div className="flex items-center gap-2">
                       <span className="text-sm">{cat?.icon || "📝"}</span>
                       <div>
-                        <p className="text-[13px] font-medium">{sop.title}</p>
-                        <p className="text-[11px] text-muted-foreground">v{sop.version} · {new Date(sop.updatedAt).toLocaleDateString()}</p>
+                        <div className="flex items-center gap-1.5">
+                          <p className="text-[13px] font-medium">{sop.title}</p>
+                          <span className={cn("text-[10px] font-mono px-1 py-px rounded", sop.version >= 2 ? "bg-emerald-500/10 text-emerald-400" : "bg-muted text-muted-foreground")}>v{sop.version}</span>
+                          {sop.version >= 2 && <TrendingUp className="h-3 w-3 text-emerald-400" />}
+                        </div>
+                        <p className="text-[11px] text-muted-foreground">{new Date(sop.updatedAt).toLocaleDateString()}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-1">
@@ -310,6 +426,26 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
                   ) : (
                     <div className="mt-2 text-[13px] text-foreground/80 whitespace-pre-wrap leading-relaxed">{sop.content}</div>
                   )}
+                  {/* Feedback row */}
+                  {!isEditing && (
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                        <span>Was this SOP helpful?</span>
+                        <button onClick={() => handleSopFeedback(sop.id, "positive")} className={cn("h-5 w-5 rounded flex items-center justify-center transition-colors", fb === "positive" ? "bg-emerald-500/20 text-emerald-400" : "bg-muted/50 hover:bg-muted")}>
+                          <ThumbsUp className="h-3 w-3" />
+                        </button>
+                        <button onClick={() => handleSopFeedback(sop.id, "negative")} className={cn("h-5 w-5 rounded flex items-center justify-center transition-colors", fb === "negative" ? "bg-red-500/20 text-red-400" : "bg-muted/50 hover:bg-muted")}>
+                          <ThumbsDown className="h-3 w-3" />
+                        </button>
+                      </div>
+                      {showSuggestion === sop.id && fb === "negative" && (
+                        <div className="flex gap-2">
+                          <textarea placeholder="What should change?" value={sopSuggestions[sop.id] || ""} onChange={(e) => setSopSuggestions((prev) => ({ ...prev, [sop.id]: e.target.value }))} rows={2} className="flex-1 rounded-md border border-border bg-muted/50 px-2 py-1.5 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                          <button onClick={() => { setShowSuggestion(null); setSopSuggestions((prev) => ({ ...prev, [sop.id]: "" })) }} disabled={!sopSuggestions[sop.id]?.trim()} className="self-end h-6 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 disabled:opacity-50 transition-colors">Suggest</button>
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </div>
               )
             })}
@@ -317,21 +453,66 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
 
           {/* Memory */}
           <TabsContent value="memory" className="mt-4 space-y-3">
-            <p className="section-label">Memory</p>
+            <div className="flex items-center justify-between">
+              <p className="section-label">Memory</p>
+              {memories.length > 0 && <span className="text-[11px] text-muted-foreground">{memories.length} entries</span>}
+            </div>
             {memories.length === 0 ? (
-              <div className="text-center py-8 text-xs text-muted-foreground">No memories yet. They build up through conversations and feedback.</div>
-            ) : (
-              <div className="bg-card border border-border rounded-md divide-y divide-border">
-                {memories.map((mem) => (
-                  <div key={mem.id} className="flex items-start gap-2 px-4 py-2.5">
-                    <span className="text-[11px] text-muted-foreground capitalize shrink-0 w-16">{mem.memoryType}</span>
-                    <p className="text-[13px] flex-1">{mem.content}</p>
-                    <div className="w-10 h-1 rounded-full bg-border overflow-hidden shrink-0 mt-1.5">
-                      <div className="h-full rounded-full bg-primary" style={{ width: `${mem.importance * 100}%` }} />
-                    </div>
-                  </div>
-                ))}
+              <div className="text-center py-8">
+                <Brain className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">No memories yet. They build up through conversations and feedback.</p>
               </div>
+            ) : (
+              <>
+                {/* Memory type breakdown */}
+                <div className="grid gap-px bg-border rounded-md overflow-hidden grid-cols-4">
+                  {(["short_term", "long_term", "shared", "skill"] as const).map((type) => {
+                    const count = memories.filter((m) => m.memoryType === type).length
+                    const labels: Record<string, { label: string; icon: string }> = {
+                      short_term: { label: "Short-term", icon: "⚡" },
+                      long_term: { label: "Long-term", icon: "🧠" },
+                      shared: { label: "Shared", icon: "🔗" },
+                      skill: { label: "Skill", icon: "🎯" },
+                    }
+                    const info = labels[type] || { label: type, icon: "💭" }
+                    return (
+                      <div key={type} className="bg-card px-3 py-2.5">
+                        <p className="text-[11px] text-muted-foreground">{info.icon} {info.label}</p>
+                        <p className="text-sm font-semibold tabular-nums">{count}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Memory entries grouped by type */}
+                {(["short_term", "long_term", "shared", "skill"] as const).map((type) => {
+                  const typeMemories = memories.filter((m) => m.memoryType === type)
+                  if (typeMemories.length === 0) return null
+                  const typeLabels: Record<string, string> = { short_term: "Short-term Memory", long_term: "Long-term Memory", shared: "Shared Memory", skill: "Skill Memory" }
+                  return (
+                    <div key={type}>
+                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">{typeLabels[type] || type}</p>
+                      <div className="bg-card border border-border rounded-md divide-y divide-border">
+                        {typeMemories.map((mem) => (
+                          <div key={mem.id} className="flex items-start gap-3 px-4 py-2.5">
+                            <div className="flex-1 min-w-0">
+                              <p className="text-[13px] leading-relaxed">{mem.content}</p>
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <div className="flex gap-px">
+                                {[1, 2, 3, 4, 5].map((i) => (
+                                  <div key={i} className={cn("h-1.5 w-1.5 rounded-full", i <= Math.ceil(mem.importance * 5) ? "bg-primary" : "bg-border")} />
+                                ))}
+                              </div>
+                              <span className="text-[11px] text-muted-foreground tabular-nums">{timeAgo(mem.createdAt)}</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+              </>
             )}
           </TabsContent>
 

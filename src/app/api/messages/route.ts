@@ -29,6 +29,7 @@ export async function POST(req: Request) {
     senderAvatar: body.senderAvatar,
     content: body.content,
     messageType: body.messageType || "text",
+    linkedTaskId: body.linkedTaskId || null,
     reactions: body.reactions || [],
     metadata: body.metadata || {},
   }).returning()

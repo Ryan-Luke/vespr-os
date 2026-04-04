@@ -2,10 +2,6 @@
 
 import { useState, useEffect, useMemo, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Select,
   SelectContent,
@@ -98,7 +94,7 @@ function BuilderPageInner() {
   const [dbTeams, setDbTeams] = useState<{ id: string; name: string; icon: string }[]>([])
 
   // Personality state
-  const [personalityMode, setPersonalityMode] = useState<"preset" | "custom">("preset")
+  const [personalityMode, setPersonalityMode] = useState<"preset" | "sliders" | "custom">("preset")
   const [selectedPreset, setSelectedPreset] = useState<PersonalityPreset | null>(null)
   const [customTraits, setCustomTraits] = useState<PersonalityTraits>({ ...DEFAULT_TRAITS })
   const [customConfig, setCustomConfig] = useState<CustomPersonalityConfig>({ ...DEFAULT_CUSTOM_PERSONALITY, temperament: [...DEFAULT_CUSTOM_PERSONALITY.temperament], social: [...DEFAULT_CUSTOM_PERSONALITY.social], humor: [...DEFAULT_CUSTOM_PERSONALITY.humor], quirks: [...DEFAULT_CUSTOM_PERSONALITY.quirks], catchphrases: [...DEFAULT_CUSTOM_PERSONALITY.catchphrases], communication: { ...DEFAULT_CUSTOM_PERSONALITY.communication } })
@@ -252,29 +248,15 @@ function BuilderPageInner() {
       {/* Step 2: Personality */}
       {step === 2 && (
         <div className="space-y-4">
-          {/* Mode Toggle */}
-          <div className="flex gap-2">
-            <Button
-              variant={personalityMode === "preset" ? "default" : "outline"}
-              size="sm"
-              onClick={() => setPersonalityMode("preset")}
-              className="gap-2"
-            >
-              <Sparkles className="h-4 w-4" />
-              Choose Character
-            </Button>
-            <Button
-              variant={personalityMode === "custom" ? "default" : "outline"}
-              size="sm"
-              onClick={() => { setPersonalityMode("custom"); setSelectedPreset(null) }}
-              className="gap-2"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Build Custom
-            </Button>
+          {/* Mode Toggle: Preset / Sliders / Full Custom */}
+          <div className="flex gap-1">
+            <button onClick={() => { setPersonalityMode("preset"); }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "preset" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><Sparkles className="h-3.5 w-3.5" />Preset</button>
+            <button onClick={() => { setPersonalityMode("sliders"); setSelectedPreset(null) }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "sliders" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><SlidersHorizontal className="h-3.5 w-3.5" />Sliders</button>
+            <button onClick={() => { setPersonalityMode("custom"); setSelectedPreset(null) }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "custom" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><Brain className="h-3.5 w-3.5" />Full Custom</button>
           </div>
 
-          {personalityMode === "preset" ? (
+          {/* Preset Mode */}
+          {personalityMode === "preset" && (
             <div className="bg-card border border-border rounded-md">
               <div>
                 <p className="section-label mb-2">
@@ -288,7 +270,7 @@ function BuilderPageInner() {
               <div>
                 {/* Search + Filter */}
                 <div className="flex gap-2">
-                  <Input
+                  <input
                     placeholder="Search characters..."
                     value={presetSearch}
                     onChange={(e) => setPresetSearch(e.target.value)}
@@ -314,17 +296,17 @@ function BuilderPageInner() {
                       key={preset.id}
                       onClick={() => setSelectedPreset(preset)}
                       className={cn(
-                        "flex flex-col gap-1 rounded-md border p-3 text-left transition-all hover:border-primary/50",
+                        "flex flex-col gap-1 rounded-md border p-3 text-left transition-all hover:border-muted-foreground/30",
                         selectedPreset?.id === preset.id
-                          ? "border-primary bg-primary/5 ring-1 ring-primary/30"
+                          ? "bg-white/10 border-white/20"
                           : "border-border"
                       )}
                     >
                       <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{preset.name}</span>
-                        <Badge variant="secondary" className="text-xs h-5 px-1.5">
+                        <span className="text-[13px] font-medium">{preset.name}</span>
+                        <span className="text-[11px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">
                           {CATEGORY_INFO[preset.category].icon}
-                        </Badge>
+                        </span>
                       </div>
                       <p className="text-xs text-muted-foreground line-clamp-2">
                         {preset.description}
@@ -332,7 +314,7 @@ function BuilderPageInner() {
                     </button>
                   ))}
                   {filteredPresets.length === 0 && (
-                    <p className="text-sm text-muted-foreground col-span-3 text-center py-8">
+                    <p className="text-xs text-muted-foreground col-span-3 text-center py-8">
                       No characters found
                     </p>
                   )}
@@ -340,13 +322,13 @@ function BuilderPageInner() {
 
                 {/* Selected Preview */}
                 {selectedPreset && (
-                  <div className="rounded-md border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="rounded-md border border-white/20 bg-white/5 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
-                        <h4 className="font-semibold text-sm">{selectedPreset.name}</h4>
+                        <h4 className="font-semibold text-[13px]">{selectedPreset.name}</h4>
                         <p className="text-xs text-muted-foreground">{selectedPreset.description}</p>
                       </div>
-                      <Badge>{CATEGORY_INFO[selectedPreset.category].label}</Badge>
+                      <span className="text-xs text-muted-foreground">{CATEGORY_INFO[selectedPreset.category].label}</span>
                     </div>
                     <div>
                       <p className="text-xs text-muted-foreground mb-1">Communication style</p>
@@ -367,28 +349,63 @@ function BuilderPageInner() {
                 )}
               </div>
             </div>
-          ) : (
-            <div className="space-y-4">
+          )}
+
+          {/* Sliders Mode — the classic 7-slider system */}
+          {personalityMode === "sliders" && (
+            <div className="bg-card border border-border rounded-md p-4 space-y-4">
+              <div>
+                <p className="text-xs font-medium text-foreground">Trait Sliders</p>
+                <p className="text-[11px] text-muted-foreground">Fine-tune each personality dimension manually</p>
+              </div>
+              <div className="space-y-3">
+                {(Object.entries(TRAIT_LABELS) as [keyof PersonalityTraits, { name: string; low: string; high: string }][]).map(([key, meta]) => (
+                  <div key={key} className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[13px] font-medium">{meta.name}</span>
+                      <span className="text-xs font-mono text-muted-foreground w-7 text-right">{customTraits[key]}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-[11px] text-muted-foreground w-16 text-right">{meta.low}</span>
+                      <input
+                        type="range"
+                        min={0}
+                        max={100}
+                        value={customTraits[key]}
+                        onChange={(e) => setCustomTraits((prev) => ({ ...prev, [key]: Number(e.target.value) }))}
+                        className="flex-1 h-1.5 accent-primary"
+                      />
+                      <span className="text-[11px] text-muted-foreground w-16">{meta.high}</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Full Custom Mode — PVD v2 trait categories */}
+          {personalityMode === "custom" && (
+            <div className="space-y-3">
               {/* Communication Style — pick one per axis */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Communication Style</p>
-                  <p className="text-xs text-muted-foreground">How your agent speaks — pick one per row</p>
+                  <p className="text-xs font-medium text-foreground">Communication Style</p>
+                  <p className="text-[11px] text-muted-foreground">How your agent speaks — pick one per row</p>
                 </div>
-                <div>
+                <div className="space-y-3">
                   {(Object.entries(COMMUNICATION_AXES) as [keyof typeof COMMUNICATION_AXES, typeof COMMUNICATION_AXES[keyof typeof COMMUNICATION_AXES]][]).map(([key, axis]) => (
                     <div key={key}>
-                      <Label className="text-xs text-muted-foreground mb-1.5 block">{axis.label}</Label>
+                      <label className="text-[11px] text-muted-foreground mb-1.5 block">{axis.label}</label>
                       <div className="grid grid-cols-2 gap-2">
                         {axis.options.map((opt) => (
                           <button
                             key={opt.id}
                             onClick={() => setCustomConfig((prev) => ({ ...prev, communication: { ...prev.communication, [key]: opt.id } }))}
                             className={cn(
-                              "rounded-md border p-2.5 text-sm text-left transition-all",
+                              "rounded-md border px-3 py-2 text-[13px] text-left transition-all",
                               customConfig.communication[key] === opt.id
-                                ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                                : "border-border hover:border-primary/40"
+                                ? "bg-white/10 border-white/20"
+                                : "bg-card border-border hover:border-muted-foreground/30"
                             )}
                           >
                             {opt.label}
@@ -401,168 +418,158 @@ function BuilderPageInner() {
               </div>
 
               {/* Temperament — pick 2-3 */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Temperament</p>
-                  <p className="text-xs text-muted-foreground">Their core emotional nature — pick 2-3</p>
+                  <p className="text-xs font-medium text-foreground">Temperament</p>
+                  <p className="text-[11px] text-muted-foreground">Their core emotional nature — pick 2-3</p>
                 </div>
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {TEMPERAMENT_OPTIONS.map((opt) => {
-                      const selected = customConfig.temperament.includes(opt.id)
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setCustomConfig((prev) => {
-                            const next = selected ? prev.temperament.filter((t) => t !== opt.id) : prev.temperament.length < 3 ? [...prev.temperament, opt.id] : prev.temperament
-                            return { ...prev, temperament: next }
-                          })}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
-                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
-                          )}
-                        >
-                          <span>{opt.emoji}</span> {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {TEMPERAMENT_OPTIONS.map((opt) => {
+                    const selected = customConfig.temperament.includes(opt.id)
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCustomConfig((prev) => {
+                          const next = selected ? prev.temperament.filter((t) => t !== opt.id) : prev.temperament.length < 3 ? [...prev.temperament, opt.id] : prev.temperament
+                          return { ...prev, temperament: next }
+                        })}
+                        className={cn(
+                          "rounded-md border px-3 py-1.5 text-[13px] transition-all flex items-center gap-1.5",
+                          selected ? "bg-white/10 border-white/20" : "bg-card border-border hover:border-muted-foreground/30"
+                        )}
+                      >
+                        <span>{opt.emoji}</span> {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Social Traits — pick 2-3 */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Social Traits</p>
-                  <p className="text-xs text-muted-foreground">How they interact with people — pick 2-3</p>
+                  <p className="text-xs font-medium text-foreground">Social Traits</p>
+                  <p className="text-[11px] text-muted-foreground">How they interact with people — pick 2-3</p>
                 </div>
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {SOCIAL_OPTIONS.map((opt) => {
-                      const selected = customConfig.social.includes(opt.id)
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setCustomConfig((prev) => {
-                            const next = selected ? prev.social.filter((s) => s !== opt.id) : prev.social.length < 3 ? [...prev.social, opt.id] : prev.social
-                            return { ...prev, social: next }
-                          })}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
-                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
-                          )}
-                        >
-                          <span>{opt.emoji}</span> {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {SOCIAL_OPTIONS.map((opt) => {
+                    const selected = customConfig.social.includes(opt.id)
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCustomConfig((prev) => {
+                          const next = selected ? prev.social.filter((s) => s !== opt.id) : prev.social.length < 3 ? [...prev.social, opt.id] : prev.social
+                          return { ...prev, social: next }
+                        })}
+                        className={cn(
+                          "rounded-md border px-3 py-1.5 text-[13px] transition-all flex items-center gap-1.5",
+                          selected ? "bg-white/10 border-white/20" : "bg-card border-border hover:border-muted-foreground/30"
+                        )}
+                      >
+                        <span>{opt.emoji}</span> {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Humor — pick 0-2 */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Humor Style</p>
-                  <p className="text-xs text-muted-foreground">How (or if) they use humor — pick 0-2</p>
+                  <p className="text-xs font-medium text-foreground">Humor Style</p>
+                  <p className="text-[11px] text-muted-foreground">How (or if) they use humor — pick 0-2</p>
                 </div>
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {HUMOR_OPTIONS.map((opt) => {
-                      const selected = customConfig.humor.includes(opt.id)
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setCustomConfig((prev) => {
-                            let next: string[]
-                            if (opt.id === "none") {
-                              next = selected ? [] : ["none"]
-                            } else if (selected) {
-                              next = prev.humor.filter((h) => h !== opt.id)
-                            } else {
-                              next = prev.humor.filter((h) => h !== "none")
-                              next = next.length < 2 ? [...next, opt.id] : next
-                            }
-                            return { ...prev, humor: next }
-                          })}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
-                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
-                          )}
-                        >
-                          <span>{opt.emoji}</span> {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {HUMOR_OPTIONS.map((opt) => {
+                    const selected = customConfig.humor.includes(opt.id)
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCustomConfig((prev) => {
+                          let next: string[]
+                          if (opt.id === "none") {
+                            next = selected ? [] : ["none"]
+                          } else if (selected) {
+                            next = prev.humor.filter((h) => h !== opt.id)
+                          } else {
+                            next = prev.humor.filter((h) => h !== "none")
+                            next = next.length < 2 ? [...next, opt.id] : next
+                          }
+                          return { ...prev, humor: next }
+                        })}
+                        className={cn(
+                          "rounded-md border px-3 py-1.5 text-[13px] transition-all flex items-center gap-1.5",
+                          selected ? "bg-white/10 border-white/20" : "bg-card border-border hover:border-muted-foreground/30"
+                        )}
+                      >
+                        <span>{opt.emoji}</span> {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Energy — pick one */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Energy & Vibe</p>
-                  <p className="text-xs text-muted-foreground">Their overall energy — pick one</p>
+                  <p className="text-xs font-medium text-foreground">Energy & Vibe</p>
+                  <p className="text-[11px] text-muted-foreground">Their overall energy — pick one</p>
                 </div>
-                <div>
-                  <div className="grid grid-cols-2 gap-2">
-                    {ENERGY_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.id}
-                        onClick={() => setCustomConfig((prev) => ({ ...prev, energy: opt.id }))}
-                        className={cn(
-                          "rounded-md border p-2.5 text-sm text-left transition-all flex items-center gap-2",
-                          customConfig.energy === opt.id
-                            ? "border-primary bg-primary/5 ring-1 ring-primary/30"
-                            : "border-border hover:border-primary/40"
-                        )}
-                      >
-                        <span className="text-lg">{opt.emoji}</span> {opt.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {ENERGY_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.id}
+                      onClick={() => setCustomConfig((prev) => ({ ...prev, energy: opt.id }))}
+                      className={cn(
+                        "rounded-md border px-3 py-2 text-[13px] text-left transition-all flex items-center gap-2",
+                        customConfig.energy === opt.id
+                          ? "bg-white/10 border-white/20"
+                          : "bg-card border-border hover:border-muted-foreground/30"
+                      )}
+                    >
+                      <span>{opt.emoji}</span> {opt.label}
+                    </button>
+                  ))}
                 </div>
               </div>
 
               {/* Quirks — pick 0-3 */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Communication Quirks</p>
-                  <p className="text-xs text-muted-foreground">Distinctive habits in how they communicate — pick 0-3</p>
+                  <p className="text-xs font-medium text-foreground">Communication Quirks</p>
+                  <p className="text-[11px] text-muted-foreground">Distinctive habits in how they communicate — pick 0-3</p>
                 </div>
-                <div>
-                  <div className="flex flex-wrap gap-2">
-                    {QUIRK_OPTIONS.map((opt) => {
-                      const selected = customConfig.quirks.includes(opt.id)
-                      return (
-                        <button
-                          key={opt.id}
-                          onClick={() => setCustomConfig((prev) => {
-                            const next = selected ? prev.quirks.filter((q) => q !== opt.id) : prev.quirks.length < 3 ? [...prev.quirks, opt.id] : prev.quirks
-                            return { ...prev, quirks: next }
-                          })}
-                          className={cn(
-                            "rounded-full border px-3 py-1.5 text-sm transition-all flex items-center gap-1.5",
-                            selected ? "border-primary bg-primary/10 text-primary" : "border-border hover:border-primary/40"
-                          )}
-                        >
-                          <span>{opt.emoji}</span> {opt.label}
-                        </button>
-                      )
-                    })}
-                  </div>
+                <div className="flex flex-wrap gap-2">
+                  {QUIRK_OPTIONS.map((opt) => {
+                    const selected = customConfig.quirks.includes(opt.id)
+                    return (
+                      <button
+                        key={opt.id}
+                        onClick={() => setCustomConfig((prev) => {
+                          const next = selected ? prev.quirks.filter((q) => q !== opt.id) : prev.quirks.length < 3 ? [...prev.quirks, opt.id] : prev.quirks
+                          return { ...prev, quirks: next }
+                        })}
+                        className={cn(
+                          "rounded-md border px-3 py-1.5 text-[13px] transition-all flex items-center gap-1.5",
+                          selected ? "bg-white/10 border-white/20" : "bg-card border-border hover:border-muted-foreground/30"
+                        )}
+                      >
+                        <span>{opt.emoji}</span> {opt.label}
+                      </button>
+                    )
+                  })}
                 </div>
               </div>
 
               {/* Catchphrases */}
-              <div className="bg-card border border-border rounded-md">
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
                 <div>
-                  <p className="section-label mb-2">Signature Expressions</p>
-                  <p className="text-xs text-muted-foreground">Custom catchphrases they'll use naturally — optional</p>
+                  <p className="text-xs font-medium text-foreground">Signature Expressions</p>
+                  <p className="text-[11px] text-muted-foreground">Custom catchphrases they'll use naturally — optional</p>
                 </div>
-                <div>
+                <div className="space-y-2">
                   <div className="flex gap-2">
-                    <Input
+                    <input
                       placeholder="e.g., Let's get after it, Here's the play..."
                       value={newCatchphrase}
                       onChange={(e) => setNewCatchphrase(e.target.value)}
@@ -572,21 +579,22 @@ function BuilderPageInner() {
                           setNewCatchphrase("")
                         }
                       }}
+                      className="flex-1 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors"
                     />
-                    <Button variant="outline" size="sm" onClick={() => {
+                    <button className="h-8 px-2.5 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground transition-colors border border-border" onClick={() => {
                       if (newCatchphrase.trim()) {
                         setCustomConfig((prev) => ({ ...prev, catchphrases: [...prev.catchphrases, newCatchphrase.trim()] }))
                         setNewCatchphrase("")
                       }
-                    }}>Add</Button>
+                    }}>Add</button>
                   </div>
                   {customConfig.catchphrases.length > 0 && (
                     <div className="flex flex-wrap gap-1.5">
                       {customConfig.catchphrases.map((phrase, i) => (
-                        <Badge key={i} variant="secondary" className="gap-1 pr-1">
+                        <span key={i} className="text-xs text-muted-foreground bg-muted rounded-md px-1.5 py-0.5 flex items-center gap-1">
                           &ldquo;{phrase}&rdquo;
                           <button className="ml-1 h-4 w-4 rounded-full hover:bg-destructive/20 flex items-center justify-center text-xs" onClick={() => setCustomConfig((prev) => ({ ...prev, catchphrases: prev.catchphrases.filter((_, j) => j !== i) }))}>x</button>
-                        </Badge>
+                        </span>
                       ))}
                     </div>
                   )}
@@ -596,8 +604,8 @@ function BuilderPageInner() {
           )}
 
           <div className="flex justify-between">
-            <Button variant="outline" onClick={() => setStep(1)}>Back</Button>
-            <Button onClick={() => setStep(3)}>Next: Skills</Button>
+            <button onClick={() => setStep(1)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
+            <button onClick={() => setStep(3)} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Next</button>
           </div>
         </div>
       )}
@@ -644,10 +652,10 @@ function BuilderPageInner() {
               <p className="section-label mb-3">Review</p>
               <div className="grid gap-2 md:grid-cols-2">
                 {[
-                  { label: "Name", value: agentName || "—" },
-                  { label: "Role", value: agentRole || "—" },
-                  { label: "Team", value: agentTeam || "—" },
-                  { label: "Provider", value: agentProvider || "—" },
+                  { label: "Name", value: agentName || "\u2014" },
+                  { label: "Role", value: agentRole || "\u2014" },
+                  { label: "Team", value: agentTeam || "\u2014" },
+                  { label: "Provider", value: agentProvider || "\u2014" },
                   { label: "Autonomy", value: agentAutonomy === "full_auto" ? "Full Auto" : agentAutonomy === "supervised" ? "Supervised" : "Manual" },
                 ].map((r) => (
                   <div key={r.label} className="flex justify-between text-[13px]">
@@ -660,11 +668,26 @@ function BuilderPageInner() {
             <div className="p-4">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Personality</p>
               {selectedPreset ? (
-                <p className="text-[13px]"><span className="font-medium">{selectedPreset.name}</span> <span className="text-muted-foreground">— {selectedPreset.description}</span></p>
+                <p className="text-[13px]"><span className="font-medium">{selectedPreset.name}</span> <span className="text-muted-foreground">&mdash; {selectedPreset.description}</span></p>
+              ) : personalityMode === "sliders" ? (
+                <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                  {(Object.entries(customTraits) as [keyof PersonalityTraits, number][]).map(([key, val]) => (
+                    <div key={key} className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-20">{TRAIT_LABELS[key].name}</span>
+                      <div className="flex-1 h-1.5 rounded-full bg-muted overflow-hidden">
+                        <div className="h-full rounded-full bg-primary" style={{ width: `${val}%` }} />
+                      </div>
+                      <span className="text-xs font-mono w-7 text-right">{val}</span>
+                    </div>
+                  ))}
+                </div>
               ) : personalityMode === "custom" ? (
                 <div className="flex flex-wrap gap-1">
-                  {[customConfig.communication.formality, customConfig.communication.directness, ...customConfig.temperament, ...customConfig.humor, customConfig.energy].map((t) => (
+                  {[customConfig.communication.formality, customConfig.communication.verbosity, customConfig.communication.directness, customConfig.communication.vocabulary, ...customConfig.temperament, ...customConfig.social, ...customConfig.humor, customConfig.energy, ...customConfig.quirks].map((t) => (
                     <span key={t} className="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5 capitalize">{t.replace("-", " ")}</span>
+                  ))}
+                  {customConfig.catchphrases.length > 0 && customConfig.catchphrases.map((phrase, i) => (
+                    <span key={`cp-${i}`} className="text-xs text-muted-foreground bg-muted rounded px-1.5 py-0.5">&ldquo;{phrase}&rdquo;</span>
                   ))}
                 </div>
               ) : <p className="text-xs text-muted-foreground">Default</p>}

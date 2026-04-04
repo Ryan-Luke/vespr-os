@@ -8,7 +8,7 @@ import {
   Brain, Search, Plus, Network, List, Clock,
   Link2, FileText, X, ChevronRight, Save, Edit3,
   Loader2, ArrowLeft, Tag, Building2, User, Target,
-  DollarSign, Megaphone,
+  DollarSign, Megaphone, Database, Trash2,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -241,6 +241,13 @@ export default function KnowledgePage() {
   const [editTitle, setEditTitle] = useState("")
   const [saving, setSaving] = useState(false)
   const [showNewForm, setShowNewForm] = useState(false)
+  const [knowledgeTab, setKnowledgeTab] = useState<"wiki" | "memory">("wiki")
+  const [companyMemories, setCompanyMemories] = useState<{ id: string; category: string; title: string; content: string; importance: number; source: string | null; tags: string[]; createdAt: string }[]>([])
+  const [memoryCategory, setMemoryCategory] = useState("all")
+  const [showNewMemory, setShowNewMemory] = useState(false)
+  const [newMemTitle, setNewMemTitle] = useState("")
+  const [newMemContent, setNewMemContent] = useState("")
+  const [newMemCategory, setNewMemCategory] = useState("fact")
 
   // Fetch entries from API
   const fetchEntries = useCallback(async () => {
@@ -259,6 +266,9 @@ export default function KnowledgePage() {
 
   useEffect(() => {
     fetchEntries()
+    fetch("/api/company-memory").then((r) => r.json()).then((data) => {
+      if (Array.isArray(data)) setCompanyMemories(data)
+    }).catch(() => {})
   }, [fetchEntries])
 
   const handleCreate = async (entry: { title: string; content: string; category: string; tags: string[]; createdByName: string }) => {
@@ -329,54 +339,159 @@ export default function KnowledgePage() {
           <div className="flex items-center gap-2">
             <Brain className="h-5 w-5 text-purple-400" />
             <h1 className="text-lg font-semibold tracking-tight">Knowledge</h1>
-            <span className="text-xs text-muted-foreground tabular-nums">{entries.length} entries</span>
+            <div className="flex rounded-md border border-border overflow-hidden ml-2">
+              <button onClick={() => setKnowledgeTab("wiki")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", knowledgeTab === "wiki" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>Wiki</button>
+              <button onClick={() => setKnowledgeTab("memory")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors flex items-center gap-1", knowledgeTab === "memory" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Database className="h-3 w-3" />Company Memory</button>
+            </div>
           </div>
           <div className="flex items-center gap-2">
-            <div className="flex rounded-md border border-border overflow-hidden">
-              <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><List className="h-3.5 w-3.5" /></button>
-              <button onClick={() => setViewMode("graph")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "graph" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Network className="h-3.5 w-3.5" /></button>
+            {knowledgeTab === "wiki" && (
+              <>
+                <div className="flex rounded-md border border-border overflow-hidden">
+                  <button onClick={() => setViewMode("list")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "list" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><List className="h-3.5 w-3.5" /></button>
+                  <button onClick={() => setViewMode("graph")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", viewMode === "graph" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}><Network className="h-3.5 w-3.5" /></button>
+                </div>
+                <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5" />New Entry</button>
+              </>
+            )}
+            {knowledgeTab === "memory" && (
+              <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => setShowNewMemory(true)}><Plus className="h-3.5 w-3.5" />Add Memory</button>
+            )}
+          </div>
+        </div>
+
+        {knowledgeTab === "wiki" ? (
+          <>
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
+              <div className="relative flex-1 max-w-xs">
+                <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+                <input placeholder="Search knowledge..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 w-full rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
+              </div>
+              <div className="flex gap-1 overflow-x-auto">
+                {categories.map((cat) => (
+                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+                ))}
+              </div>
             </div>
-            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium inline-flex items-center gap-1" onClick={() => { setShowNewForm(true); setSelectedEntry(null); setEditing(false) }}><Plus className="h-3.5 w-3.5" />New Entry</button>
-          </div>
-        </div>
 
-        <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
-            <input placeholder="Search knowledge..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-8 w-full rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:ring-1 focus:ring-ring" />
-          </div>
-          <div className="flex gap-1 overflow-x-auto">
-            {categories.map((cat) => (
-              <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
-            ))}
-          </div>
-        </div>
-
-        {viewMode === "graph" ? (
-          <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={(id) => { setSelectedEntry(id); setShowNewForm(false); setEditing(false) }} /></div>
-        ) : (
-          <div className="flex-1 overflow-y-auto p-4 space-y-2">
-            {filtered.map((entry) => {
-              const agent = agents.find((a) => a.id === entry.createdByAgentId)
-              return (
-                <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-md border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
-                  <div className="flex items-start gap-3">
-                    {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-[13px] font-medium truncate">{entry.title}</h3>
-                      <p className="text-xs text-muted-foreground mt-0.5">
-                        by {entry.createdByName} · <span className="tabular-nums">{Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago</span>
-                        {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
-                      </p>
-                      <div className="flex gap-1 mt-1.5 flex-wrap">
-                        {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
+            {viewMode === "graph" ? (
+              <div className="flex-1 min-h-0 bg-card/30"><KnowledgeGraph entries={filtered} selectedId={selectedEntry} onSelect={(id) => { setSelectedEntry(id); setShowNewForm(false); setEditing(false) }} /></div>
+            ) : (
+              <div className="flex-1 overflow-y-auto p-4 space-y-2">
+                {filtered.map((entry) => {
+                  const agent = agents.find((a) => a.id === entry.createdByAgentId)
+                  return (
+                    <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setEditing(false) }} className={cn("w-full text-left rounded-md border p-3 transition-colors", selectedEntry === entry.id ? "border-purple-500/50 bg-purple-500/5" : "border-border hover:border-purple-500/30")}>
+                      <div className="flex items-start gap-3">
+                        {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
+                        <div className="flex-1 min-w-0">
+                          <h3 className="text-[13px] font-medium truncate">{entry.title}</h3>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            by {entry.createdByName} · <span className="tabular-nums">{Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago</span>
+                            {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
+                          </p>
+                          <div className="flex gap-1 mt-1.5 flex-wrap">
+                            {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
+                          </div>
+                        </div>
                       </div>
-                    </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
+          </>
+        ) : (
+          /* ── Company Memory Tab ── */
+          <>
+            <div className="flex items-center gap-2 px-4 py-2 border-b border-border shrink-0">
+              {(["all", "client", "process", "preference", "lesson", "fact"] as const).map((cat) => {
+                const labels: Record<string, string> = { all: "All", client: "Clients", process: "Processes", preference: "Preferences", lesson: "Lessons", fact: "Facts" }
+                const count = cat === "all" ? companyMemories.length : companyMemories.filter((m) => m.category === cat).length
+                return (
+                  <button key={cat} onClick={() => setMemoryCategory(cat)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", memoryCategory === cat ? "bg-purple-500/20 text-purple-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{labels[cat]} {count > 0 && <span className="ml-1 tabular-nums">{count}</span>}</button>
+                )
+              })}
+            </div>
+
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {/* New memory form */}
+              {showNewMemory && (
+                <div className="bg-card border border-border rounded-md p-4 space-y-3">
+                  <p className="text-xs font-medium">Add Company Memory</p>
+                  <input placeholder="Title (e.g., Client prefers email over Slack)" value={newMemTitle} onChange={(e) => setNewMemTitle(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+                  <textarea placeholder="Details..." value={newMemContent} onChange={(e) => setNewMemContent(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                  <div className="flex gap-1 flex-wrap">
+                    {(["client", "process", "preference", "lesson", "fact"] as const).map((cat) => (
+                      <button key={cat} onClick={() => setNewMemCategory(cat)} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors capitalize", newMemCategory === cat ? "bg-purple-500/20 text-purple-400" : "text-muted-foreground hover:text-foreground")}>{cat}</button>
+                    ))}
                   </div>
-                </button>
-              )
-            })}
-          </div>
+                  <div className="flex gap-2">
+                    <button onClick={async () => {
+                      if (!newMemTitle.trim()) return
+                      const mem = await fetch("/api/company-memory", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title: newMemTitle, content: newMemContent, category: newMemCategory }) }).then((r) => r.json())
+                      setCompanyMemories((prev) => [mem, ...prev])
+                      setNewMemTitle(""); setNewMemContent(""); setNewMemCategory("fact"); setShowNewMemory(false)
+                    }} disabled={!newMemTitle.trim()} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1"><Save className="h-3 w-3" />Save</button>
+                    <button onClick={() => { setShowNewMemory(false); setNewMemTitle(""); setNewMemContent("") }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Description */}
+              <div className="bg-muted/30 border border-dashed border-border rounded-md p-4 text-center">
+                <Database className="h-5 w-5 text-purple-400/50 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground">Shared knowledge that all agents draw from — client preferences, learned patterns, company facts.</p>
+                <p className="text-[11px] text-muted-foreground/60 mt-1">Agents contribute memories automatically as they work. You can add them manually too.</p>
+              </div>
+
+              {/* Memory entries */}
+              {(() => {
+                const filtered = memoryCategory === "all" ? companyMemories : companyMemories.filter((m) => m.category === memoryCategory)
+                if (filtered.length === 0) return (
+                  <div className="text-center py-8 text-xs text-muted-foreground">No memories in this category yet.</div>
+                )
+                return (
+                  <div className="bg-card border border-border rounded-md divide-y divide-border">
+                    {filtered.map((mem) => {
+                      const catEmoji: Record<string, string> = { client: "👤", process: "📋", preference: "⭐", lesson: "💡", fact: "📌" }
+                      const diffMs = Date.now() - new Date(mem.createdAt).getTime()
+                      const diffHr = Math.floor(diffMs / 3600000)
+                      const t = diffHr < 24 ? `${diffHr}h` : `${Math.floor(diffHr / 24)}d`
+                      return (
+                        <div key={mem.id} className="px-4 py-3 group">
+                          <div className="flex items-start gap-2">
+                            <span className="text-sm mt-0.5">{catEmoji[mem.category] || "📌"}</span>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-[13px] font-medium">{mem.title}</p>
+                                <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground capitalize">{mem.category}</span>
+                              </div>
+                              {mem.content && <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{mem.content}</p>}
+                              {mem.tags.length > 0 && (
+                                <div className="flex gap-1 mt-1.5 flex-wrap">
+                                  {mem.tags.map((tag: string) => <span key={tag} className="text-[11px] px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
+                                </div>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2 shrink-0">
+                              <span className="text-[11px] text-muted-foreground tabular-nums">{t}</span>
+                              <button onClick={async () => {
+                                await fetch("/api/company-memory", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ id: mem.id }) })
+                                setCompanyMemories((prev) => prev.filter((m) => m.id !== mem.id))
+                              }} className="h-5 w-5 rounded flex items-center justify-center text-muted-foreground/30 hover:text-red-400 opacity-0 group-hover:opacity-100 transition-all">
+                                <Trash2 className="h-3 w-3" />
+                              </button>
+                            </div>
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )
+              })()}
+            </div>
+          </>
         )}
       </div>
 

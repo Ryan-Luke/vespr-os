@@ -79,7 +79,7 @@ export default function ComparePage() {
     <div className="flex-1 overflow-auto p-6 space-y-6">
       {/* Header */}
       <div>
-        <h1 className="text-[15px] font-semibold">Compare Agents</h1>
+        <h1 className="text-lg font-semibold tracking-tight">Compare Agents</h1>
         <p className="text-[13px] text-muted-foreground mt-1">
           Select 2-3 agents to compare side by side.
         </p>
@@ -205,8 +205,10 @@ export default function ComparePage() {
         </div>
       )}
 
-      {compared.length < 2 && selected.length > 0 && (
-        <p className="text-[13px] text-muted-foreground">Select at least 2 agents to compare.</p>
+      {compared.length < 2 && (
+        <div className="py-16 text-center">
+          <p className="text-xs text-muted-foreground">Select 2-3 agents to compare side by side</p>
+        </div>
       )}
     </div>
   )

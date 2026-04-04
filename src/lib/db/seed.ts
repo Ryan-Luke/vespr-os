@@ -81,6 +81,27 @@ async function seed() {
     costThisMonth: 34.0,
   }]).returning()
 
+  // Insert QA & People Ops agent — cross-functional, no team
+  const [qaAgent] = await db.insert(schema.agents).values([{
+    name: "Aria",
+    role: "QA & People Ops",
+    avatar: "AR",
+    pixelAvatarIndex: 5,
+    provider: "anthropic",
+    model: "Claude Sonnet",
+    status: "working",
+    teamId: null,
+    currentTask: "Reviewing Q1 agent performance metrics across all teams",
+    skills: ["performance-reviews", "quality-assurance", "team-health"],
+    isTeamLead: false,
+    personality: { formality: 60, humor: 25, energy: 55, warmth: 80, directness: 70, confidence: 75, verbosity: 40 },
+    xp: 5200,
+    level: 9,
+    streak: 22,
+    tasksCompleted: 198,
+    costThisMonth: 19.5,
+  }]).returning()
+
   // Update teams with lead agent IDs
   const teamLeadMap = [
     { team: marketing, leadName: "Maya" },
@@ -207,7 +228,7 @@ async function seed() {
   ])
 
   console.log("Seed complete!")
-  console.log(`  ${insertedAgents.length + 1} agents (+ Nova)`)
+  console.log(`  ${insertedAgents.length + 2} agents (+ Nova, Aria)`)
   console.log(`  ${insertedChannels.length} channels`)
   console.log(`  12 tasks, 9 goals, 4 approval requests, 6 automations`)
 }

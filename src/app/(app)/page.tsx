@@ -131,7 +131,15 @@ function MessageBubble({
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
         </div>
-        <p className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
+          {message.content.split(/(#TASK-[a-f0-9]+)/gi).map((part, i) =>
+            /^#TASK-[a-f0-9]+$/i.test(part) ? (
+              <Link key={i} href="/tasks" className="inline-flex items-center gap-1 rounded bg-blue-500/10 text-blue-400 px-1.5 py-0.5 text-xs font-medium hover:bg-blue-500/20 transition-colors mx-0.5">
+                <ClipboardList className="h-3 w-3" />{part}
+              </Link>
+            ) : part
+          )}
+        </p>
         {message.linkedTaskId && (
           <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
             <ClipboardList className="h-3 w-3" />
@@ -470,7 +478,7 @@ export default function ChatPage() {
       const taskTitle = text.slice(6).trim()
       if (!taskTitle) return
       try {
-        await fetch("/api/tasks", {
+        const task = await fetch("/api/tasks", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -479,8 +487,9 @@ export default function ChatPage() {
             status: "todo",
             priority: "medium",
           }),
-        })
-        // Post a system message to the channel
+        }).then((r) => r.json())
+        const taskId = task?.id || ""
+        // Post a system message linked to the task
         const sysMsg = await fetch("/api/messages", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -488,10 +497,19 @@ export default function ChatPage() {
             channelId: activeChannel,
             senderName: "System",
             senderAvatar: "⚡",
-            content: `Task created: ${taskTitle}`,
+            content: `Task created: **#TASK-${taskId.slice(0, 8)}** — ${taskTitle}`,
             messageType: "status",
+            linkedTaskId: taskId || undefined,
           }),
         }).then((r) => r.json())
+        // Link the message back to the task
+        if (taskId && sysMsg?.id) {
+          fetch(`/api/tasks`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: taskId, linkedMessageIds: [sysMsg.id] }),
+          }).catch(() => {})
+        }
         setChannelMessages((prev) => [...prev, sysMsg])
       } catch (err) {
         console.error("Failed to create task:", err)
@@ -527,6 +545,51 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       }
       setChannelMessages((prev) => [...prev, helpMsg])
+      return
+    }
+
+    // Show status summary via /status command (local-only, not saved to DB)
+    if (text.trim().toLowerCase() === "/status") {
+      const working = dbAgents.filter((a) => a.status === "working").length
+      const idle = dbAgents.filter((a) => a.status === "idle").length
+      const paused = dbAgents.filter((a) => a.status === "paused").length
+      const errorCount = dbAgents.filter((a) => a.status === "error").length
+      const totalCompleted = dbAgents.reduce((sum, a) => sum + a.tasksCompleted, 0)
+
+      const teamLines: string[] = []
+      const teamIds = [...new Set(dbAgents.map((a) => a.teamId).filter(Boolean))] as string[]
+      for (const tid of teamIds) {
+        const ch = dbChannels.find((c) => c.teamId === tid)
+        const teamName = ch ? ch.name : tid
+        const activeCount = dbAgents.filter((a) => a.teamId === tid && a.status === "working").length
+        teamLines.push(`• **${teamName}** — ${activeCount} active agent${activeCount !== 1 ? "s" : ""}`)
+      }
+
+      const statusContent = [
+        "**System Status**",
+        "",
+        `🟢 Working: ${working}  ⚪ Idle: ${idle}  ⏸️ Paused: ${paused}  🔴 Error: ${errorCount}`,
+        `✅ Total tasks completed: ${totalCompleted}`,
+        "",
+        "**Teams**",
+        ...teamLines,
+      ].join("\n")
+
+      const statusMsg: DBMessage = {
+        id: `status-${Date.now()}`,
+        channelId: activeChannel,
+        threadId: null,
+        senderAgentId: null,
+        senderUserId: null,
+        senderName: "System",
+        senderAvatar: "📊",
+        content: statusContent,
+        messageType: "status",
+        linkedTaskId: null,
+        reactions: [],
+        createdAt: new Date().toISOString(),
+      }
+      setChannelMessages((prev) => [...prev, statusMsg])
       return
     }
 

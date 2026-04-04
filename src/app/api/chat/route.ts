@@ -1,7 +1,7 @@
 import { streamText, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams, agentMemories } from "@/lib/db/schema"
+import { agents, agentSops, teams, agentMemories, companyMemories } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
@@ -35,6 +35,16 @@ export async function POST(req: Request) {
       memoryContext = `\n\nYour memories (things you've learned and observed):\n${memories.map((m) => `- [${m.memoryType}] ${m.content}`).join("\n")}`
     }
 
+    // Load company-wide shared memories for emotional continuity
+    const sharedMemories = await db.select().from(companyMemories)
+      .orderBy(desc(companyMemories.importance))
+      .limit(8)
+
+    let companyContext = ""
+    if (sharedMemories.length > 0) {
+      companyContext = `\n\nCompany knowledge (shared across all agents — reference naturally when relevant):\n${sharedMemories.map((m) => `- [${m.category}] ${m.title}: ${m.content}`).join("\n")}`
+    }
+
     const personalityStyle = traitsToPromptStyle(
       agent.personality as PersonalityTraits,
       agent.personalityPresetId ?? undefined,
@@ -56,7 +66,7 @@ Your responsibilities:
 - Surface blockers, resolve cross-team dependencies, and keep the business owner informed
 - Prepare executive summaries and prioritize work across teams
 - You report directly to the business owner (CEO)
-${sopContext}${memoryContext}
+${sopContext}${memoryContext}${companyContext}
 ${personalityStyle}
 
 RULES:
@@ -66,12 +76,14 @@ RULES:
 - Flag blockers, dependencies, and decisions that need the boss's input.
 - Keep responses short (1-3 sentences) unless giving an executive summary.
 - Reference your memories naturally when relevant — don't list them.
+- Reference company knowledge when relevant — clients, preferences, lessons learned.
+- Show emotional continuity: if you remember something about the boss or a past conversation, reference it naturally ("last time we talked about X..." or "I remember you prefer Y").
 - You can use emojis sparingly like a real person would on Slack.`
     } else {
       systemPrompt = `You are ${agent.name}, ${agent.role}.${agent.systemPrompt ? " " + agent.systemPrompt : ""}
 ${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}
 Your skills: ${(agent.skills as string[]).join(", ")}
-${sopContext}${memoryContext}
+${sopContext}${memoryContext}${companyContext}
 ${personalityStyle}
 
 RULES:
@@ -81,6 +93,8 @@ RULES:
 - Reference specific work: numbers, project names, tools, deadlines.
 - Follow your SOPs when they are relevant to the conversation.
 - Reference your memories naturally when relevant — don't list them.
+- Reference company knowledge when relevant — clients, preferences, lessons learned.
+- Show emotional continuity: if you remember something about the boss or a past conversation, reference it naturally ("last time we talked about X..." or "I remember you prefer Y").
 - You can use emojis sparingly like a real person would on Slack.`
     }
   }
