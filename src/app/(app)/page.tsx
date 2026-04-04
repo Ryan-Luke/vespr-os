@@ -18,6 +18,7 @@ import {
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
+import { ChatSkeleton } from "@/components/loading-skeletons"
 import Link from "next/link"
 
 // Types from DB
@@ -309,6 +310,12 @@ export default function ChatPage() {
       if (e.key === "/" && (e.metaKey || e.ctrlKey)) { e.preventDefault(); setShowShortcuts((s) => !s) }
       if (e.key === "Escape") { setActiveThread(null); setChatSearchOpen(false); setChatSearch(""); setShowShortcuts(false); setShowMembers(false) }
       if (e.key === "f" && (e.metaKey || e.ctrlKey) && !e.shiftKey) { e.preventDefault(); setChatSearchOpen(true) }
+      // Cmd+1-9 to switch channels
+      if ((e.metaKey || e.ctrlKey) && e.key >= "1" && e.key <= "9") {
+        e.preventDefault()
+        const idx = parseInt(e.key) - 1
+        if (idx < dbChannels.length) { setActiveChannel(dbChannels[idx].id); setDmAgent(null); setActiveThread(null) }
+      }
     }
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
@@ -634,7 +641,7 @@ export default function ChatPage() {
     return () => { clearTimeout(t); clearInterval(i) }
   }, [autonomousMode, dbChannels, dbAgents]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (!dataLoaded) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
+  if (!dataLoaded) return <ChatSkeleton />
 
   // No workspace — redirect to onboarding
   if (dbAgents.length === 0 && dbChannels.length === 0) {
@@ -957,11 +964,12 @@ export default function ChatPage() {
               {[
                 ["Cmd + K", "Global search"],
                 ["Cmd + F", "Search messages"],
-                ["Cmd + /", "Toggle shortcuts"],
-                ["@", "Mention an agent"],
+                ["Cmd + 1-9", "Switch channel"],
+                ["Cmd + /", "Shortcuts"],
+                ["@", "Mention agent"],
+                ["Enter", "Send"],
                 ["Shift + Enter", "New line"],
-                ["Enter", "Send message"],
-                ["Escape", "Close panels"],
+                ["Escape", "Close panel"],
               ].map(([key, desc]) => (
                 <div key={key} className="flex items-center justify-between">
                   <span className="text-muted-foreground">{desc}</span>
