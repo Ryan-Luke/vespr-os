@@ -81,7 +81,7 @@ export default function TimelinePage() {
         id: "founding",
         type: "system",
         title: "Workspace created",
-        description: "Business OS initialized",
+        description: "VERSPR OS initialized",
         timestamp: new Date(Date.now() - 30 * 24 * 3600000).toISOString(),
       })
 

@@ -153,7 +153,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                 <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px]">{activeWorkspace.name}</span>
               </>
             ) : (
-              <span className="text-[13px] font-semibold tracking-tight">Business OS</span>
+              <span className="text-[13px] font-semibold tracking-tight">VERSPR OS</span>
             )}
             <ChevronRight className="h-3 w-3 text-muted-foreground rotate-90" />
           </PopoverTrigger>

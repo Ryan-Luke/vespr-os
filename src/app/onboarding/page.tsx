@@ -90,7 +90,7 @@ export default function OnboardingPage() {
             <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mx-auto">
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-semibold tracking-tight">Welcome to Business OS</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Welcome to VERSPR OS</h1>
             <p className="text-sm text-muted-foreground">
               Set up your AI-powered team in 60 seconds.
             </p>

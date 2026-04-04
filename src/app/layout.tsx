@@ -16,7 +16,7 @@ const geistMono = Geist_Mono({
 })
 
 export const metadata: Metadata = {
-  title: "Business OS",
+  title: "VERSPR OS",
   description: "AI Agent Control Center for Business Owners",
 }
 

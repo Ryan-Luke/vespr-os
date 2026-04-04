@@ -27,7 +27,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-[280px] space-y-6">
         <div className="text-center">
-          <p className="text-[13px] font-semibold tracking-tight">Business OS</p>
+          <p className="text-[13px] font-semibold tracking-tight">VERSPR OS</p>
           <p className="text-[11px] text-muted-foreground mt-0.5">Sign in to continue</p>
         </div>
 
