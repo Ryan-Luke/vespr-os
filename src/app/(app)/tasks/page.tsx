@@ -207,6 +207,7 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
 
   return (
     <div
+      data-task-id={task.id}
       className={cn(
         "bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-all relative",
         task.assignedToUser && !isBlocked && "border-l-2 border-l-amber-500",
@@ -802,6 +803,24 @@ export default function TasksPage() {
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
   }, [linkingFrom, showTemplates])
+
+  // Handle ?highlight=<taskId> URL param — scroll to and highlight a task
+  useEffect(() => {
+    if (!loading && tasks.length > 0) {
+      const params = new URLSearchParams(window.location.search)
+      const targetId = params.get("highlight")
+      if (targetId) {
+        setTimeout(() => {
+          const el = document.querySelector(`[data-task-id="${targetId}"]`)
+          if (el) {
+            el.scrollIntoView({ behavior: "smooth", block: "center" })
+            el.classList.add("ring-2", "ring-blue-400", "shadow-[0_0_12px_rgba(96,165,250,0.4)]")
+            setTimeout(() => el.classList.remove("ring-2", "ring-blue-400", "shadow-[0_0_12px_rgba(96,165,250,0.4)]"), 3000)
+          }
+        }, 300)
+      }
+    }
+  }, [loading, tasks])
 
   const fetchData = useCallback(async () => {
     const [tasksRes, chatData] = await Promise.all([

@@ -444,9 +444,10 @@ function MessageBubble({
               {renderMarkdown(message.content)}
             </div>
             {message.linkedTaskId && (
-              <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+              <Link href={`/tasks?highlight=${message.linkedTaskId}`} className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-primary/30 bg-primary/5 px-2 py-1 text-xs text-primary hover:bg-primary/10 transition-colors">
                 <ClipboardList className="h-3 w-3" />
-                Linked task
+                View linked task
+                <ExternalLink className="h-2.5 w-2.5 opacity-60" />
               </Link>
             )}
             {message.messageType === "approval_request" && (
@@ -653,9 +654,37 @@ export default function ChatPage() {
     function loadData() {
       const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
       const url = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
-      fetch(url).then((r) => r.json()).then((data) => {
+      fetch(url).then((r) => r.json()).then(async (data) => {
         setDbAgents(data.agents)
         setDbChannels(data.channels)
+
+        // Check for ?message=<id> in URL — jump to that message's channel
+        const params = new URLSearchParams(window.location.search)
+        const targetMsgId = params.get("message")
+        if (targetMsgId) {
+          // Find which channel this message belongs to
+          try {
+            const msgRes = await fetch(`/api/messages/find?id=${targetMsgId}`)
+            if (msgRes.ok) {
+              const msg = await msgRes.json()
+              if (msg?.channelId) {
+                setActiveChannel(msg.channelId)
+                // Highlight the message after load
+                setTimeout(() => {
+                  const el = document.querySelector(`[data-message-id="${targetMsgId}"]`)
+                  if (el) {
+                    el.scrollIntoView({ behavior: "smooth", block: "center" })
+                    el.classList.add("bg-primary/10")
+                    setTimeout(() => el.classList.remove("bg-primary/10"), 2500)
+                  }
+                }, 500)
+                setDataLoaded(true)
+                return
+              }
+            }
+          } catch {}
+        }
+
         if (data.channels.length > 0) setActiveChannel(data.channels[0].id)
         setDataLoaded(true)
       })
