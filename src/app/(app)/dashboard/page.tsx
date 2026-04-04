@@ -3,7 +3,7 @@ import { agents as agentsTable, teams as teamsTable, tasks as tasksTable, activi
 import { desc } from "drizzle-orm"
 import {
   ArrowUpRight, ArrowDownRight, CheckCircle2, Clock,
-  AlertCircle, MessageSquare, BookOpen, FileText, Flag, Activity,
+  AlertCircle, MessageSquare, BookOpen, FileText, Flag, Activity, Flame,
 } from "lucide-react"
 import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 import { MorningCheckin } from "@/components/morning-checkin"
@@ -127,6 +127,51 @@ export default async function DashboardPage() {
                 </div>
               ))}
             </div>
+          </div>
+        </div>
+
+        {/* ── AGENT GRID ───────────────────────────────────── */}
+        <div>
+          <p className="section-label mb-3">Agent Grid</p>
+          <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+            {allAgents.map((agent) => {
+              const team = allTeams.find((t) => t.id === agent.teamId)
+              const statusDot =
+                agent.status === "working" ? "status-working"
+                : agent.status === "error" ? "status-error"
+                : agent.status === "paused" ? "status-paused"
+                : "status-idle"
+
+              return (
+                <Link
+                  key={agent.id}
+                  href={`/teams/${agent.teamId}/agents/${agent.id}`}
+                  className="bg-card border border-border rounded-md p-3 hover:border-muted-foreground/20 transition-colors"
+                >
+                  <div className="flex items-center gap-2">
+                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
+                    <span className="text-xs font-medium truncate">{agent.name}</span>
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 ml-auto", statusDot)} />
+                  </div>
+                  <p className="text-[11px] text-muted-foreground mt-1.5 truncate">
+                    {agent.currentTask || "Idle"}
+                  </p>
+                  <p className="text-[10px] text-muted-foreground/60 truncate">{agent.role}</p>
+                  <div className="flex items-center gap-2 mt-2">
+                    <span className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded">Lv.{agent.level}</span>
+                    {agent.streak >= 3 && (
+                      <span className="flex items-center gap-0.5 text-[10px] text-orange-400">
+                        <Flame className="h-3 w-3" />
+                        {agent.streak}d
+                      </span>
+                    )}
+                    <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+                      {agent.tasksCompleted} tasks
+                    </span>
+                  </div>
+                </Link>
+              )
+            })}
           </div>
         </div>
 

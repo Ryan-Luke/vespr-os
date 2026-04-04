@@ -8,7 +8,7 @@ import {
   Brain, Search, Plus, Network, List, Clock,
   Link2, FileText, X, ChevronRight, Save, Edit3,
   Loader2, ArrowLeft, Tag, Building2, User, Target,
-  DollarSign, Megaphone, Database, Trash2,
+  DollarSign, Megaphone, Database, Trash2, Sparkles,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -574,6 +574,31 @@ export default function KnowledgePage() {
                 )}
               </div>
             )}
+
+            {/* Auto-detected suggested links */}
+            {(() => {
+              if (!selected) return null
+              const alreadyLinked = new Set([...selected.linkedEntries, selected.id, ...backlinks.map((b) => b.id)])
+              const suggestions = entries.filter((e) => {
+                if (alreadyLinked.has(e.id)) return false
+                const titleLower = e.title.toLowerCase()
+                const contentLower = selected.content.toLowerCase()
+                // Check if this entry's title appears in the selected entry's content
+                return titleLower.length > 3 && contentLower.includes(titleLower)
+              })
+              if (suggestions.length === 0) return null
+              return (
+                <div className="border-t border-border pt-4">
+                  <p className="section-label mb-2 flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Suggested Links</p>
+                  <p className="text-[11px] text-muted-foreground mb-2">These entries are mentioned in the content but not linked yet.</p>
+                  {suggestions.slice(0, 5).map((s) => (
+                    <button key={s.id} onClick={() => setSelectedEntry(s.id)} className="flex items-center gap-2 w-full text-left rounded-md p-2 hover:bg-accent transition-colors">
+                      <ChevronRight className="h-3 w-3 text-amber-400 shrink-0" /><span className="text-xs truncate">{s.title}</span>
+                    </button>
+                  ))}
+                </div>
+              )
+            })()}
           </div>
         </div>
       )}

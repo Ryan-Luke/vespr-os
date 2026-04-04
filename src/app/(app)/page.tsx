@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useRef, useEffect, useMemo, useCallback } from "react"
+import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
 // useMemo already imported
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
@@ -84,6 +84,123 @@ function formatTime(dateStr: string) {
   return new Date(dateStr).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
 }
 
+// Lightweight inline markdown renderer for chat messages
+function renderMarkdown(text: string): React.ReactNode[] {
+  // First split by code blocks (``` ... ```)
+  const codeBlockRegex = /```(?:\w*\n)?([\s\S]*?)```/g
+  const blocks: React.ReactNode[] = []
+  let lastIndex = 0
+  let blockMatch: RegExpExecArray | null
+
+  while ((blockMatch = codeBlockRegex.exec(text)) !== null) {
+    if (blockMatch.index > lastIndex) {
+      blocks.push(...renderMarkdownLines(text.slice(lastIndex, blockMatch.index), blocks.length))
+    }
+    blocks.push(
+      <pre key={`cb-${blockMatch.index}`} className="bg-muted rounded-md p-3 text-xs font-mono overflow-x-auto my-1">
+        <code>{blockMatch[1].trim()}</code>
+      </pre>
+    )
+    lastIndex = blockMatch.index + blockMatch[0].length
+  }
+  if (lastIndex < text.length) {
+    blocks.push(...renderMarkdownLines(text.slice(lastIndex), blocks.length))
+  }
+  return blocks
+}
+
+function renderMarkdownLines(text: string, keyOffset: number): React.ReactNode[] {
+  const nodes: React.ReactNode[] = []
+  // Split into lines to handle list items
+  const lines = text.split("\n")
+  let listItems: React.ReactNode[] = []
+  let lineIdx = 0
+
+  const flushList = () => {
+    if (listItems.length > 0) {
+      nodes.push(
+        <ul key={`ul-${keyOffset}-${lineIdx}`} className="list-disc list-inside my-0.5 space-y-0.5">
+          {listItems}
+        </ul>
+      )
+      listItems = []
+    }
+  }
+
+  for (const line of lines) {
+    const listMatch = line.match(/^[\s]*[-*]\s+(.+)/)
+    if (listMatch) {
+      listItems.push(
+        <li key={`li-${keyOffset}-${lineIdx}`} className="text-[13px] text-foreground/85">
+          {renderInlineMarkdown(listMatch[1], `${keyOffset}-${lineIdx}`)}
+        </li>
+      )
+    } else {
+      flushList()
+      if (line.trim() !== "" || nodes.length > 0) {
+        if (nodes.length > 0 || lineIdx > 0) {
+          nodes.push(<React.Fragment key={`br-${keyOffset}-${lineIdx}`}>{"\n"}</React.Fragment>)
+        }
+        nodes.push(
+          <React.Fragment key={`ln-${keyOffset}-${lineIdx}`}>
+            {renderInlineMarkdown(line, `${keyOffset}-${lineIdx}`)}
+          </React.Fragment>
+        )
+      }
+    }
+    lineIdx++
+  }
+  flushList()
+  return nodes
+}
+
+function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[] {
+  // Combined regex: #TASK pills, inline code, links, bold, italic
+  const inlineRegex = /(#TASK-[a-f0-9]+)|`([^`]+)`|\[([^\]]+)\]\(([^)]+)\)|(\*\*(.+?)\*\*)|(\*(.+?)\*)/gi
+  const parts: React.ReactNode[] = []
+  let lastIdx = 0
+  let match: RegExpExecArray | null
+
+  while ((match = inlineRegex.exec(text)) !== null) {
+    if (match.index > lastIdx) {
+      parts.push(text.slice(lastIdx, match.index))
+    }
+    const key = `${keyPrefix}-${match.index}`
+
+    if (match[1]) {
+      // #TASK-xxx pill — preserved from original
+      parts.push(
+        <Link key={key} href="/tasks" className="inline-flex items-center gap-1 rounded bg-blue-500/10 text-blue-400 px-1.5 py-0.5 text-xs font-medium hover:bg-blue-500/20 transition-colors mx-0.5">
+          <ClipboardList className="h-3 w-3" />{match[1]}
+        </Link>
+      )
+    } else if (match[2] !== undefined) {
+      // Inline code
+      parts.push(
+        <code key={key} className="px-1 py-0.5 rounded bg-muted text-xs font-mono">{match[2]}</code>
+      )
+    } else if (match[3] !== undefined && match[4] !== undefined) {
+      // Link [text](url)
+      parts.push(
+        <a key={key} href={match[4]} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{match[3]}</a>
+      )
+    } else if (match[6] !== undefined) {
+      // Bold **text**
+      parts.push(<strong key={key}>{match[6]}</strong>)
+    } else if (match[8] !== undefined) {
+      // Italic *text*
+      parts.push(<em key={key}>{match[8]}</em>)
+    }
+
+    lastIdx = match.index + match[0].length
+  }
+
+  if (lastIdx < text.length) {
+    parts.push(text.slice(lastIdx))
+  }
+  return parts
+}
+
 // Message component
 function MessageBubble({
   message, agents, onAddReaction, onDM, onReply, threadCount,
@@ -131,15 +248,9 @@ function MessageBubble({
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
         </div>
-        <p className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
-          {message.content.split(/(#TASK-[a-f0-9]+)/gi).map((part, i) =>
-            /^#TASK-[a-f0-9]+$/i.test(part) ? (
-              <Link key={i} href="/tasks" className="inline-flex items-center gap-1 rounded bg-blue-500/10 text-blue-400 px-1.5 py-0.5 text-xs font-medium hover:bg-blue-500/20 transition-colors mx-0.5">
-                <ClipboardList className="h-3 w-3" />{part}
-              </Link>
-            ) : part
-          )}
-        </p>
+        <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
+          {renderMarkdown(message.content)}
+        </div>
         {message.linkedTaskId && (
           <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
             <ClipboardList className="h-3 w-3" />

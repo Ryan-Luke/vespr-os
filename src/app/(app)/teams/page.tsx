@@ -2,7 +2,8 @@ import Link from "next/link"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
-import { Plus, Crown } from "lucide-react"
+import { Plus, Crown, Flame } from "lucide-react"
+import { levelTitle } from "@/lib/gamification"
 import { cn } from "@/lib/utils"
 import { Sparkline } from "@/components/sparkline"
 
@@ -78,12 +79,16 @@ export default async function TeamsPage() {
                         {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
                         <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
+                        {(agent.level ?? 0) > 0 && <span className="text-[10px] font-mono text-muted-foreground/60">Lv.{agent.level}</span>}
+                        {(agent.streak ?? 0) >= 3 && <span className="text-[10px] text-orange-400 flex items-center"><Flame className="h-2.5 w-2.5" />{agent.streak}</span>}
+                      </div>
+                      {agent.currentTask && <p className="text-[11px] text-muted-foreground/60 truncate mt-0.5">{agent.currentTask}</p>}
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
                       <Sparkline
                         data={(() => {
-                          // Generate pseudo-random activity data from agent stats
                           const seed = (agent.tasksCompleted ?? 0) + (agent.pixelAvatarIndex ?? 0)
                           return Array.from({ length: 7 }, (_, i) => Math.max(0, Math.sin(seed + i * 1.5) * 3 + (agent.tasksCompleted ?? 0) / 50 + Math.cos(seed * 0.7 + i) * 2))
                         })()}
