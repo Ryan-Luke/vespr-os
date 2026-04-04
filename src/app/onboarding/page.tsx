@@ -89,36 +89,34 @@ export default function OnboardingPage() {
   // ── Step 0: Welcome ──
   if (step === 0) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="max-w-lg w-full text-center space-y-8">
-          <div className="space-y-4">
-            <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-              <Rocket className="h-8 w-8 text-primary" />
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-sm w-full text-center space-y-6">
+          <div className="space-y-3">
+            <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mx-auto">
+              <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-3xl font-bold tracking-tight">Welcome to Business OS</h1>
-            <p className="text-muted-foreground text-lg">
-              You're about to build your AI-powered team. In 60 seconds, you'll have
-              a full workforce ready to execute.
+            <h1 className="text-lg font-semibold tracking-tight">Welcome to Business OS</h1>
+            <p className="text-sm text-muted-foreground">
+              Set up your AI-powered team in 60 seconds.
             </p>
           </div>
 
-          <div className="grid gap-4 text-left">
+          <div className="space-y-2 text-left">
             {[
-              { icon: Users, label: "AI agents organized into real departments" },
-              { icon: Building2, label: "A Chief of Staff coordinating everything" },
-              { icon: Sparkles, label: "Distinct personalities that feel alive" },
+              { icon: Users, label: "Agents organized into departments" },
+              { icon: Building2, label: "Chief of Staff coordinates everything" },
+              { icon: Sparkles, label: "Distinct personalities in every conversation" },
             ].map(({ icon: Icon, label }) => (
-              <div key={label} className="flex items-center gap-3 p-3 rounded-lg bg-card border border-border">
-                <Icon className="h-5 w-5 text-primary shrink-0" />
-                <p className="text-sm">{label}</p>
+              <div key={label} className="flex items-center gap-2.5 px-3 py-2 rounded-md bg-card border border-border">
+                <Icon className="h-3.5 w-3.5 text-muted-foreground shrink-0" />
+                <p className="text-[13px]">{label}</p>
               </div>
             ))}
           </div>
 
-          <Button size="lg" className="w-full text-base h-12" onClick={() => setStep(1)}>
-            Let's Build Your Team
-            <ArrowRight className="h-5 w-5 ml-2" />
-          </Button>
+          <button onClick={() => setStep(1)} className="w-full h-9 rounded-md bg-primary text-primary-foreground text-[13px] font-medium hover:bg-primary/90 transition-colors flex items-center justify-center gap-1.5">
+            Get Started <ArrowRight className="h-3.5 w-3.5" />
+          </button>
         </div>
       </div>
     )
@@ -127,66 +125,44 @@ export default function OnboardingPage() {
   // ── Step 1: Lane Selection ──
   if (step === 1) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-background via-background to-primary/5">
-        <div className="max-w-2xl w-full space-y-8">
-          <div className="text-center space-y-2">
-            <h1 className="text-2xl font-bold tracking-tight">Where are you starting from?</h1>
-            <p className="text-muted-foreground">
-              This shapes how your AI team onboards — we'll meet you where you are.
-            </p>
+      <div className="min-h-screen flex items-center justify-center p-6">
+        <div className="max-w-lg w-full space-y-6">
+          <div className="text-center space-y-1">
+            <h1 className="text-lg font-semibold tracking-tight">Where are you starting from?</h1>
+            <p className="text-sm text-muted-foreground">This shapes how your team onboards.</p>
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-2">
             <button
               onClick={() => { setLane("new"); setStep(2) }}
               className={cn(
-                "flex flex-col gap-4 rounded-xl border p-6 text-left transition-all hover:border-primary/50",
-                lane === "new" ? "border-primary ring-2 ring-primary/20" : "border-border"
+                "flex flex-col gap-3 rounded-md border p-4 text-left transition-all hover:border-muted-foreground/30",
+                lane === "new" ? "border-primary" : "border-border"
               )}
             >
-              <div className="h-12 w-12 rounded-xl bg-violet-500/10 flex items-center justify-center">
-                <Lightbulb className="h-6 w-6 text-violet-500" />
-              </div>
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
               <div>
-                <h3 className="font-semibold text-lg">Building something new</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  I have an idea (even a rough one) and want to build it from scratch.
-                  My team will guide me through validation and launch.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-auto">
-                <Badge variant="secondary" className="text-xs">Guided experience</Badge>
-                <Badge variant="secondary" className="text-xs">R&D activates first</Badge>
-                <Badge variant="secondary" className="text-xs">Step-by-step</Badge>
+                <h3 className="text-[13px] font-semibold">Building something new</h3>
+                <p className="text-xs text-muted-foreground mt-1">Start from an idea. Guided step-by-step.</p>
               </div>
             </button>
 
             <button
               onClick={() => { setLane("existing"); setStep(2) }}
               className={cn(
-                "flex flex-col gap-4 rounded-xl border p-6 text-left transition-all hover:border-primary/50",
-                lane === "existing" ? "border-primary ring-2 ring-primary/20" : "border-border"
+                "flex flex-col gap-3 rounded-md border p-4 text-left transition-all hover:border-muted-foreground/30",
+                lane === "existing" ? "border-primary" : "border-border"
               )}
             >
-              <div className="h-12 w-12 rounded-xl bg-amber-500/10 flex items-center justify-center">
-                <Briefcase className="h-6 w-6 text-amber-500" />
-              </div>
+              <Briefcase className="h-4 w-4 text-muted-foreground" />
               <div>
-                <h3 className="font-semibold text-lg">I have an existing business</h3>
-                <p className="text-sm text-muted-foreground mt-1">
-                  I'm already running a business and want to augment or replace team functions
-                  with AI agents. I have existing tools, processes, and data.
-                </p>
-              </div>
-              <div className="flex flex-wrap gap-1.5 mt-auto">
-                <Badge variant="secondary" className="text-xs">All departments active</Badge>
-                <Badge variant="secondary" className="text-xs">Migration-focused</Badge>
-                <Badge variant="secondary" className="text-xs">Integration-first</Badge>
+                <h3 className="text-[13px] font-semibold">Existing business</h3>
+                <p className="text-xs text-muted-foreground mt-1">Migrate operations. All departments active.</p>
               </div>
             </button>
           </div>
 
-          <Button variant="outline" onClick={() => setStep(0)} className="mx-auto block">Back</Button>
+          <button onClick={() => setStep(0)} className="text-xs text-muted-foreground hover:text-foreground transition-colors mx-auto block">Back</button>
         </div>
       </div>
     )
