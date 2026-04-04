@@ -13,6 +13,7 @@ import { AgentLeaderboard, CompanyAchievements } from "@/components/gamification
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
+import { CollapsibleSection } from "@/components/collapsible-section"
 
 export const dynamic = "force-dynamic"
 
@@ -164,8 +165,7 @@ export default async function DashboardPage() {
         })()}
 
         {/* ── AGENT GRID ───────────────────────────────────── */}
-        <div>
-          <p className="section-label mb-3">Agent Grid</p>
+        <CollapsibleSection id="dashboard-agents" title="Agent Grid">
           <div className="grid gap-3 grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
             {allAgents.map((agent) => {
               const team = allTeams.find((t) => t.id === agent.teamId)
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
               )
             })}
           </div>
-        </div>
+        </CollapsibleSection>
 
         {/* ── TERTIARY ZONE: Activity feed + Gamification ──── */}
         <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr]">

@@ -6,6 +6,7 @@ import { Plus, Crown, Flame } from "lucide-react"
 import { levelTitle } from "@/lib/gamification"
 import { cn } from "@/lib/utils"
 import { Sparkline } from "@/components/sparkline"
+import { BulkAgentActions } from "@/components/bulk-agent-actions"
 
 export const dynamic = "force-dynamic"
 
@@ -20,9 +21,12 @@ export default async function TeamsPage() {
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold tracking-tight">Teams</h1>
-        <Link href="/builder" className="h-7 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1.5 hover:bg-primary/90 transition-colors">
-          <Plus className="h-3.5 w-3.5" /> New Department
-        </Link>
+        <div className="flex items-center gap-2">
+          <BulkAgentActions />
+          <Link href="/builder" className="h-7 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1.5 hover:bg-primary/90 transition-colors">
+            <Plus className="h-3.5 w-3.5" /> New Department
+          </Link>
+        </div>
       </div>
 
       <div className="grid gap-4 lg:grid-cols-2">

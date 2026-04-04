@@ -1,6 +1,7 @@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Key, Building2, Bell, CreditCard, Shield } from "lucide-react"
+import { Key, Building2, Bell, CreditCard, Shield, Download } from "lucide-react"
+import { DataExport } from "@/components/data-export"
 import ApiKeyManager from "@/components/api-key-manager"
 
 export default function SettingsPage() {
@@ -14,6 +15,7 @@ export default function SettingsPage() {
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
+          <TabsTrigger value="data">Data</TabsTrigger>
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-4">
@@ -106,6 +108,10 @@ export default function SettingsPage() {
               ))}
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="data" className="space-y-4 mt-4">
+          <DataExport />
         </TabsContent>
       </Tabs>
     </div>
