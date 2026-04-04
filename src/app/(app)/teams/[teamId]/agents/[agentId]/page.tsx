@@ -10,9 +10,10 @@ import {
   ArrowLeft, Brain, DollarSign, CheckCircle2, Pause, Play,
   MessageSquare, Cpu, Plus, FileText, Trash2, Save, Loader2,
   Crown, Edit3, ThumbsUp, ThumbsDown, Shield, Sparkles,
-  Trophy, Zap, Clock, TrendingUp,
+  Trophy, Zap, Clock, TrendingUp, Target, X, Copy,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { getAutoApproveSettings, toggleAutoApproveSetting } from "@/components/approval-queue"
 import {
@@ -52,6 +53,119 @@ interface FeedbackStats {
 interface DecisionEntry {
   id: string; actionType: string; title: string; description: string
   reasoning: string | null; createdAt: string
+}
+
+// ── OKR types & helpers ────────────────────────────────────
+
+interface KeyResult {
+  id: string
+  title: string
+  current: number
+  target: number
+}
+
+interface Objective {
+  id: string
+  title: string
+  keyResults: KeyResult[]
+}
+
+function okrStorageKey(agentId: string) {
+  return `bos-agent-okrs-${agentId}`
+}
+
+function loadOkrs(agentId: string): Objective[] {
+  try {
+    const raw = localStorage.getItem(okrStorageKey(agentId))
+    if (raw) return JSON.parse(raw)
+  } catch {}
+  return []
+}
+
+function saveOkrs(agentId: string, okrs: Objective[]) {
+  localStorage.setItem(okrStorageKey(agentId), JSON.stringify(okrs))
+}
+
+function krProgress(kr: KeyResult): number {
+  if (kr.target <= 0) return 0
+  return Math.min(100, Math.round((kr.current / kr.target) * 100))
+}
+
+function objectiveProgress(obj: Objective): number {
+  if (obj.keyResults.length === 0) return 0
+  const total = obj.keyResults.reduce((sum, kr) => sum + krProgress(kr), 0)
+  return Math.round(total / obj.keyResults.length)
+}
+
+function okrStatusColor(pct: number): string {
+  if (pct >= 70) return "bg-emerald-500"
+  if (pct >= 40) return "bg-amber-500"
+  return "bg-red-500"
+}
+
+function okrStatusLabel(pct: number): string {
+  if (pct >= 70) return "On track"
+  if (pct >= 40) return "At risk"
+  return "Behind"
+}
+
+const DEFAULT_OKRS_BY_ROLE: Record<string, Objective[]> = {
+  marketing: [
+    { id: "d-mkt-1", title: "Increase content output", keyResults: [
+      { id: "d-mkt-1-1", title: "Publish blog posts", current: 0, target: 20 },
+      { id: "d-mkt-1-2", title: "Create social media campaigns", current: 0, target: 8 },
+    ]},
+    { id: "d-mkt-2", title: "Grow audience engagement", keyResults: [
+      { id: "d-mkt-2-1", title: "Increase newsletter subscribers", current: 0, target: 500 },
+      { id: "d-mkt-2-2", title: "Achieve avg email open rate (%)", current: 0, target: 35 },
+    ]},
+  ],
+  sales: [
+    { id: "d-sal-1", title: "Hit revenue targets", keyResults: [
+      { id: "d-sal-1-1", title: "Close new deals", current: 0, target: 15 },
+      { id: "d-sal-1-2", title: "Generate qualified leads", current: 0, target: 50 },
+    ]},
+    { id: "d-sal-2", title: "Improve pipeline efficiency", keyResults: [
+      { id: "d-sal-2-1", title: "Reduce avg deal cycle (days)", current: 0, target: 30 },
+    ]},
+  ],
+  engineering: [
+    { id: "d-eng-1", title: "Ship features on schedule", keyResults: [
+      { id: "d-eng-1-1", title: "Complete sprint stories", current: 0, target: 40 },
+      { id: "d-eng-1-2", title: "Reduce open bugs", current: 0, target: 10 },
+    ]},
+    { id: "d-eng-2", title: "Improve code quality", keyResults: [
+      { id: "d-eng-2-1", title: "Increase test coverage (%)", current: 0, target: 80 },
+    ]},
+  ],
+  support: [
+    { id: "d-sup-1", title: "Deliver excellent customer support", keyResults: [
+      { id: "d-sup-1-1", title: "Resolve tickets", current: 0, target: 200 },
+      { id: "d-sup-1-2", title: "Achieve CSAT score (%)", current: 0, target: 95 },
+    ]},
+    { id: "d-sup-2", title: "Reduce response times", keyResults: [
+      { id: "d-sup-2-1", title: "Avg first response time (min)", current: 0, target: 15 },
+    ]},
+  ],
+  default: [
+    { id: "d-def-1", title: "Increase task throughput", keyResults: [
+      { id: "d-def-1-1", title: "Complete assigned tasks", current: 0, target: 30 },
+      { id: "d-def-1-2", title: "Maintain quality score (%)", current: 0, target: 90 },
+    ]},
+    { id: "d-def-2", title: "Improve efficiency", keyResults: [
+      { id: "d-def-2-1", title: "Reduce avg task time (min)", current: 0, target: 20 },
+    ]},
+  ],
+}
+
+function getDefaultOkrs(role: string): Objective[] {
+  const lower = role.toLowerCase()
+  for (const key of Object.keys(DEFAULT_OKRS_BY_ROLE)) {
+    if (key !== "default" && lower.includes(key)) {
+      return JSON.parse(JSON.stringify(DEFAULT_OKRS_BY_ROLE[key]))
+    }
+  }
+  return JSON.parse(JSON.stringify(DEFAULT_OKRS_BY_ROLE.default))
 }
 
 const sopCategories = [
@@ -121,7 +235,8 @@ function timeAgo(dateStr: string) {
 }
 
 export default function AgentProfilePage({ params }: { params: Promise<{ teamId: string; agentId: string }> }) {
-  const { agentId } = use(params)
+  const { teamId, agentId } = use(params)
+  const router = useRouter()
   const [agent, setAgent] = useState<DBAgent | null>(null)
   const [sops, setSops] = useState<SOP[]>([])
   const [milestones, setMilestones] = useState<Milestone[]>([])
@@ -140,6 +255,69 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const [sopFeedback, setSopFeedback] = useState<Record<string, "positive" | "negative">>({})
   const [sopSuggestions, setSopSuggestions] = useState<Record<string, string>>({})
   const [showSuggestion, setShowSuggestion] = useState<string | null>(null)
+
+  // ── OKR state ──
+  const [okrs, setOkrs] = useState<Objective[]>([])
+  const [showOkrForm, setShowOkrForm] = useState(false)
+  const [newObjTitle, setNewObjTitle] = useState("")
+  const [newKrs, setNewKrs] = useState<{ title: string; target: string }[]>([{ title: "", target: "" }])
+
+  useEffect(() => {
+    const stored = loadOkrs(agentId)
+    if (stored.length > 0) {
+      setOkrs(stored)
+    }
+    // defaults are seeded after agent loads (we need agent.role)
+  }, [agentId])
+
+  // Seed defaults once agent is loaded and no OKRs exist
+  useEffect(() => {
+    if (!agent) return
+    const stored = loadOkrs(agentId)
+    if (stored.length === 0) {
+      const defaults = getDefaultOkrs(agent.role)
+      setOkrs(defaults)
+      saveOkrs(agentId, defaults)
+    }
+  }, [agent, agentId])
+
+  function addObjective() {
+    if (!newObjTitle.trim()) return
+    const validKrs = newKrs.filter((kr) => kr.title.trim() && Number(kr.target) > 0)
+    if (validKrs.length === 0) return
+    const obj: Objective = {
+      id: `obj-${Date.now()}`,
+      title: newObjTitle.trim(),
+      keyResults: validKrs.map((kr, i) => ({
+        id: `kr-${Date.now()}-${i}`,
+        title: kr.title.trim(),
+        current: 0,
+        target: Number(kr.target),
+      })),
+    }
+    const next = [...okrs, obj]
+    setOkrs(next)
+    saveOkrs(agentId, next)
+    setNewObjTitle("")
+    setNewKrs([{ title: "", target: "" }])
+    setShowOkrForm(false)
+  }
+
+  function updateKrProgress(objId: string, krId: string, value: number) {
+    const next = okrs.map((obj) =>
+      obj.id === objId
+        ? { ...obj, keyResults: obj.keyResults.map((kr) => kr.id === krId ? { ...kr, current: Math.max(0, value) } : kr) }
+        : obj
+    )
+    setOkrs(next)
+    saveOkrs(agentId, next)
+  }
+
+  function deleteObjective(objId: string) {
+    const next = okrs.filter((o) => o.id !== objId)
+    setOkrs(next)
+    saveOkrs(agentId, next)
+  }
 
   useEffect(() => {
     try {
@@ -245,6 +423,17 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <button disabled={reviewLoading} onClick={async () => { setReviewLoading(true); try { const res = await fetch("/api/performance-review", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ agentId }) }); const data = await res.json(); if (data.review) setReviewData(data.review) } catch {} setReviewLoading(false) }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors">
               {reviewLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Trophy className="h-3 w-3" />}Review
             </button>
+            <button onClick={() => {
+              const params = new URLSearchParams()
+              params.set("clone", "true")
+              params.set("name", `Copy of ${agent.name}`)
+              params.set("role", agent.role)
+              if (agent.teamId) params.set("teamId", agent.teamId)
+              if (agent.skills?.length) params.set("skills", agent.skills.join(","))
+              if (agent.personalityPresetId) params.set("personality", agent.personalityPresetId)
+              if (agent.autonomyLevel) params.set("autonomy", agent.autonomyLevel)
+              router.push(`/builder?${params.toString()}`)
+            }} className="h-7 px-2 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center gap-1 transition-colors"><Copy className="h-3 w-3" />Clone</button>
           </div>
         </div>
 
@@ -396,6 +585,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
         {/* Tabs */}
         <Tabs defaultValue="sops">
           <TabsList>
+            <TabsTrigger value="objectives">Objectives</TabsTrigger>
             <TabsTrigger value="skills">Skills</TabsTrigger>
             <TabsTrigger value="sops">SOPs ({sops.length})</TabsTrigger>
             <TabsTrigger value="memory">Memory ({memories.length})</TabsTrigger>
@@ -403,6 +593,94 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <TabsTrigger value="performance">Performance</TabsTrigger>
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
+
+          {/* Objectives */}
+          <TabsContent value="objectives" className="mt-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <p className="section-label flex items-center gap-1.5"><Target className="h-3.5 w-3.5" />Objectives &amp; Key Results</p>
+              <button onClick={() => setShowOkrForm(true)} disabled={showOkrForm} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">+ Add Objective</button>
+            </div>
+
+            {/* Add Objective Form */}
+            {showOkrForm && (
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
+                <div className="flex items-center justify-between">
+                  <p className="text-[13px] font-medium">New Objective</p>
+                  <button onClick={() => { setShowOkrForm(false); setNewObjTitle(""); setNewKrs([{ title: "", target: "" }]) }} className="text-muted-foreground hover:text-foreground transition-colors"><X className="h-3.5 w-3.5" /></button>
+                </div>
+                <input value={newObjTitle} onChange={(e) => setNewObjTitle(e.target.value)} placeholder="Objective title..." className="w-full rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+                <div className="space-y-2">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Key Results</p>
+                  {newKrs.map((kr, i) => (
+                    <div key={i} className="flex gap-2">
+                      <input value={kr.title} onChange={(e) => { const next = [...newKrs]; next[i] = { ...next[i], title: e.target.value }; setNewKrs(next) }} placeholder="Key result title..." className="flex-1 rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+                      <input value={kr.target} onChange={(e) => { const next = [...newKrs]; next[i] = { ...next[i], target: e.target.value }; setNewKrs(next) }} placeholder="Target" type="number" className="w-20 rounded-md border border-border bg-muted/50 px-3 py-1.5 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors tabular-nums" />
+                      {newKrs.length > 1 && (
+                        <button onClick={() => setNewKrs(newKrs.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-foreground transition-colors"><X className="h-3.5 w-3.5" /></button>
+                      )}
+                    </div>
+                  ))}
+                  <button onClick={() => setNewKrs([...newKrs, { title: "", target: "" }])} className="text-xs text-muted-foreground hover:text-foreground transition-colors">+ Add key result</button>
+                </div>
+                <button onClick={addObjective} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save Objective</button>
+              </div>
+            )}
+
+            {/* Objective Cards */}
+            {okrs.length === 0 && !showOkrForm && (
+              <p className="text-xs text-muted-foreground">No objectives set yet.</p>
+            )}
+            {okrs.map((obj) => {
+              const pct = objectiveProgress(obj)
+              return (
+                <div key={obj.id} className="bg-card border border-border rounded-md p-4 space-y-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", okrStatusColor(pct))} />
+                        <p className="text-[13px] font-medium truncate">{obj.title}</p>
+                      </div>
+                      <div className="flex items-center gap-2 mt-1 ml-3.5">
+                        <span className="text-[11px] text-muted-foreground">{okrStatusLabel(pct)}</span>
+                        <span className="text-[11px] text-muted-foreground tabular-nums">{pct}%</span>
+                      </div>
+                    </div>
+                    <button onClick={() => deleteObjective(obj.id)} className="text-muted-foreground hover:text-red-400 transition-colors shrink-0"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                  {/* Overall progress bar */}
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden">
+                    <div className={cn("h-full rounded-full transition-all", okrStatusColor(pct))} style={{ width: `${pct}%` }} />
+                  </div>
+                  {/* Key Results */}
+                  <div className="space-y-2">
+                    {obj.keyResults.map((kr) => {
+                      const kpct = krProgress(kr)
+                      return (
+                        <div key={kr.id} className="space-y-1">
+                          <div className="flex items-center justify-between gap-2">
+                            <span className="text-[13px] text-muted-foreground truncate">{kr.title}</span>
+                            <div className="flex items-center gap-1.5 shrink-0">
+                              <input
+                                type="number"
+                                value={kr.current}
+                                onChange={(e) => updateKrProgress(obj.id, kr.id, Number(e.target.value))}
+                                className="w-14 rounded border border-border bg-muted/50 px-1.5 py-0.5 text-[13px] text-right outline-none focus:border-muted-foreground/30 transition-colors tabular-nums"
+                              />
+                              <span className="text-[13px] text-muted-foreground tabular-nums">/ {kr.target}</span>
+                              <span className={cn("text-[11px] tabular-nums min-w-[32px] text-right", kpct >= 70 ? "text-emerald-400" : kpct >= 40 ? "text-amber-400" : "text-red-400")}>{kpct}%</span>
+                            </div>
+                          </div>
+                          <div className="h-1 rounded-full bg-border overflow-hidden">
+                            <div className={cn("h-full rounded-full transition-all", kpct >= 70 ? "bg-emerald-500" : kpct >= 40 ? "bg-amber-500" : "bg-red-500")} style={{ width: `${kpct}%` }} />
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )
+            })}
+          </TabsContent>
 
           {/* Skills */}
           <TabsContent value="skills" className="mt-4">

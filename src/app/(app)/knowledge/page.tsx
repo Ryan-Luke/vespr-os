@@ -245,6 +245,7 @@ export default function KnowledgePage() {
   const [companyMemories, setCompanyMemories] = useState<{ id: string; category: string; title: string; content: string; importance: number; source: string | null; tags: string[]; createdAt: string }[]>([])
   const [memoryCategory, setMemoryCategory] = useState("all")
   const [showNewMemory, setShowNewMemory] = useState(false)
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [newMemTitle, setNewMemTitle] = useState("")
   const [newMemContent, setNewMemContent] = useState("")
   const [newMemCategory, setNewMemCategory] = useState("fact")
@@ -294,8 +295,16 @@ export default function KnowledgePage() {
 
   const handleSaveEdit = async () => {
     if (!selectedEntry) return
+    const current = entries.find((e) => e.id === selectedEntry)
     setSaving(true)
     try {
+      // Save version snapshot before overwriting
+      if (current) {
+        const vKey = `bos-knowledge-versions-${selectedEntry}`
+        const versions = JSON.parse(localStorage.getItem(vKey) || "[]")
+        versions.push({ title: current.title, content: current.content, savedAt: new Date().toISOString(), version: versions.length + 1 })
+        localStorage.setItem(vKey, JSON.stringify(versions.slice(-20))) // keep last 20
+      }
       const res = await fetch("/api/knowledge", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
@@ -508,6 +517,9 @@ export default function KnowledgePage() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h2 className="text-[13px] font-semibold truncate flex-1 mr-2">{selected.title}</h2>
             <div className="flex items-center gap-1">
+              <button className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={() => setShowVersionHistory(!showVersionHistory)} title="Version history">
+                <Clock className="h-3 w-3" />
+              </button>
               <button className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={() => { if (editing) { setEditing(false) } else { setEditing(true); setEditContent(selected.content); setEditTitle(selected.title) } }}>
                 <Edit3 className="h-3 w-3" />{editing ? "Preview" : "Edit"}
               </button>
@@ -528,6 +540,32 @@ export default function KnowledgePage() {
             <div className="flex flex-wrap gap-1">
               {selected.tags.map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
             </div>
+
+            {/* Version history panel */}
+            {showVersionHistory && selected && (() => {
+              const vKey = `bos-knowledge-versions-${selected.id}`
+              const versions: { title: string; content: string; savedAt: string; version: number }[] = (() => { try { return JSON.parse(localStorage.getItem(vKey) || "[]") } catch { return [] } })()
+              return (
+                <div className="bg-muted/30 border border-border rounded-md p-3 space-y-2">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Clock className="h-3 w-3" />Version History</p>
+                  {versions.length === 0 ? (
+                    <p className="text-xs text-muted-foreground">No previous versions. Edit history will appear here after you make changes.</p>
+                  ) : (
+                    <div className="space-y-1">
+                      {[...versions].reverse().map((v, i) => (
+                        <div key={i} className="flex items-center justify-between py-1.5 border-b border-border last:border-0">
+                          <div>
+                            <p className="text-xs font-medium">v{v.version} — {v.title}</p>
+                            <p className="text-[11px] text-muted-foreground">{new Date(v.savedAt).toLocaleString()}</p>
+                          </div>
+                          <button onClick={() => { setEditing(true); setEditContent(v.content); setEditTitle(v.title); setShowVersionHistory(false) }} className="text-[11px] text-primary hover:underline">Restore</button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            })()}
 
             {/* Content */}
             {editing ? (

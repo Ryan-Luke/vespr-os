@@ -81,15 +81,32 @@ function BuilderPageInner() {
   const searchParams = useSearchParams()
   const prefillTeam = searchParams.get("team")
   const prefillTeamId = searchParams.get("teamId")
-  const [step, setStep] = useState(prefillTeam ? 1 : 0) // skip template if coming from team page
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(null)
-  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set())
-  const [agentName, setAgentName] = useState("")
-  const [agentRole, setAgentRole] = useState("")
+  const isClone = searchParams.get("clone") === "true"
+  const cloneName = searchParams.get("name")
+  const cloneRole = searchParams.get("role")
+  const cloneTeamId = searchParams.get("teamId")
+  const cloneSkills = searchParams.get("skills")
+  const clonePersonality = searchParams.get("personality")
+  const cloneAutonomy = searchParams.get("autonomy")
+  const [step, setStep] = useState(prefillTeam || isClone ? 1 : 0) // skip template if coming from team page or cloning
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(isClone ? "custom" : null)
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(() => {
+    if (isClone && cloneSkills) {
+      const names = cloneSkills.split(",")
+      const ids = names.map((name) => {
+        const match = skillOptions.find((s) => s.name === name)
+        return match ? match.id : null
+      }).filter(Boolean) as string[]
+      return new Set(ids)
+    }
+    return new Set()
+  })
+  const [agentName, setAgentName] = useState(isClone && cloneName ? cloneName : "")
+  const [agentRole, setAgentRole] = useState(isClone && cloneRole ? cloneRole : "")
   const [agentTeam, setAgentTeam] = useState(prefillTeam || "")
   const [agentProvider, setAgentProvider] = useState("")
   const [agentDescription, setAgentDescription] = useState("")
-  const [agentAutonomy, setAgentAutonomy] = useState("supervised")
+  const [agentAutonomy, setAgentAutonomy] = useState(isClone && cloneAutonomy ? cloneAutonomy : "supervised")
   const [creating, setCreating] = useState(false)
   const [dbTeams, setDbTeams] = useState<{ id: string; name: string; icon: string }[]>([])
 
@@ -111,7 +128,25 @@ function BuilderPageInner() {
   }, [presetSearch, presetCategory])
 
   useEffect(() => {
-    fetch("/api/teams").then((r) => r.json()).then((teams) => setDbTeams(teams))
+    fetch("/api/teams").then((r) => r.json()).then((teams) => {
+      setDbTeams(teams)
+      // When cloning, resolve teamId to team name
+      if (isClone && cloneTeamId) {
+        const match = teams.find((t: { id: string; name: string }) => t.id === cloneTeamId)
+        if (match) setAgentTeam(match.name)
+      }
+    })
+  }, [])
+
+  // Pre-select personality preset when cloning
+  useEffect(() => {
+    if (isClone && clonePersonality) {
+      const preset = PERSONALITY_PRESETS.find((p) => p.id === clonePersonality)
+      if (preset) {
+        setSelectedPreset(preset)
+        setPersonalityMode("preset")
+      }
+    }
   }, [])
 
   function toggleSkill(id: string) {

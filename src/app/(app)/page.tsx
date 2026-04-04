@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Pin,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, Pin,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -421,6 +421,10 @@ export default function ChatPage() {
   const [threadMessages, setThreadMessages] = useState<DBMessage[]>([])
   const [threadInput, setThreadInput] = useState("")
   const [threadLoading, setThreadLoading] = useState(false)
+  const [scheduledMessages, setScheduledMessages] = useState<{ id: string; channelId: string; content: string; sendAt: string }[]>([])
+  const [showSchedulePicker, setShowSchedulePicker] = useState(false)
+  const [attachments, setAttachments] = useState<{ name: string; size: number; type: string; preview?: string }[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
@@ -1180,8 +1184,36 @@ export default function ChatPage() {
                   </div>
                 </div>
               )}
+              {/* Attachment previews */}
+              {attachments.length > 0 && (
+                <div className="flex gap-2 px-3 pt-2 flex-wrap">
+                  {attachments.map((file, i) => (
+                    <div key={i} className="flex items-center gap-1.5 rounded-md bg-muted/50 border border-border px-2 py-1 text-xs">
+                      {file.type.startsWith("image/") && file.preview ? (
+                        <img src={file.preview} alt={file.name} className="h-8 w-8 rounded object-cover" />
+                      ) : (
+                        <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                      )}
+                      <span className="truncate max-w-[120px]">{file.name}</span>
+                      <span className="text-muted-foreground">{(file.size / 1024).toFixed(0)}KB</span>
+                      <button onClick={() => setAttachments((prev) => prev.filter((_, j) => j !== i))} className="text-muted-foreground hover:text-red-400"><X className="h-3 w-3" /></button>
+                    </div>
+                  ))}
+                </div>
+              )}
+              <input ref={fileInputRef} type="file" multiple className="hidden" onChange={(e) => {
+                const files = Array.from(e.target.files || [])
+                const newAttachments = files.map((f) => {
+                  const att: { name: string; size: number; type: string; preview?: string } = { name: f.name, size: f.size, type: f.type }
+                  if (f.type.startsWith("image/")) { att.preview = URL.createObjectURL(f) }
+                  return att
+                })
+                setAttachments((prev) => [...prev, ...newAttachments])
+                e.target.value = ""
+              }} />
               <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
               <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
+                <button onClick={() => fileInputRef.current?.click()} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Attach file"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /></button>
                 <Popover open={showEmojiInput} onOpenChange={setShowEmojiInput}>
                   <PopoverTrigger className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors"><Smile className="h-3.5 w-3.5 text-muted-foreground" /></PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="start" side="top">
@@ -1190,10 +1222,51 @@ export default function ChatPage() {
                     </div>
                   </PopoverContent>
                 </Popover>
+                {/* Schedule message */}
+                <div className="relative">
+                  <button onClick={() => setShowSchedulePicker(!showSchedulePicker)} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Schedule message"><Clock className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                  {showSchedulePicker && inputValue.trim() && (
+                    <div className="absolute bottom-full right-0 mb-1 w-48 rounded-md border border-border bg-popover shadow-lg z-50 p-1">
+                      <p className="text-[11px] text-muted-foreground px-2 py-1">Schedule send</p>
+                      {[
+                        { label: "In 30 minutes", mins: 30 },
+                        { label: "In 1 hour", mins: 60 },
+                        { label: "In 3 hours", mins: 180 },
+                        { label: "Tomorrow 9am", mins: (() => { const t = new Date(); t.setDate(t.getDate() + 1); t.setHours(9, 0, 0, 0); return Math.max(30, Math.round((t.getTime() - Date.now()) / 60000)) })() },
+                      ].map((opt) => (
+                        <button key={opt.label} className="w-full text-left px-2 py-1.5 rounded text-xs hover:bg-accent transition-colors" onClick={() => {
+                          const sendAt = new Date(Date.now() + opt.mins * 60000).toISOString()
+                          const msg = { id: `sched-${Date.now()}`, channelId: activeChannel!, content: inputValue, sendAt }
+                          setScheduledMessages((prev) => [...prev, msg])
+                          setInputValue("")
+                          setShowSchedulePicker(false)
+                          // Auto-send when time comes
+                          setTimeout(() => {
+                            setScheduledMessages((prev) => prev.filter((m) => m.id !== msg.id))
+                            handleChannelSend()
+                          }, opt.mins * 60000)
+                        }}>{opt.label}</button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <button onClick={handleChannelSend} disabled={!inputValue.trim() || channelLoading} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", inputValue.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
                   {channelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                 </button>
               </div>
+              {/* Scheduled messages indicator */}
+              {scheduledMessages.filter((m) => m.channelId === activeChannel).length > 0 && (
+                <div className="px-3 pb-1.5">
+                  {scheduledMessages.filter((m) => m.channelId === activeChannel).map((msg) => (
+                    <div key={msg.id} className="flex items-center gap-2 text-[11px] text-muted-foreground">
+                      <Clock className="h-3 w-3 text-amber-400" />
+                      <span className="truncate flex-1">&ldquo;{msg.content.slice(0, 40)}{msg.content.length > 40 ? "..." : ""}&rdquo;</span>
+                      <span className="tabular-nums">{new Date(msg.sendAt).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                      <button onClick={() => setScheduledMessages((prev) => prev.filter((m) => m.id !== msg.id))} className="text-red-400 hover:text-red-300">Cancel</button>
+                    </div>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
