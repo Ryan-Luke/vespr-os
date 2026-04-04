@@ -57,7 +57,7 @@ export default function OnboardingPage() {
     }
 
     try {
-      await fetch("/api/onboarding", {
+      const res = await fetch("/api/onboarding", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -70,6 +70,15 @@ export default function OnboardingPage() {
           teamSize: lane === "existing" ? teamSize : undefined,
         }),
       })
+
+      // Set the new workspace as active
+      if (res.ok) {
+        const data = await res.json()
+        if (data.workspaceId) {
+          localStorage.setItem("verspr-active-workspace", data.workspaceId)
+          document.cookie = `verspr-active-workspace=${data.workspaceId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+        }
+      }
 
       setTimeout(() => {
         setProgress("You're all set! Redirecting...")

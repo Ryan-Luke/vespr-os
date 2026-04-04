@@ -5,11 +5,13 @@ import { Sidebar, MobileMenuButton } from "@/components/sidebar"
 import { GlobalSearch } from "@/components/global-search"
 import { TutorialOverlay } from "@/components/tutorial-overlay"
 import { ShortcutsOverlay } from "@/components/shortcuts-overlay"
+import { WorkspaceProvider } from "@/lib/workspace-context"
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const [mobileOpen, setMobileOpen] = useState(false)
 
   return (
+    <WorkspaceProvider>
     <div className="flex h-screen overflow-hidden">
       {/* Desktop sidebar — always visible, hidden on mobile */}
       <div className="hidden md:flex">
@@ -39,5 +41,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <TutorialOverlay />
       <ShortcutsOverlay />
     </div>
+    </WorkspaceProvider>
   )
 }

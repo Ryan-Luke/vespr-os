@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { Building2, Target, Users, DollarSign, Globe, Wrench, Save, Loader2, Edit3, X } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { useWorkspace } from "@/lib/workspace-context"
 
 interface Workspace {
   id: string
@@ -33,6 +33,7 @@ const BUSINESS_TYPES = [
 ]
 
 export default function BusinessPage() {
+  const { activeWorkspace, refreshWorkspaces } = useWorkspace()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -42,14 +43,21 @@ export default function BusinessPage() {
   const [toolInput, setToolInput] = useState("")
 
   useEffect(() => {
-    fetch("/api/workspaces").then((r) => r.json()).then((ws: Workspace[]) => {
-      if (ws.length > 0) {
-        setWorkspace(ws[0])
-        setForm(ws[0])
-      }
+    if (activeWorkspace) {
+      setWorkspace(activeWorkspace as unknown as Workspace)
+      setForm(activeWorkspace as unknown as Workspace)
       setLoading(false)
-    })
-  }, [])
+    } else {
+      // Still loading from context
+      fetch("/api/workspaces").then((r) => r.json()).then((ws: Workspace[]) => {
+        if (ws.length > 0) {
+          setWorkspace(ws[0])
+          setForm(ws[0])
+        }
+        setLoading(false)
+      })
+    }
+  }, [activeWorkspace])
 
   async function save() {
     if (!form) return
@@ -70,6 +78,7 @@ export default function BusinessPage() {
         setWorkspace(updated)
         setForm(updated)
         setEditing(false)
+        await refreshWorkspaces()
       }
     } catch {}
     setSaving(false)

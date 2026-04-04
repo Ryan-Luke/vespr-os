@@ -19,6 +19,7 @@ async function seed() {
   await db.delete(schema.agentFeedback)
   await db.delete(schema.agentMemories)
   await db.delete(schema.activityLog)
+  await db.delete(schema.integrations)
   await db.delete(schema.knowledgeEntries)
   await db.delete(schema.agentSops)
   await db.delete(schema.messages)
@@ -557,6 +558,28 @@ async function seed() {
     { agentId: agent("Riley").id, agentName: "Riley", actionType: "decision_made", title: "Switched to pain-first email subject lines", description: "All outreach emails now lead with the prospect's pain point rather than VERSPR's capabilities.", reasoning: "A/B test showed 34% vs 18% open rate. Pain-first resonates because founders care about their problems, not our features.", outcome: "New templates deployed. Reply rate up from 5.1% to 8.2%." },
     { agentId: agent("Finley").id, agentName: "Finley", actionType: "decision_made", title: "Moved from monthly to bi-weekly invoicing", description: "Changed client invoicing from monthly to bi-weekly for retainer clients.", reasoning: "Cash flow analysis showed 15-day gap between service delivery and payment. Bi-weekly invoicing reduces this to 7 days.", outcome: "Cash position improved by $18k on average. No client pushback — most prefer smaller, more frequent invoices." },
     { agentId: agent("Zara").id, agentName: "Zara", actionType: "decision_made", title: "Doubled down on Instagram Reels over Stories", description: "Shifting 80% of Instagram effort to Reels, reducing Stories to 20%.", reasoning: "Reels reach 8x more non-followers than Stories. Our Reels average 2,400 views vs 180 for Stories. Reels also drive more DM conversations.", outcome: "Instagram growth accelerated from 200/week to 400+ followers/week. 4 strategy call leads directly from Reels this month." },
+  ])
+
+  // Seed integrations — VERSPR's connected/available tools
+  await db.insert(schema.integrations).values([
+    { name: "Slack", provider: "slack", category: "communication", status: "connected", config: { workspace: "verspr" }, connectedAt: new Date(now - 60 * 86400000) },
+    { name: "Gmail", provider: "gmail", category: "communication", status: "connected", config: { email: "team@verspr.com" }, connectedAt: new Date(now - 55 * 86400000) },
+    { name: "GoHighLevel", provider: "ghl", category: "crm", status: "connected", config: { subaccount: "VERSPR" }, connectedAt: new Date(now - 50 * 86400000) },
+    { name: "Stripe", provider: "stripe", category: "finance", status: "connected", config: { mode: "live" }, connectedAt: new Date(now - 90 * 86400000) },
+    { name: "Mercury", provider: "mercury", category: "finance", status: "connected", config: {}, connectedAt: new Date(now - 90 * 86400000) },
+    { name: "QuickBooks Online", provider: "quickbooks", category: "finance", status: "connected", config: {}, connectedAt: new Date(now - 45 * 86400000) },
+    { name: "n8n Cloud", provider: "n8n", category: "operations", status: "connected", config: { plan: "pro" }, connectedAt: new Date(now - 40 * 86400000) },
+    { name: "Make.com", provider: "make", category: "operations", status: "connected", config: {}, connectedAt: new Date(now - 40 * 86400000) },
+    { name: "Instagram Business", provider: "instagram", category: "marketing", status: "connected", config: { handle: "@verspr" }, connectedAt: new Date(now - 30 * 86400000) },
+    { name: "LinkedIn", provider: "linkedin", category: "marketing", status: "connected", config: {}, connectedAt: new Date(now - 30 * 86400000) },
+    { name: "Meta Ads", provider: "meta_ads", category: "marketing", status: "connected", config: { account: "VERSPR" }, connectedAt: new Date(now - 14 * 86400000) },
+    { name: "Notion", provider: "notion", category: "operations", status: "connected", config: { workspace: "VERSPR" }, connectedAt: new Date(now - 60 * 86400000) },
+    { name: "Google Drive", provider: "gdrive", category: "operations", status: "connected", config: {}, connectedAt: new Date(now - 60 * 86400000) },
+    { name: "Calendly", provider: "calendly", category: "operations", status: "connected", config: {}, connectedAt: new Date(now - 60 * 86400000) },
+    { name: "HubSpot", provider: "hubspot", category: "crm", status: "disconnected", config: {} },
+    { name: "Salesforce", provider: "salesforce", category: "crm", status: "disconnected", config: {} },
+    { name: "Zapier", provider: "zapier", category: "operations", status: "disconnected", config: {} },
+    { name: "Airtable", provider: "airtable", category: "operations", status: "error", config: {}, connectedAt: new Date(now - 20 * 86400000) },
   ])
 
   // Seed milestones based on current agent stats

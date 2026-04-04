@@ -648,14 +648,23 @@ export default function ChatPage() {
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const quickReplyRef = useRef<string | null>(null)
 
-  // Load agents and channels from DB
+  // Load agents and channels from DB (filtered by active workspace)
   useEffect(() => {
-    fetch("/api/chat-data").then((r) => r.json()).then((data) => {
-      setDbAgents(data.agents)
-      setDbChannels(data.channels)
-      if (data.channels.length > 0) setActiveChannel(data.channels[0].id)
-      setDataLoaded(true)
-    })
+    function loadData() {
+      const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+      const url = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
+      fetch(url).then((r) => r.json()).then((data) => {
+        setDbAgents(data.agents)
+        setDbChannels(data.channels)
+        if (data.channels.length > 0) setActiveChannel(data.channels[0].id)
+        setDataLoaded(true)
+      })
+    }
+    loadData()
+    // Reload when workspace changes
+    const handler = () => loadData()
+    window.addEventListener("workspace-changed", handler)
+    return () => window.removeEventListener("workspace-changed", handler)
   }, [])
 
   // Keyboard shortcuts

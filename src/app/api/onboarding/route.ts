@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { agents, teams, channels, messages, tasks, agentSops, agentFeedback, activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules, automations, knowledgeEntries } from "@/lib/db/schema"
+import { agents, teams, channels, messages, tasks, agentSops, agentFeedback, activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules, automations, knowledgeEntries, workspaces } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 
@@ -148,27 +148,30 @@ export async function POST(req: Request) {
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
 
-  // Clear existing data (onboarding replaces everything)
+  // Create a new workspace for this business (or re-use if name matches)
+  const wsName = businessName?.trim() || template.name
+  const slug = wsName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  const [newWorkspace] = await db.insert(workspaces).values({
+    name: wsName,
+    slug,
+    icon: template.icon,
+    description: businessIdea || template.description,
+    businessType: templateId === "ecommerce" ? "ecommerce" : templateId === "saas" ? "saas" : templateId === "agency" ? "agency" : templateId === "consulting" ? "consulting" : templateId === "content" ? "info_product" : "other",
+    industry: null,
+    website: null,
+    businessProfile: {
+      mission: businessIdea || undefined,
+      icp: undefined,
+      verticals: [],
+      teamSize: teamSize || undefined,
+      revenue: undefined,
+      tools: existingTools ? existingTools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+    },
+  }).returning()
 
-  await db.delete(milestones)
-  await db.delete(approvalLog)
-  await db.delete(autoApprovals)
-  await db.delete(decisionLog)
-  await db.delete(activityLog)
-  await db.delete(agentFeedback)
-  await db.delete(knowledgeEntries)
-  await db.delete(agentSops)
-  await db.delete(messages)
-  await db.delete(tasks)
-  await db.delete(agentSchedules)
-  await db.delete(automations)
-  await db.delete(agents)
-  await db.delete(channels)
-  await db.delete(teams)
-
-  // Create teams
+  // Create teams scoped to this workspace
   const insertedTeams = await db.insert(teams).values(
-    template.teams.map((t) => ({ name: t.name, icon: t.icon, description: t.description }))
+    template.teams.map((t) => ({ workspaceId: newWorkspace.id, name: t.name, icon: t.icon, description: t.description }))
   ).returning()
 
   // Create channels: general + team-leaders + one per team
@@ -333,6 +336,8 @@ export async function POST(req: Request) {
 
   return Response.json({
     success: true,
+    workspaceId: newWorkspace.id,
+    workspace: newWorkspace,
     teams: insertedTeams.length,
     agents: insertedAgents.length + 1, // +1 for CoS
     channels: insertedChannels.length,

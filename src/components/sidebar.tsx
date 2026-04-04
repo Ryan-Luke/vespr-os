@@ -27,15 +27,7 @@ import { Button } from "@/components/ui/button"
 import { NotificationBell } from "@/components/notification-bell"
 import { useState, useEffect, useCallback } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
-
-interface Workspace {
-  id: string
-  name: string
-  slug: string
-  icon: string
-  description: string | null
-  businessType: string
-}
+import { useWorkspace } from "@/lib/workspace-context"
 
 /* ────────────────────────────────────────────────────────────
    Navigation grouped by concern.
@@ -80,24 +72,16 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   const pathname = usePathname()
   const router = useRouter()
   const [badges, setBadges] = useState<BadgeCounts>({ chatUnread: 0, tasksPending: 0, approvalsPending: 0 })
-  const [workspaces, setWorkspaces] = useState<Workspace[]>([])
-  const [activeWorkspace, setActiveWorkspace] = useState<Workspace | null>(null)
+  const { workspaces, activeWorkspace, setActiveWorkspace, refreshWorkspaces } = useWorkspace()
   const [showNewWs, setShowNewWs] = useState(false)
   const [newWsName, setNewWsName] = useState("")
-
-  useEffect(() => {
-    fetch("/api/workspaces").then((r) => r.json()).then((ws: Workspace[]) => {
-      setWorkspaces(ws)
-      if (ws.length > 0 && !activeWorkspace) setActiveWorkspace(ws[0])
-    }).catch(() => {})
-  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   async function createWorkspace() {
     if (!newWsName.trim()) return
     const res = await fetch("/api/workspaces", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: newWsName.trim() }) })
     if (res.ok) {
       const ws = await res.json()
-      setWorkspaces((prev) => [...prev, ws])
+      await refreshWorkspaces()
       setActiveWorkspace(ws)
       setNewWsName("")
       setShowNewWs(false)

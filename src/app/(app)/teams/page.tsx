@@ -2,19 +2,32 @@ import Link from "next/link"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable, milestones as milestonesTable } from "@/lib/db/schema"
+import { eq, inArray, or, isNull } from "drizzle-orm"
 import { Plus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { BulkAgentActions } from "@/components/bulk-agent-actions"
 import { AddDepartmentButton } from "@/components/add-department-button"
 import { levelTitle } from "@/lib/gamification"
+import { getActiveWorkspace } from "@/lib/workspace-server"
 
 export const dynamic = "force-dynamic"
 
 export default async function TeamsPage() {
-  const [allTeams, allAgents, allGoals, allMilestones] = await Promise.all([
-    db.select().from(teamsTable),
-    db.select().from(agentsTable),
-    db.select().from(goalsTable),
+  const activeWs = await getActiveWorkspace()
+
+  // Filter teams by workspace
+  const allTeams = activeWs
+    ? await db.select().from(teamsTable).where(eq(teamsTable.workspaceId, activeWs.id))
+    : await db.select().from(teamsTable)
+
+  const teamIds = allTeams.map((t) => t.id)
+
+  // Filter agents by teams in this workspace (include unassigned agents like Nova)
+  const [allAgents, allGoals, allMilestones] = await Promise.all([
+    teamIds.length > 0
+      ? db.select().from(agentsTable).where(or(inArray(agentsTable.teamId, teamIds), isNull(agentsTable.teamId)))
+      : db.select().from(agentsTable).where(isNull(agentsTable.teamId)),
+    teamIds.length > 0 ? db.select().from(goalsTable).where(inArray(goalsTable.teamId, teamIds)) : Promise.resolve([]),
     db.select().from(milestonesTable),
   ])
 
