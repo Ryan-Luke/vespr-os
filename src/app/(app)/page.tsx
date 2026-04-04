@@ -212,15 +212,6 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
 }
 
 // Message component
-function getQuickReplies(content: string): string[] {
-  const lower = content.toLowerCase()
-  if (lower.includes("approve") || lower.includes("approval")) return ["Approve", "Reject", "Tell me more"]
-  if (lower.includes("blocker") || lower.includes("blocked") || lower.includes("help")) return ["I'll handle it", "Escalate to Nova", "What do you need?"]
-  if (lower.includes("done") || lower.includes("completed") || lower.includes("finished")) return ["Great work!", "What's next?", "Show me the results"]
-  if (/\d+%|\$[\d,]+|\d+\.\d+|\breport\b|\bmetrics?\b/.test(lower)) return ["Looks good", "Can you break that down?", "Compare to last month"]
-  if (content.includes("?")) return ["Yes", "No", "Let me think about it"]
-  return ["Tell me more", "Good work", "What's the priority?"]
-}
 
 function PollCard({ message, agents }: { message: DBMessage; agents: DBAgent[] }) {
   const [userVote, setUserVote] = useState<number | null>(() => {
@@ -391,7 +382,7 @@ function LinkPreviews({ content }: { content: string }) {
 }
 
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, isLastAgentMessage, onQuickReply,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -404,7 +395,7 @@ function MessageBubble({
   isBookmarked?: boolean
   onToggleBookmark?: (messageId: string) => void
   isLastAgentMessage?: boolean
-  onQuickReply?: (text: string) => void
+
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
@@ -483,16 +474,6 @@ function MessageBubble({
             <MessageSquare className="h-3 w-3" />
             {threadCount} {threadCount === 1 ? "reply" : "replies"}
           </button>
-        )}
-        {/* Quick reply chips */}
-        {isLastAgentMessage && onQuickReply && message.senderAgentId && (
-          <div className="flex gap-1.5 mt-2 flex-wrap">
-            {getQuickReplies(message.content).map((chip) => (
-              <button key={chip} className="text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50 hover:bg-accent hover:border-muted-foreground/30 transition-colors cursor-pointer" onClick={() => onQuickReply(chip)}>
-                {chip}
-              </button>
-            ))}
-          </div>
         )}
       </div>
       {hovered && (
@@ -1814,7 +1795,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} isLastAgentMessage={msg.id === lastAgentMsgId} onQuickReply={handleQuickReply} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} />
                         </div>
                       )
                     })
