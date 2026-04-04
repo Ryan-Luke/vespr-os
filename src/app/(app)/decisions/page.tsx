@@ -1,16 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Input } from "@/components/ui/input"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
 import {
   CheckCircle2, MessageSquare, FileText, AlertCircle, Zap, Brain,
-  Clock, Search, Shield,
+  Clock, Search,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -26,26 +23,24 @@ interface DecisionEntry {
   createdAt: string
 }
 
-interface DBAgent {
-  id: string; name: string; pixelAvatarIndex: number
-}
+interface DBAgent { id: string; name: string; pixelAvatarIndex: number }
 
 const ACTION_ICONS: Record<string, React.ReactNode> = {
-  task_completed: <CheckCircle2 className="h-4 w-4 text-green-500" />,
-  message_sent: <MessageSquare className="h-4 w-4 text-blue-500" />,
-  sop_updated: <FileText className="h-4 w-4 text-indigo-500" />,
-  approval_requested: <AlertCircle className="h-4 w-4 text-amber-500" />,
-  decision_made: <Brain className="h-4 w-4 text-purple-500" />,
-  integration_call: <Zap className="h-4 w-4 text-cyan-500" />,
+  task_completed: <CheckCircle2 className="h-3.5 w-3.5 text-emerald-500" />,
+  message_sent: <MessageSquare className="h-3.5 w-3.5 text-blue-500" />,
+  sop_updated: <FileText className="h-3.5 w-3.5 text-blue-400" />,
+  approval_requested: <AlertCircle className="h-3.5 w-3.5 text-amber-500" />,
+  decision_made: <Brain className="h-3.5 w-3.5 text-violet-500" />,
+  integration_call: <Zap className="h-3.5 w-3.5 text-cyan-500" />,
 }
 
 const ACTION_LABELS: Record<string, string> = {
-  task_completed: "Task Completed",
-  message_sent: "Message Sent",
-  sop_updated: "SOP Updated",
-  approval_requested: "Approval Requested",
-  decision_made: "Decision Made",
-  integration_call: "Integration Call",
+  task_completed: "Task",
+  message_sent: "Message",
+  sop_updated: "SOP",
+  approval_requested: "Approval",
+  decision_made: "Decision",
+  integration_call: "Integration",
 }
 
 export default function DecisionsPage() {
@@ -80,105 +75,66 @@ export default function DecisionsPage() {
   function timeAgo(dateStr: string) {
     const diff = Date.now() - new Date(dateStr).getTime()
     const min = Math.floor(diff / 60000)
-    if (min < 60) return `${min}m ago`
+    if (min < 60) return `${min}m`
     const hr = Math.floor(min / 60)
-    if (hr < 24) return `${hr}h ago`
-    const days = Math.floor(hr / 24)
-    return `${days}d ago`
+    if (hr < 24) return `${hr}h`
+    return `${Math.floor(hr / 24)}d`
   }
 
   return (
-    <div className="p-6 space-y-6 overflow-y-auto h-full">
+    <div className="p-6 space-y-5 overflow-y-auto h-full">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-            <Shield className="h-6 w-6" />
-            Decision Log
-          </h1>
-          <p className="text-sm text-muted-foreground">Full audit trail of every agent action, decision, and approval</p>
-        </div>
-        <Badge variant="secondary" className="text-xs">{entries.length} entries</Badge>
+        <h1 className="text-lg font-semibold tracking-tight">Decisions</h1>
+        <span className="text-xs text-muted-foreground tabular-nums">{entries.length} entries</span>
       </div>
 
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search decisions..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input placeholder="Search decisions..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
         </div>
         <Select value={filterAgent} onValueChange={(v) => setFilterAgent(v ?? "all")}>
-          <SelectTrigger className="w-40"><SelectValue placeholder="All agents" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Agent" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Agents</SelectItem>
+            <SelectItem value="all">All agents</SelectItem>
             {agents.map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
           </SelectContent>
         </Select>
         <Select value={filterType} onValueChange={(v) => setFilterType(v ?? "all")}>
-          <SelectTrigger className="w-44"><SelectValue placeholder="All types" /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue placeholder="Type" /></SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {Object.entries(ACTION_LABELS).map(([key, label]) => (
-              <SelectItem key={key} value={key}>{label}</SelectItem>
-            ))}
+            <SelectItem value="all">All types</SelectItem>
+            {Object.entries(ACTION_LABELS).map(([k, v]) => <SelectItem key={k} value={k}>{v}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Decision entries */}
+      {/* Entries */}
       {loading ? (
-        <div className="text-center py-16 text-muted-foreground">Loading audit trail...</div>
+        <div className="text-center py-16 text-xs text-muted-foreground">Loading...</div>
       ) : filtered.length === 0 ? (
-        <Card>
-          <CardContent className="py-16 text-center">
-            <Shield className="h-10 w-10 mx-auto mb-3 text-muted-foreground/30" />
-            <p className="text-sm text-muted-foreground">
-              {entries.length === 0 ? "No decisions logged yet. As agents work, their actions will appear here." : "No matching entries found."}
-            </p>
-          </CardContent>
-        </Card>
+        <div className="text-center py-16">
+          <p className="text-xs text-muted-foreground">{entries.length === 0 ? "No decisions logged yet." : "No matching entries."}</p>
+        </div>
       ) : (
-        <div className="space-y-2">
+        <div className="bg-card border border-border rounded-md divide-y divide-border">
           {filtered.map((entry) => {
             const agent = agents.find((a) => a.id === entry.agentId)
-            const icon = ACTION_ICONS[entry.actionType] ?? <Zap className="h-4 w-4 text-muted-foreground" />
-
+            const icon = ACTION_ICONS[entry.actionType] ?? <Zap className="h-3.5 w-3.5 text-muted-foreground" />
             return (
-              <Card key={entry.id} className="hover:border-primary/20 transition-colors">
-                <CardContent className="py-3 px-4">
-                  <div className="flex items-start gap-3">
-                    <div className="mt-0.5 shrink-0">{icon}</div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="text-sm font-medium">{entry.title}</span>
-                        <Badge variant="secondary" className="text-xs h-5">
-                          {ACTION_LABELS[entry.actionType] ?? entry.actionType}
-                        </Badge>
-                      </div>
-                      <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>
-                      {entry.reasoning && (
-                        <div className="mt-1.5 p-2 rounded bg-muted/50 border border-border">
-                          <p className="text-xs text-muted-foreground"><span className="font-medium">Reasoning:</span> {entry.reasoning}</p>
-                        </div>
-                      )}
-                      {entry.outcome && (
-                        <p className="text-xs mt-1"><span className="text-muted-foreground">Outcome:</span> {entry.outcome}</p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {agent && (
-                        <div className="flex items-center gap-1.5">
-                          <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded" />
-                          <span className="text-xs text-muted-foreground">{entry.agentName}</span>
-                        </div>
-                      )}
-                      <span className="text-xs text-muted-foreground flex items-center gap-1">
-                        <Clock className="h-3 w-3" />
-                        {timeAgo(entry.createdAt)}
-                      </span>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
+              <div key={entry.id} className="flex items-start gap-3 px-4 py-2.5 hover:bg-accent/40 transition-colors">
+                <div className="mt-0.5 shrink-0 w-4 flex justify-center">{icon}</div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-[13px]"><span className="font-medium">{entry.title}</span></p>
+                  <p className="text-xs text-muted-foreground truncate">{entry.description}</p>
+                  {entry.reasoning && <p className="text-xs text-muted-foreground mt-1 italic">{entry.reasoning}</p>}
+                </div>
+                <div className="flex items-center gap-2 shrink-0">
+                  {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm" />}
+                  <span className="text-xs text-muted-foreground tabular-nums">{timeAgo(entry.createdAt)}</span>
+                </div>
+              </div>
             )
           })}
         </div>

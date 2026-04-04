@@ -37,15 +37,10 @@ export default async function AutomationsPage() {
   const pausedCount = allAutomations.filter((a) => a.status === "paused").length
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Automations</h1>
-          <p className="text-sm text-muted-foreground">
-            Recurring workflows managed by your operations team
-          </p>
-        </div>
-        <Button><Plus className="h-4 w-4 mr-2" />New Automation</Button>
+        <h1 className="text-lg font-semibold tracking-tight">Automations</h1>
+        <Button size="sm" className="h-7 text-xs"><Plus className="h-3.5 w-3.5 mr-1" />New</Button>
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">

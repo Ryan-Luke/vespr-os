@@ -1,14 +1,9 @@
 import Link from "next/link"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
-import { StatusDot } from "@/components/status-dot"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
 import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable } from "@/lib/db/schema"
-import { Users, Target, Crown, Plus } from "lucide-react"
-// Progress bars rendered inline with gradient fills
-import { CreateDepartmentButton } from "./create-department"
+import { Plus, Crown } from "lucide-react"
+import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
 
@@ -22,92 +17,84 @@ export default async function TeamsPage() {
   return (
     <div className="p-6 space-y-6 h-full overflow-y-auto">
       <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight">Teams</h1>
-          <p className="text-sm text-muted-foreground">
-            Your AI workforce organized by business function
-          </p>
-        </div>
-        <CreateDepartmentButton />
+        <h1 className="text-lg font-semibold tracking-tight">Teams</h1>
+        <Link href="/builder" className="h-7 px-2.5 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1.5 hover:bg-primary/90 transition-colors">
+          <Plus className="h-3.5 w-3.5" /> New Department
+        </Link>
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2">
         {allTeams.map((team) => {
           const teamAgents = allAgents.filter((a) => a.teamId === team.id)
-          const lead = team.leadAgentId ? teamAgents.find((a) => a.id === team.leadAgentId) : null
+          const goals = allGoals.filter((g) => g.teamId === team.id && g.status === "active")
+
           return (
-            <Card key={team.id}>
-              <CardHeader>
+            <div key={team.id} className="bg-card border border-border rounded-md">
+              {/* Team header */}
+              <div className="px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg flex items-center gap-2">
-                    <span className="text-xl">{team.icon}</span>
-                    {team.name}
-                  </CardTitle>
-                  <Badge variant="secondary" className="font-mono text-xs">
-                    <Users className="h-3 w-3 mr-1" />
-                    {teamAgents.length} agents
-                  </Badge>
+                  <div className="flex items-center gap-2">
+                    <span className="text-base">{team.icon}</span>
+                    <span className="text-[13px] font-semibold">{team.name}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground tabular-nums">{teamAgents.length} {teamAgents.length === 1 ? "agent" : "agents"}</span>
                 </div>
-                <p className="text-sm text-muted-foreground">{team.description}</p>
-              </CardHeader>
-              <CardContent className="space-y-3">
-                {/* Team Goals */}
-                {(() => {
-                  const goals = allGoals.filter((g) => g.teamId === team.id && g.status === "active")
-                  if (goals.length === 0) return null
-                  return (
-                    <div className="space-y-2 pb-3 border-b border-border">
-                      {goals.map((goal) => {
-                        const pct = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0
-                        return (
-                          <div key={goal.id}>
-                            <div className="flex items-center justify-between text-xs mb-1">
-                              <span className="flex items-center gap-1"><Target className="h-3 w-3 text-primary" />{goal.title}</span>
-                              <span className="text-muted-foreground font-mono">{goal.progress}/{goal.target} {goal.unit}</span>
-                            </div>
-                            <div className="h-1.5 rounded-full bg-muted overflow-hidden">
-                              <div className={`h-full rounded-full transition-all ${pct >= 80 ? "bg-gradient-to-r from-green-500 to-emerald-400" : "bg-gradient-to-r from-primary to-violet-400"}`} style={{ width: `${pct}%` }} />
-                            </div>
-                          </div>
-                        )
-                      })}
-                    </div>
-                  )
-                })()}
+                {team.description && <p className="text-xs text-muted-foreground mt-1">{team.description}</p>}
+              </div>
+
+              {/* Goals */}
+              {goals.length > 0 && (
+                <div className="px-4 py-2.5 border-b border-border space-y-2">
+                  {goals.map((goal) => {
+                    const pct = goal.target > 0 ? Math.min(100, Math.round((goal.progress / goal.target) * 100)) : 0
+                    return (
+                      <div key={goal.id}>
+                        <div className="flex items-center justify-between text-xs mb-1">
+                          <span className="text-muted-foreground">{goal.title}</span>
+                          <span className="text-muted-foreground tabular-nums">{goal.progress}/{goal.target}</span>
+                        </div>
+                        <div className="h-1 rounded-full bg-border overflow-hidden">
+                          <div className={cn("h-full rounded-full transition-all", pct >= 80 ? "bg-emerald-500" : "bg-primary")} style={{ width: `${pct}%` }} />
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
+
+              {/* Agent list */}
+              <div className="divide-y divide-border">
                 {teamAgents.map((agent) => (
                   <Link
                     key={agent.id}
                     href={`/teams/${team.id}/agents/${agent.id}`}
-                    className="flex items-center gap-3 rounded-md p-2 -mx-2 hover:bg-accent transition-colors"
+                    className="flex items-center gap-2.5 px-4 py-2 hover:bg-accent transition-colors"
                   >
-                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={32} className="rounded-lg border border-border" />
+                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={24} className="rounded-sm shrink-0" />
                     <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className="text-sm font-medium">{agent.name}</span>
-                        {(agent.level ?? 0) > 0 && <span className="text-xs font-mono text-muted-foreground bg-muted rounded px-1">Lv.{agent.level}</span>}
-                        <StatusDot status={agent.status as any} />
-                        {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-400" />}
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[13px] font-medium">{agent.name}</span>
+                        {agent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
+                        <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                       </div>
-                      <p className="text-xs text-muted-foreground truncate">
-                        {agent.role} · {agent.model}
-                      </p>
+                      <p className="text-xs text-muted-foreground truncate">{agent.role}</p>
                     </div>
-                    <div className="text-right">
-                      <p className="text-xs font-mono text-muted-foreground">
-                        {agent.tasksCompleted} tasks
-                      </p>
+                    <div className="text-right shrink-0">
+                      <span className="text-xs text-muted-foreground tabular-nums">{agent.tasksCompleted}</span>
                     </div>
                   </Link>
                 ))}
+
+                {/* Hire button */}
                 <Link
                   href={`/builder?team=${encodeURIComponent(team.name)}&teamId=${team.id}`}
-                  className="flex items-center justify-center gap-2 rounded-md border border-dashed border-border p-2.5 text-sm text-muted-foreground hover:border-primary/50 hover:text-foreground transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
                 >
-                  <Plus className="h-4 w-4" />
+                  <Plus className="h-3 w-3" />
                   Hire for {team.name}
                 </Link>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )
         })}
       </div>

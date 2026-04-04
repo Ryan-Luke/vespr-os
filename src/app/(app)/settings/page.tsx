@@ -10,13 +10,8 @@ import { Key, Building2, Bell, CreditCard, Shield } from "lucide-react"
 
 export default function SettingsPage() {
   return (
-    <div className="p-6 space-y-6 max-w-3xl">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-sm text-muted-foreground">
-          Configure your Business OS platform
-        </p>
-      </div>
+    <div className="p-6 space-y-5 max-w-3xl h-full overflow-y-auto">
+      <h1 className="text-lg font-semibold tracking-tight">Settings</h1>
 
       <Tabs defaultValue="general">
         <TabsList>

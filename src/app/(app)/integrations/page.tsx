@@ -118,41 +118,20 @@ export default function IntegrationsPage() {
   }
 
   return (
-    <div className="p-6 space-y-6 h-full overflow-y-auto">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight flex items-center gap-2">
-          <Plug className="h-6 w-6" />
-          Integrations
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Connect your tools so agents can work with your existing stack
-        </p>
+    <div className="p-6 space-y-5 h-full overflow-y-auto">
+      <div className="flex items-center justify-between">
+        <h1 className="text-lg font-semibold tracking-tight">Integrations</h1>
+        <span className="text-xs text-muted-foreground">{connectedProviders.size} connected</span>
       </div>
 
-      {/* Connected summary */}
-      {connectedProviders.size > 0 && (
-        <div className="flex items-center gap-2 flex-wrap">
-          <span className="text-sm text-muted-foreground">Connected:</span>
-          {connected.filter((c) => c.status === "connected").map((c) => {
-            const tool = AVAILABLE_TOOLS.find((t) => t.provider === c.provider)
-            return (
-              <Badge key={c.id} variant="secondary" className="gap-1.5 h-7">
-                <span>{tool?.icon}</span> {c.name}
-                <button onClick={() => disconnect(c.provider)} className="ml-1 hover:text-red-400 transition-colors"><X className="h-3 w-3" /></button>
-              </Badge>
-            )
-          })}
-        </div>
-      )}
-
       {/* Filters */}
-      <div className="flex gap-2 flex-wrap">
-        <div className="relative flex-1 min-w-[200px]">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input placeholder="Search integrations..." value={search} onChange={(e) => setSearch(e.target.value)} className="pl-9" />
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
+          <input placeholder="Search integrations..." value={search} onChange={(e) => setSearch(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
         </div>
         <Select value={category} onValueChange={(v) => setCategory(v ?? "all")}>
-          <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
             {CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
           </SelectContent>
@@ -165,31 +144,27 @@ export default function IntegrationsPage() {
           const isConnected = connectedProviders.has(tool.provider)
           const isConnecting = connecting === tool.provider
           return (
-            <Card key={tool.provider} className={cn("transition-colors", isConnected && "border-green-500/30 bg-green-500/5")}>
-              <CardContent className="pt-5">
-                <div className="flex items-start gap-3">
-                  <span className="text-2xl">{tool.icon}</span>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
-                      <h3 className="text-sm font-semibold">{tool.name}</h3>
-                      {isConnected && <Badge variant="secondary" className="text-xs h-5 bg-green-500/10 text-green-600 gap-1"><Check className="h-3 w-3" />Connected</Badge>}
-                    </div>
-                    <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
-                    <Badge variant="outline" className="text-xs mt-2 capitalize">{tool.category}</Badge>
+            <div key={tool.provider} className={cn("bg-card border border-border rounded-md p-4 transition-colors", isConnected && "border-emerald-500/20")}>
+              <div className="flex items-start gap-3">
+                <span className="text-lg">{tool.icon}</span>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <span className="text-[13px] font-medium">{tool.name}</span>
+                    {isConnected && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 shrink-0" />}
                   </div>
+                  <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
                 </div>
-                <div className="mt-3 flex justify-end">
+                <div className="shrink-0">
                   {isConnected ? (
-                    <Button variant="outline" size="sm" className="text-xs h-7" onClick={() => disconnect(tool.provider)}>Disconnect</Button>
+                    <button onClick={() => disconnect(tool.provider)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Disconnect</button>
                   ) : (
-                    <Button size="sm" className="text-xs h-7" onClick={() => connect(tool)} disabled={isConnecting}>
-                      {isConnecting ? <Loader2 className="h-3 w-3 animate-spin mr-1" /> : <Plug className="h-3 w-3 mr-1" />}
-                      Connect
-                    </Button>
+                    <button onClick={() => connect(tool)} disabled={isConnecting} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">
+                      {isConnecting ? "..." : "Connect"}
+                    </button>
                   )}
                 </div>
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           )
         })}
       </div>
