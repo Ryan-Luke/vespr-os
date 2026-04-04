@@ -20,6 +20,7 @@ import {
   Menu,
   X,
   Shield,
+  Bell,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -44,28 +45,30 @@ const navItems = [
 interface BadgeCounts {
   chatUnread: number
   tasksPending: number
+  approvalsPending: number
 }
 
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const [collapsed, setCollapsed] = useState(false)
-  const [badges, setBadges] = useState<BadgeCounts>({ chatUnread: 0, tasksPending: 0 })
+  const [badges, setBadges] = useState<BadgeCounts>({ chatUnread: 0, tasksPending: 0, approvalsPending: 0 })
 
   const fetchBadges = useCallback(async () => {
     try {
-      const [messagesRes, tasksRes] = await Promise.all([
+      const [messagesRes, tasksRes, approvalsRes] = await Promise.all([
         fetch("/api/messages/unread"),
         fetch("/api/tasks/count"),
+        fetch("/api/approval-requests?status=pending"),
       ])
-      if (messagesRes.ok && tasksRes.ok) {
-        const messagesData = await messagesRes.json()
-        const tasksData = await tasksRes.json()
-        setBadges({
-          chatUnread: messagesData.count ?? 0,
-          tasksPending: tasksData.pending ?? 0,
-        })
-      }
+      const messagesData = messagesRes.ok ? await messagesRes.json() : {}
+      const tasksData = tasksRes.ok ? await tasksRes.json() : {}
+      const approvalsData = approvalsRes.ok ? await approvalsRes.json() : []
+      setBadges({
+        chatUnread: messagesData.total ?? messagesData.count ?? 0,
+        tasksPending: tasksData.pending ?? 0,
+        approvalsPending: Array.isArray(approvalsData) ? approvalsData.length : 0,
+      })
     } catch {
       // Silently fail — badges are non-critical
     }
@@ -88,10 +91,17 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   }
 
   function getBadgeForItem(href: string) {
-    if (href === "/chat" && badges.chatUnread > 0) {
+    if (href === "/" && badges.chatUnread > 0) {
       return (
         <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px] font-semibold">
           {badges.chatUnread > 99 ? "99+" : badges.chatUnread}
+        </Badge>
+      )
+    }
+    if (href === "/dashboard" && badges.approvalsPending > 0) {
+      return (
+        <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px] font-semibold">
+          {badges.approvalsPending}
         </Badge>
       )
     }
@@ -106,7 +116,10 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   }
 
   function getCollapsedBadgeDot(href: string) {
-    if (href === "/chat" && badges.chatUnread > 0) {
+    if (href === "/" && badges.chatUnread > 0) {
+      return <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-destructive" />
+    }
+    if (href === "/dashboard" && badges.approvalsPending > 0) {
       return <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-destructive" />
     }
     if (href === "/tasks" && badges.tasksPending > 0) {
@@ -128,6 +141,15 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
       <div className={cn("flex items-center gap-2 border-b border-border p-4", collapsed && "md:justify-center")}>
         <Bot className="h-7 w-7 text-primary shrink-0" />
         <span className={cn("font-semibold text-lg tracking-tight", collapsed && "md:hidden")}>Business OS</span>
+        {/* Notification bell */}
+        {!collapsed && (badges.chatUnread + badges.approvalsPending) > 0 && (
+          <Link href="/dashboard" className="relative ml-auto mr-1 md:mr-0">
+            <Bell className="h-4 w-4 text-muted-foreground" />
+            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-mono rounded-full h-4 min-w-4 flex items-center justify-center px-0.5 text-[10px]">
+              {badges.chatUnread + badges.approvalsPending}
+            </span>
+          </Link>
+        )}
         {/* Close button on mobile */}
         <Button
           variant="ghost"
