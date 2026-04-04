@@ -43,3 +43,17 @@ export async function POST(req: Request) {
   }).returning()
   return Response.json(newMessage)
 }
+
+export async function DELETE(req: Request) {
+  const url = new URL(req.url)
+  const messageId = url.searchParams.get("id")
+  if (!messageId) {
+    return Response.json({ error: "id required" }, { status: 400 })
+  }
+
+  // Also delete any thread replies to this message
+  await db.delete(messages).where(eq(messages.threadId, messageId))
+  await db.delete(messages).where(eq(messages.id, messageId))
+
+  return Response.json({ success: true })
+}

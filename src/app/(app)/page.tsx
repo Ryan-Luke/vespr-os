@@ -382,7 +382,7 @@ function LinkPreviews({ content }: { content: string }) {
 }
 
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, onDelete,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -394,7 +394,7 @@ function MessageBubble({
   onTogglePin?: (messageId: string) => void
   isBookmarked?: boolean
   onToggleBookmark?: (messageId: string) => void
-  isLastAgentMessage?: boolean
+  onDelete?: (messageId: string) => void
 
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
@@ -504,6 +504,11 @@ function MessageBubble({
           {["👍", "🔥", "✅"].map((emoji) => (
             <button key={emoji} className="h-6 w-6 flex items-center justify-center rounded-sm hover:bg-accent text-xs" onClick={() => onAddReaction(message.id, emoji)}>{emoji}</button>
           ))}
+          {!message.senderAgentId && onDelete && (
+            <button className="h-6 w-6 flex items-center justify-center rounded-sm text-muted-foreground hover:text-red-400 transition-colors" onClick={() => onDelete(message.id)} title="Delete message">
+              <X className="h-3 w-3" />
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -873,9 +878,11 @@ export default function ChatPage() {
     }))
   }
 
-  function handleQuickReply(text: string) {
-    quickReplyRef.current = text
-    handleChannelSend()
+  async function handleDeleteMessage(messageId: string) {
+    try {
+      await fetch(`/api/messages?id=${messageId}`, { method: "DELETE" })
+      setChannelMessages((prev) => prev.filter((m) => m.id !== messageId && m.threadId !== messageId))
+    } catch {}
   }
 
   async function handleChannelSend() {
@@ -1795,7 +1802,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} onDelete={handleDeleteMessage} />
                         </div>
                       )
                     })
