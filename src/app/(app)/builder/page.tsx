@@ -142,34 +142,29 @@ function BuilderPageInner() {
   }
 
   return (
-    <div className="p-6 space-y-6 max-w-4xl mx-auto">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Agent Builder</h1>
-        <p className="text-sm text-muted-foreground">
-          Create a new AI team member for your business
-        </p>
-      </div>
+    <div className="p-6 space-y-5 max-w-3xl mx-auto h-full overflow-y-auto">
+      <h1 className="text-lg font-semibold tracking-tight">Hire Agent</h1>
 
       {/* Progress Steps */}
-      <div className="flex items-center gap-2 flex-wrap">
+      <div className="flex items-center gap-1">
         {["Template", "Details", "Personality", "Skills", "Review"].map((label, i) => (
-          <div key={label} className="flex items-center gap-2">
+          <div key={label} className="flex items-center gap-1">
             <button
               onClick={() => i <= step && setStep(i)}
               className={cn(
-                "flex items-center gap-2 rounded-full px-3 py-1 text-sm transition-colors",
+                "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
                 i === step
-                  ? "bg-primary text-primary-foreground"
+                  ? "bg-accent text-foreground font-medium"
                   : i < step
-                  ? "bg-primary/20 text-primary"
-                  : "bg-muted text-muted-foreground"
+                  ? "text-primary"
+                  : "text-muted-foreground"
               )}
             >
-              <span className="font-mono text-xs">{i + 1}</span>
+              <span className="font-mono text-[10px] tabular-nums">{i + 1}</span>
               {label}
             </button>
             {i < 4 && (
-              <div className={cn("h-px w-8", i < step ? "bg-primary" : "bg-border")} />
+              <div className={cn("h-px w-4", i < step ? "bg-primary" : "bg-border")} />
             )}
           </div>
         ))}
