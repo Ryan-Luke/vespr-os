@@ -13,7 +13,10 @@ import {
   CommandSeparator,
 } from "@/components/ui/command"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { MessageSquare, CheckSquare, BookOpen } from "lucide-react"
+import {
+  MessageSquare, CheckSquare, BookOpen, LayoutDashboard, Users,
+  ClipboardList, Zap, Plug, PlusCircle, Settings, Shield, TrendingUp, Building2,
+} from "lucide-react"
 
 interface SearchResults {
   agents: Array<{
@@ -138,9 +141,27 @@ export function GlobalSearch() {
           )}
 
           {!loading && !query.trim() && (
-            <div className="py-6 text-center text-sm text-muted-foreground">
-              Type to search...
-            </div>
+            <CommandGroup heading="Navigate">
+              {[
+                { label: "Chat", icon: MessageSquare, path: "/" },
+                { label: "Dashboard", icon: LayoutDashboard, path: "/dashboard" },
+                { label: "Teams", icon: Users, path: "/teams" },
+                { label: "Tasks", icon: ClipboardList, path: "/tasks" },
+                { label: "Knowledge", icon: BookOpen, path: "/knowledge" },
+                { label: "Automations", icon: Zap, path: "/automations" },
+                { label: "Decisions", icon: Shield, path: "/decisions" },
+                { label: "Timeline", icon: TrendingUp, path: "/timeline" },
+                { label: "Integrations", icon: Plug, path: "/integrations" },
+                { label: "Office", icon: Building2, path: "/office" },
+                { label: "Hire Agent", icon: PlusCircle, path: "/builder" },
+                { label: "Settings", icon: Settings, path: "/settings" },
+              ].map((item) => (
+                <CommandItem key={item.path} value={item.label} onSelect={() => handleSelect(item.path)}>
+                  <item.icon className="shrink-0 h-3.5 w-3.5 text-muted-foreground" />
+                  <span>{item.label}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
           )}
 
           {results && results.agents.length > 0 && (
