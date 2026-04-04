@@ -12,7 +12,7 @@ import { StatusDot } from "@/components/status-dot"
 import { AgentProfileCard } from "@/components/agent-profile-card"
 import type { AgentStatus } from "@/lib/types"
 import {
-  Hash, Bot, FolderKanban, Radio, Send, AlertCircle,
+  Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
   Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search,
 } from "lucide-react"
@@ -111,13 +111,13 @@ function MessageBubble({
   }
 
   const avatarEl = agent
-    ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={36} className="rounded-lg border border-border" />
-    : <div className="h-9 w-9 rounded-lg bg-primary flex items-center justify-center text-xs font-bold text-primary-foreground border border-border">{message.senderAvatar}</div>
+    ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={32} className="rounded-md" />
+    : <div className="h-8 w-8 rounded-md bg-accent flex items-center justify-center text-[11px] font-semibold text-muted-foreground">{message.senderAvatar}</div>
 
-  const nameEl = <span className="text-sm font-bold hover:underline">{message.senderName}</span>
+  const nameEl = <span className="text-[13px] font-semibold hover:underline">{message.senderName}</span>
 
   return (
-    <div className={cn("group relative flex items-start gap-3 px-4 py-1.5 -mx-4 rounded-md transition-colors", hovered && "bg-accent/30")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div className={cn("group relative flex items-start gap-2.5 px-4 py-1 -mx-4 transition-colors", hovered && "bg-accent/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="shrink-0 mt-0.5">
         {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}>{avatarEl}</AgentProfileCard> : avatarEl}
       </div>
@@ -132,7 +132,7 @@ function MessageBubble({
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
         </div>
-        <p className="text-sm text-foreground/90 mt-0.5 leading-relaxed whitespace-pre-wrap">{message.content}</p>
+        <p className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">{message.content}</p>
         {message.linkedTaskId && (
           <Link href="/tasks" className="inline-flex items-center gap-1.5 mt-1.5 rounded-md border border-border bg-muted/50 px-2 py-1 text-xs text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
             <ClipboardList className="h-3 w-3" />
@@ -659,36 +659,49 @@ export default function ChatPage() {
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <div className="w-56 border-r border-border flex flex-col bg-card shrink-0">
-        <div className="px-3 py-3 border-b border-border">
-          <h2 className="font-semibold text-sm">Business OS</h2>
-          <p className="text-xs text-muted-foreground">{dbAgents.length} agents</p>
-        </div>
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-2">
-            <p className="px-2 py-1 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Channels</p>
-            <div className="space-y-0.5 mt-1">
-              {dbChannels.map((channel) => (
-                <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null) }} className={cn("flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm transition-colors", activeChannel === channel.id && !dmAgent ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground")}>
-                  {channelIcon(channel.type)}
-                  <span className={cn("truncate flex-1 text-left", unreadCounts[channel.id] > 0 && activeChannel !== channel.id && "font-semibold text-foreground")}>{channel.name}</span>
-                  {unreadCounts[channel.id] > 0 && activeChannel !== channel.id && (
-                    <span className="bg-primary text-primary-foreground text-xs font-mono rounded-full h-5 min-w-5 flex items-center justify-center px-1">{unreadCounts[channel.id]}</span>
-                  )}
-                </button>
-              ))}
+      {/* Chat sidebar — channel list + DMs */}
+      <div className="w-52 border-r border-border flex flex-col bg-sidebar shrink-0">
+        <div className="flex-1 overflow-y-auto py-3">
+          {/* Channels */}
+          <div className="px-3">
+            <p className="section-label px-1 mb-1.5">Channels</p>
+            <div className="space-y-px">
+              {dbChannels.map((channel) => {
+                const isActive = activeChannel === channel.id && !dmAgent
+                const hasUnread = unreadCounts[channel.id] > 0 && !isActive
+                return (
+                  <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null); setActiveThread(null) }} className={cn(
+                    "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
+                    isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                  )}>
+                    <span className="opacity-50">{channelIcon(channel.type)}</span>
+                    <span className={cn("truncate flex-1 text-left", hasUnread && "text-foreground font-medium")}>{channel.name}</span>
+                    {hasUnread && (
+                      <span className="h-[18px] min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">{unreadCounts[channel.id]}</span>
+                    )}
+                  </button>
+                )
+              })}
             </div>
-            <p className="px-2 py-1 mt-4 text-xs font-semibold text-muted-foreground uppercase tracking-wider">Direct Messages</p>
-            <div className="space-y-0.5 mt-1">
-              {dbAgents.map((agent) => (
-                <button key={agent.id} onClick={() => setDmAgent(agent)} className={cn("flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-sm transition-colors", dmAgent?.id === agent.id ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-accent-foreground")}>
-                  <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded" />
-                  <span className="truncate flex-1 text-left">{agent.name}</span>
-                  {(agent.level ?? 0) > 1 && <span className="text-xs font-mono opacity-60">{agent.level}</span>}
-                  <StatusDot status={agent.status as AgentStatus} />
-                </button>
-              ))}
+          </div>
+
+          {/* DMs */}
+          <div className="px-3 mt-5">
+            <p className="section-label px-1 mb-1.5">Direct Messages</p>
+            <div className="space-y-px">
+              {dbAgents.map((agent) => {
+                const isActive = dmAgent?.id === agent.id
+                return (
+                  <button key={agent.id} onClick={() => setDmAgent(agent)} className={cn(
+                    "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
+                    isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                  )}>
+                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm" />
+                    <span className="truncate flex-1 text-left">{agent.name}</span>
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
+                  </button>
+                )
+              })}
             </div>
           </div>
         </div>
@@ -697,57 +710,35 @@ export default function ChatPage() {
       {/* Main */}
       {dmAgent ? <DMChat agent={dmAgent} /> : (
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
-          <div className="flex items-center gap-2 px-4 py-2.5 border-b border-border shrink-0">
-            {activeChannelData && channelIcon(activeChannelData.type)}
-            <div>
-              <h2 className="font-bold text-sm">{activeChannelData?.name}</h2>
-              {activeChannelData?.name === "team-leaders" && <p className="text-xs text-muted-foreground">Executive coordination — department leads + Chief of Staff</p>}
-              {activeChannelData?.name === "general" && <p className="text-xs text-muted-foreground">Company-wide announcements and cross-functional discussions</p>}
-            </div>
-            {/* Channel member avatars */}
-            {(() => {
-              const members = getChannelAgents()
-              return (
-                <button onClick={() => setShowMembers(!showMembers)} className="flex items-center gap-1.5 ml-1 hover:bg-accent rounded-md px-2 py-1 transition-colors">
-                  <div className="flex -space-x-1.5">
-                    {members.slice(0, 4).map((a) => (
-                      <PixelAvatar key={a.id} characterIndex={a.pixelAvatarIndex} size={20} className="rounded-full border-2 border-card" />
-                    ))}
-                  </div>
-                  <span className="text-xs text-muted-foreground">{members.length}</span>
-                </button>
-              )
-            })()}
-            <div className="ml-auto flex items-center gap-3">
-              {(() => {
-                const members = getChannelAgents()
-                const working = members.filter((a) => a.status === "working").length
-                const online = members.filter((a) => a.status !== "paused").length
-                return (
-                  <span className="text-xs text-muted-foreground">
-                    {working > 0 && <><span className="text-green-500">{working} working</span> · </>}{online} online
-                  </span>
-                )
-              })()}
+          {/* Channel header */}
+          <div className="flex items-center h-12 px-4 border-b border-border shrink-0">
+            <span className="text-[13px] font-medium text-foreground">#{activeChannelData?.name}</span>
+            <span className="mx-2 text-border">|</span>
+            <span className="text-xs text-muted-foreground truncate">
+              {activeChannelData?.name === "team-leaders" ? "Department leads + Chief of Staff" :
+               activeChannelData?.name === "general" ? "Company-wide" :
+               `${getChannelAgents().length} members`}
+            </span>
+
+            <div className="ml-auto flex items-center gap-1.5">
+              <button onClick={() => setShowMembers(!showMembers)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Members">
+                <Users className="h-3.5 w-3.5 text-muted-foreground" />
+              </button>
               {chatSearchOpen ? (
                 <div className="flex items-center gap-1">
-                  <input
-                    autoFocus
-                    placeholder="Search messages..."
-                    value={chatSearch}
-                    onChange={(e) => setChatSearch(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Escape") { setChatSearch(""); setChatSearchOpen(false) } }}
-                    className="h-7 w-40 rounded-md border border-border bg-card px-2 text-xs outline-none focus:ring-1 focus:ring-primary/50"
-                  />
-                  <button onClick={() => { setChatSearch(""); setChatSearchOpen(false) }} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                  <input autoFocus placeholder="Search..." value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { setChatSearch(""); setChatSearchOpen(false) } }} className="h-7 w-36 rounded-md border border-border bg-muted px-2 text-xs outline-none" />
+                  <button onClick={() => { setChatSearch(""); setChatSearchOpen(false) }} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent"><X className="h-3 w-3" /></button>
                 </div>
               ) : (
-                <button onClick={() => setChatSearchOpen(true)} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Search messages"><Search className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                <button onClick={() => setChatSearchOpen(true)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Search"><Search className="h-3.5 w-3.5 text-muted-foreground" /></button>
               )}
-              <Button variant={autonomousMode ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1.5" onClick={() => setAutonomousMode(!autonomousMode)}>
+              <button
+                onClick={() => setAutonomousMode(!autonomousMode)}
+                className={cn("h-7 px-2.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5", autonomousMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
+              >
                 {autonomousMode ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
-                {autonomousMode ? "Pause Agents" : "Run Autonomous"}
-              </Button>
+                {autonomousMode ? "Pause" : "Auto"}
+              </button>
             </div>
           </div>
 
@@ -829,40 +820,38 @@ export default function ChatPage() {
             </div>
           </div>
 
-          <div className="border-t border-border p-3 shrink-0">
-            <div className="relative rounded-lg border border-border bg-card focus-within:ring-1 focus-within:ring-primary/50">
+          {/* Message input */}
+          <div className="border-t border-border px-4 py-3 shrink-0">
+            <div className="relative rounded-md border border-border bg-muted/50 focus-within:border-muted-foreground/30 transition-colors">
+              {/* @mention dropdown */}
               {mentionQuery !== null && mentionAgents.length > 0 && (
-                <div className="absolute bottom-full left-0 mb-1 w-72 rounded-lg border border-border bg-popover shadow-lg z-50 overflow-hidden">
-                  <div className="p-1">
+                <div className="absolute bottom-full left-0 mb-1 w-64 rounded-md border border-border bg-popover shadow-lg z-50 overflow-hidden">
+                  <div className="py-1">
                     {mentionAgents.map((agent, i) => (
-                      <button key={agent.id} className={cn("flex items-center gap-2.5 w-full rounded-md px-2 py-1.5 text-sm transition-colors", i === mentionIndex ? "bg-primary text-primary-foreground" : "hover:bg-accent")} onMouseDown={(e) => { e.preventDefault(); insertMention(agent.name) }} onMouseEnter={() => setMentionIndex(i)}>
-                        <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={24} className="rounded" />
-                        <div className="flex-1 text-left"><span className="font-medium">{agent.name}</span><span className={cn("ml-1.5 text-xs", i === mentionIndex ? "text-primary-foreground/70" : "text-muted-foreground")}>{agent.role}</span></div>
-                        <StatusDot status={agent.status as AgentStatus} />
+                      <button key={agent.id} className={cn("flex items-center gap-2 w-full px-2.5 py-1.5 text-[13px] transition-colors", i === mentionIndex ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent")} onMouseDown={(e) => { e.preventDefault(); insertMention(agent.name) }} onMouseEnter={() => setMentionIndex(i)}>
+                        <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm" />
+                        <span className="font-medium text-foreground">{agent.name}</span>
+                        <span className="text-xs text-muted-foreground">{agent.role}</span>
                       </button>
                     ))}
                   </div>
                 </div>
               )}
-              <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}...`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2.5 text-sm outline-none placeholder:text-muted-foreground" style={{ maxHeight: 120 }} />
-              <div className="flex items-center justify-between px-2 pb-2">
+              <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
+              <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
                 <Popover open={showEmojiInput} onOpenChange={setShowEmojiInput}>
-                  <PopoverTrigger className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent transition-colors"><Smile className="h-4 w-4 text-muted-foreground" /></PopoverTrigger>
+                  <PopoverTrigger className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors"><Smile className="h-3.5 w-3.5 text-muted-foreground" /></PopoverTrigger>
                   <PopoverContent className="w-64 p-2" align="start" side="top">
                     <div className="grid grid-cols-10 gap-0.5">
                       {EMOJI_FULL_LIST.map((emoji) => (<button key={emoji} className="h-7 w-7 flex items-center justify-center rounded hover:bg-accent text-sm" onClick={() => { setInputValue((p) => p + emoji); setShowEmojiInput(false); inputRef.current?.focus() }}>{emoji}</button>))}
                     </div>
                   </PopoverContent>
                 </Popover>
-                <Button size="sm" className="h-7 px-3" onClick={handleChannelSend} disabled={!inputValue.trim() || channelLoading}>
-                  {channelLoading ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1" />}Send
-                </Button>
+                <button onClick={handleChannelSend} disabled={!inputValue.trim() || channelLoading} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", inputValue.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                  {channelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
+                </button>
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-1.5 px-1">
-              <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs">@</kbd> to mention ·
-              <kbd className="px-1 py-0.5 rounded bg-muted text-muted-foreground font-mono text-xs ml-1">Shift+Enter</kbd> for new line
-            </p>
           </div>
         </div>
       )}
