@@ -670,18 +670,20 @@ export default function ChatPage() {
           <div className="px-3">
             <p className="section-label px-1 mb-1.5">Channels</p>
             <div className="space-y-px">
-              {dbChannels.map((channel) => {
+              {dbChannels.map((channel, idx) => {
                 const isActive = activeChannel === channel.id && !dmAgent
                 const hasUnread = unreadCounts[channel.id] > 0 && !isActive
                 return (
                   <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null); setActiveThread(null) }} className={cn(
-                    "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
+                    "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors group",
                     isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
                   )}>
                     <span className="opacity-50">{channelIcon(channel.type)}</span>
                     <span className={cn("truncate flex-1 text-left", hasUnread && "text-foreground font-medium")}>{channel.name}</span>
-                    {hasUnread && (
+                    {hasUnread ? (
                       <span className="h-[18px] min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">{unreadCounts[channel.id]}</span>
+                    ) : idx < 9 && (
+                      <span className="text-[10px] text-muted-foreground/40 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">{idx + 1}</span>
                     )}
                   </button>
                 )
