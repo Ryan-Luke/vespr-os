@@ -44,41 +44,41 @@ export default async function AutomationsPage() {
       </div>
 
       <div className="grid gap-4 md:grid-cols-3">
-        <Card>
-          <CardContent className="pt-6">
+        <div className="bg-card border border-border rounded-md">
+          <div className="pt-6">
             <div className="flex items-center gap-2"><Zap className="h-4 w-4 text-green-500" /><span className="text-sm text-muted-foreground">Active</span></div>
             <p className="text-2xl font-bold mt-1">{activeCount}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-md">
+          <div className="pt-6">
             <div className="flex items-center gap-2"><RotateCcw className="h-4 w-4 text-muted-foreground" /><span className="text-sm text-muted-foreground">Total Runs</span></div>
             <p className="text-2xl font-bold mt-1">{totalRuns.toLocaleString()}</p>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardContent className="pt-6">
+          </div>
+        </div>
+        <div className="bg-card border border-border rounded-md">
+          <div className="pt-6">
             <div className="flex items-center gap-2"><Pause className="h-4 w-4 text-yellow-500" /><span className="text-sm text-muted-foreground">Paused</span></div>
             <p className="text-2xl font-bold mt-1">{pausedCount}</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       </div>
 
       {allAutomations.length === 0 ? (
-        <Card className="border-dashed">
-          <CardContent className="pt-6 flex flex-col items-center justify-center py-12 text-muted-foreground">
+        <div className="border-dashed">
+          <div className="pt-6 flex flex-col items-center justify-center py-12 text-muted-foreground">
             <Zap className="h-10 w-10 mb-3 opacity-30" />
             <p className="text-sm font-medium">No automations yet</p>
             <p className="text-xs mt-1">Create recurring workflows to automate repetitive tasks</p>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {allAutomations.map((automation) => {
             const managedBy = automation.managedByAgentId ? allAgents.find((a) => a.id === automation.managedByAgentId) : null
             return (
-              <Card key={automation.id}>
-                <CardContent className="pt-6">
+              <div key={automation.id}>
+                <div className="pt-6">
                   <div className="flex items-start justify-between">
                     <div className="space-y-1">
                       <div className="flex items-center gap-2">
@@ -116,8 +116,8 @@ export default async function AutomationsPage() {
                       </div>
                     )}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             )
           })}
         </div>

@@ -36,17 +36,17 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader className="text-center">
+      <div className="w-full max-w-sm">
+        <div className="text-center">
           <div className="flex justify-center mb-2">
             <div className="h-12 w-12 rounded-xl bg-primary/10 flex items-center justify-center">
               <Bot className="h-7 w-7 text-primary" />
             </div>
           </div>
-          <CardTitle className="text-xl">Business OS</CardTitle>
+          <p className="section-label mb-2">Business OS</p>
           <p className="text-sm text-muted-foreground">Enter your password to access the platform</p>
-        </CardHeader>
-        <CardContent>
+        </div>
+        <div>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="password">Password</Label>
@@ -69,8 +69,8 @@ export default function LoginPage() {
               Sign In
             </Button>
           </form>
-        </CardContent>
-      </Card>
+        </div>
+      </div>
     </div>
   )
 }

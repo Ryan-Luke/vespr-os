@@ -22,14 +22,14 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-card border border-border rounded-md">
+            <div>
+              <p className="section-label mb-2">
                 <Building2 className="h-4 w-4" />
                 Business Profile
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-2">
                 <div className="space-y-2">
                   <Label>Business Name</Label>
@@ -45,17 +45,17 @@ export default function SettingsPage() {
                 <Input defaultValue="SaaS company focused on small business solutions" />
               </div>
               <Button size="sm">Save Changes</Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-card border border-border rounded-md">
+            <div>
+              <p className="section-label mb-2">
                 <Shield className="h-4 w-4" />
                 Agent Controls
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Require approval for external actions</p>
@@ -85,19 +85,19 @@ export default function SettingsPage() {
                 </div>
                 <Switch defaultChecked />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="api-keys" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-card border border-border rounded-md">
+            <div>
+              <p className="section-label mb-2">
                 <Key className="h-4 w-4" />
                 AI Provider Keys
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="space-y-2">
                 <Label>Anthropic API Key</Label>
                 <div className="flex gap-2">
@@ -126,19 +126,19 @@ export default function SettingsPage() {
                 </div>
               </div>
               <Button size="sm">Save Keys</Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="notifications" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-card border border-border rounded-md">
+            <div>
+              <p className="section-label mb-2">
                 <Bell className="h-4 w-4" />
                 Notification Preferences
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <div>
                   <p className="text-sm font-medium">Agent errors</p>
@@ -170,19 +170,19 @@ export default function SettingsPage() {
                 </div>
                 <Switch defaultChecked />
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-4 mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base flex items-center gap-2">
+          <div className="bg-card border border-border rounded-md">
+            <div>
+              <p className="section-label mb-2">
                 <CreditCard className="h-4 w-4" />
                 Usage & Billing
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              </p>
+            </div>
+            <div className="space-y-4">
               <div className="grid gap-4 md:grid-cols-3">
                 <div>
                   <p className="text-sm text-muted-foreground">This Month</p>
@@ -197,8 +197,8 @@ export default function SettingsPage() {
                   <p className="text-2xl font-bold">$190.40</p>
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
         </TabsContent>
       </Tabs>
     </div>
