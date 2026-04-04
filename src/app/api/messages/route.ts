@@ -30,6 +30,7 @@ export async function POST(req: Request) {
   const body = await req.json()
   const [newMessage] = await db.insert(messages).values({
     channelId: body.channelId,
+    threadId: body.threadId || null,
     senderAgentId: body.senderAgentId || null,
     senderUserId: body.senderUserId || null,
     senderName: body.senderName,

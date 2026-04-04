@@ -300,6 +300,96 @@ function PollCard({ message, agents }: { message: DBMessage; agents: DBAgent[] }
   )
 }
 
+// Link preview embeds for URLs in chat messages
+function extractLinksFromContent(content: string): { text: string; url: string }[] {
+  const links: { text: string; url: string }[] = []
+  const seen = new Set<string>()
+  // Markdown links: [text](url)
+  const mdRegex = /\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g
+  let m: RegExpExecArray | null
+  while ((m = mdRegex.exec(content)) !== null) {
+    if (!seen.has(m[2])) {
+      seen.add(m[2])
+      links.push({ text: m[1], url: m[2] })
+    }
+  }
+  // Raw URLs not already captured
+  const rawRegex = /(?<!\]\()https?:\/\/[^\s)<>]+/g
+  while ((m = rawRegex.exec(content)) !== null) {
+    if (!seen.has(m[0])) {
+      seen.add(m[0])
+      try {
+        const domain = new URL(m[0]).hostname.replace(/^www\./, "")
+        links.push({ text: domain, url: m[0] })
+      } catch {
+        links.push({ text: m[0], url: m[0] })
+      }
+    }
+  }
+  return links.slice(0, 2)
+}
+
+function getDomainFromUrl(url: string): string {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "")
+  } catch {
+    return url
+  }
+}
+
+function isYouTubeUrl(url: string): boolean {
+  return /^https?:\/\/(www\.)?(youtube\.com|youtu\.be)\//i.test(url)
+}
+
+function isPodcastUrl(url: string): boolean {
+  return /podcast|spotify\.com\/episode|podcasts\.apple\.com|overcast\.fm/i.test(url)
+}
+
+function LinkPreviews({ content }: { content: string }) {
+  const links = extractLinksFromContent(content)
+  if (links.length === 0) return null
+
+  return (
+    <div className="flex flex-col gap-1.5 mt-2">
+      {links.map((link, i) => {
+        const domain = getDomainFromUrl(link.url)
+        const isYT = isYouTubeUrl(link.url)
+        const isPod = isPodcastUrl(link.url)
+
+        return (
+          <div key={i} className="bg-muted/30 border-l-2 border-primary/30 rounded-r-md p-3 max-w-sm">
+            {/* Domain */}
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              {isYT ? <Play className="h-3 w-3 text-red-400" /> : isPod ? <Headphones className="h-3 w-3" /> : <Link2 className="h-3 w-3" />}
+              {domain}
+            </div>
+            {/* Title */}
+            <div className="text-[13px] font-medium mt-1 leading-snug">{link.text}</div>
+            {/* YouTube play area */}
+            {isYT && (
+              <a href={link.url} target="_blank" rel="noopener noreferrer" className="block bg-red-500/10 rounded-md p-4 text-center mt-2 hover:bg-red-500/15 transition-colors">
+                <Play className="h-6 w-6 text-red-400 mx-auto fill-red-400/30" />
+                <span className="text-[11px] text-muted-foreground mt-1 block">Watch on YouTube</span>
+              </a>
+            )}
+            {/* Podcast play area */}
+            {isPod && (
+              <a href={link.url} target="_blank" rel="noopener noreferrer" className="block bg-green-500/10 rounded-md p-4 text-center mt-2 hover:bg-green-500/15 transition-colors">
+                <Headphones className="h-5 w-5 text-green-400 mx-auto" />
+                <span className="text-[11px] text-muted-foreground mt-1 block">Listen to podcast</span>
+              </a>
+            )}
+            {/* Open link */}
+            <a href={link.url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline mt-1.5">
+              Open <ExternalLink className="h-2.5 w-2.5" />
+            </a>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
 function MessageBubble({
   message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, isLastAgentMessage, onQuickReply,
 }: {
@@ -374,6 +464,7 @@ function MessageBubble({
                 <Button size="sm" variant="outline" className="h-7 text-xs">Dismiss</Button>
               </div>
             )}
+            <LinkPreviews content={message.content} />
           </>
         )}
         {/* Reactions */}

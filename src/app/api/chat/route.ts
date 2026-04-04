@@ -1,7 +1,7 @@
 import { streamText, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams, agentMemories, companyMemories } from "@/lib/db/schema"
+import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
@@ -131,6 +131,26 @@ RULES:
               importance: trigger.importance,
               source: "conversation",
             })
+
+            // For "learning" type memories, also create a knowledge entry
+            if (trigger.type === "learning") {
+              const topicMatch = userText.match(/(?:learned|realized|turns out|discovered)\s+(?:that\s+)?(.{10,80})/i)
+                || text.match(/(?:learned|realized|turns out|discovered)\s+(?:that\s+)?(.{10,80})/i)
+              const knowledgeTitle = topicMatch
+                ? topicMatch[1].replace(/[.!?,;]+$/, "").trim()
+                : userText.slice(0, 60).trim() || "Insight from conversation"
+              const isProcessRelated = /process|workflow|sop|step|procedure|how to|setup|config/i.test(userText + " " + text)
+
+              await db.insert(knowledgeEntries).values({
+                title: knowledgeTitle,
+                content: `${userText.slice(0, 200)}\n\n**Agent insight:** ${text.slice(0, 300)}`,
+                category: isProcessRelated ? "processes" : "business",
+                tags: ["agent-contributed", agent.name],
+                linkedEntries: [],
+                createdByName: agent.name,
+                createdByAgentId: agent.id,
+              })
+            }
           } catch { /* silent — memory saving is best-effort */ }
           break // one memory per exchange
         }

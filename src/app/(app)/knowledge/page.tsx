@@ -626,7 +626,12 @@ export default function KnowledgePage() {
                       <div className="flex items-start gap-3">
                         {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                         <div className="flex-1 min-w-0">
-                          <h3 className="text-[13px] font-medium truncate">{entry.title}</h3>
+                          <div className="flex items-center gap-1.5">
+                            <h3 className="text-[13px] font-medium truncate">{entry.title}</h3>
+                            {entry.tags.includes("agent-contributed") && (
+                              <span className="text-[10px] px-1.5 py-0.5 rounded bg-blue-500/10 text-blue-400 shrink-0">🤖 Agent</span>
+                            )}
+                          </div>
                           <p className="text-xs text-muted-foreground mt-0.5">
                             by {entry.createdByName} · <span className="tabular-nums">{Math.round((Date.now() - new Date(entry.updatedAt).getTime()) / 3600000)}h ago</span>
                             {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
