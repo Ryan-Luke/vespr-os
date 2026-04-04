@@ -10,7 +10,6 @@ import {
   Zap,
   PlusCircle,
   Settings,
-  Bot,
   ChevronLeft,
   ChevronRight,
   Plug,
@@ -20,28 +19,42 @@ import {
   Menu,
   X,
   Shield,
-  Bell,
   TrendingUp,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip"
-import { Badge } from "@/components/ui/badge"
 import { useState, useEffect, useCallback } from "react"
 
-const navItems = [
-  { href: "/", label: "Chat", icon: MessageSquare },
-  { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
-  { href: "/teams", label: "Teams", icon: Users },
-  { href: "/office", label: "Office", icon: Building2 },
-  { href: "/tasks", label: "Task Board", icon: ClipboardList },
-  { href: "/knowledge", label: "Knowledge", icon: Brain },
-  { href: "/automations", label: "Automations", icon: Zap },
-  { href: "/decisions", label: "Decision Log", icon: Shield },
-  { href: "/timeline", label: "Timeline", icon: TrendingUp },
-  { href: "/integrations", label: "Integrations", icon: Plug },
-  { href: "/builder", label: "Hire Agent", icon: PlusCircle },
-  { href: "/settings", label: "Settings", icon: Settings },
+/* ────────────────────────────────────────────────────────────
+   Navigation grouped by concern.
+   Groups create visual rhythm and semantic clarity.
+   ──────────────────────────────────────────────────────────── */
+const navGroups = [
+  {
+    label: null, // primary — no label
+    items: [
+      { href: "/", label: "Chat", icon: MessageSquare },
+      { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    ],
+  },
+  {
+    label: "Workspace",
+    items: [
+      { href: "/teams", label: "Teams", icon: Users },
+      { href: "/tasks", label: "Tasks", icon: ClipboardList },
+      { href: "/knowledge", label: "Knowledge", icon: Brain },
+      { href: "/automations", label: "Automations", icon: Zap },
+    ],
+  },
+  {
+    label: "System",
+    items: [
+      { href: "/decisions", label: "Decisions", icon: Shield },
+      { href: "/timeline", label: "Timeline", icon: TrendingUp },
+      { href: "/integrations", label: "Integrations", icon: Plug },
+      { href: "/office", label: "Office", icon: Building2 },
+    ],
+  },
 ]
 
 interface BadgeCounts {
@@ -53,7 +66,6 @@ interface BadgeCounts {
 export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; onMobileClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
-  const [collapsed, setCollapsed] = useState(false)
   const [badges, setBadges] = useState<BadgeCounts>({ chatUnread: 0, tasksPending: 0, approvalsPending: 0 })
 
   const fetchBadges = useCallback(async () => {
@@ -71,9 +83,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
         tasksPending: tasksData.pending ?? 0,
         approvalsPending: Array.isArray(approvalsData) ? approvalsData.length : 0,
       })
-    } catch {
-      // Silently fail — badges are non-critical
-    }
+    } catch { /* silent */ }
   }, [])
 
   useEffect(() => {
@@ -82,162 +92,103 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
     return () => clearInterval(interval)
   }, [fetchBadges])
 
-  function handleNavClick() {
-    onMobileClose?.()
-  }
-
   async function handleLogout() {
     await fetch("/api/auth/logout", { method: "POST" })
     router.push("/login")
     router.refresh()
   }
 
-  function getBadgeForItem(href: string) {
-    if (href === "/" && badges.chatUnread > 0) {
-      return (
-        <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px] font-semibold">
-          {badges.chatUnread > 99 ? "99+" : badges.chatUnread}
-        </Badge>
-      )
-    }
-    if (href === "/dashboard" && badges.approvalsPending > 0) {
-      return (
-        <Badge variant="destructive" className="ml-auto h-5 min-w-5 px-1.5 text-[10px] font-semibold">
-          {badges.approvalsPending}
-        </Badge>
-      )
-    }
-    if (href === "/tasks" && badges.tasksPending > 0) {
-      return (
-        <Badge variant="default" className="ml-auto h-5 min-w-5 px-1.5 text-[10px] font-semibold">
-          {badges.tasksPending > 99 ? "99+" : badges.tasksPending}
-        </Badge>
-      )
-    }
-    return null
+  function badgeFor(href: string) {
+    if (href === "/" && badges.chatUnread > 0) return badges.chatUnread
+    if (href === "/dashboard" && badges.approvalsPending > 0) return badges.approvalsPending
+    if (href === "/tasks" && badges.tasksPending > 0) return badges.tasksPending
+    return 0
   }
 
-  function getCollapsedBadgeDot(href: string) {
-    if (href === "/" && badges.chatUnread > 0) {
-      return <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-destructive" />
-    }
-    if (href === "/dashboard" && badges.approvalsPending > 0) {
-      return <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-destructive" />
-    }
-    if (href === "/tasks" && badges.tasksPending > 0) {
-      return <span className="absolute top-0.5 right-0.5 h-2 w-2 rounded-full bg-primary" />
-    }
-    return null
-  }
-
-  const sidebarContent = (
-    <aside
-      className={cn(
-        "flex flex-col border-r border-border bg-sidebar h-full transition-all duration-200",
-        // On mobile the sidebar is always full-width inside its overlay
-        "max-md:w-64",
-        // On desktop use collapsed state
-        collapsed ? "md:w-16" : "md:w-56"
-      )}
-    >
-      <div className={cn("flex items-center gap-2 border-b border-border p-4", collapsed && "md:justify-center")}>
-        <Bot className="h-7 w-7 text-primary shrink-0" />
-        <span className={cn("font-semibold text-lg tracking-tight", collapsed && "md:hidden")}>Business OS</span>
-        {/* Notification bell */}
-        {!collapsed && (badges.chatUnread + badges.approvalsPending) > 0 && (
-          <Link href="/dashboard" className="relative ml-auto mr-1 md:mr-0">
-            <Bell className="h-4 w-4 text-muted-foreground" />
-            <span className="absolute -top-1.5 -right-1.5 bg-red-500 text-white text-xs font-mono rounded-full h-4 min-w-4 flex items-center justify-center px-0.5 text-[10px]">
-              {badges.chatUnread + badges.approvalsPending}
-            </span>
-          </Link>
-        )}
-        {/* Close button on mobile */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="ml-auto md:hidden"
-          onClick={onMobileClose}
-        >
-          <X className="h-5 w-5" />
+  return (
+    <aside className="flex flex-col w-52 border-r border-border bg-sidebar h-full max-md:w-60">
+      {/* Header */}
+      <div className="flex items-center justify-between h-12 px-4 border-b border-border shrink-0">
+        <span className="text-[13px] font-semibold text-sidebar-primary-foreground tracking-tight">Business OS</span>
+        <Button variant="ghost" size="sm" className="h-6 w-6 p-0 md:hidden" onClick={onMobileClose}>
+          <X className="h-4 w-4" />
         </Button>
       </div>
 
-      <nav className="flex-1 p-2 space-y-1">
-        {navItems.map((item) => {
-          const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
-          const badge = getBadgeForItem(item.href)
-          const collapsedDot = getCollapsedBadgeDot(item.href)
-
-          // Collapsed desktop view uses tooltips
-          if (collapsed) {
-            return (
-              <Tooltip key={item.href}>
-                <TooltipTrigger
-                  className={cn(
-                    "relative hidden md:flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors w-full justify-center px-2",
-                    isActive
-                      ? "bg-primary text-primary-foreground"
-                      : "text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                  )}
-                  render={<Link href={item.href} onClick={handleNavClick} />}
-                >
-                  <item.icon className="h-4 w-4 shrink-0" />
-                  {collapsedDot}
-                </TooltipTrigger>
-                <TooltipContent side="right">{item.label}</TooltipContent>
-              </Tooltip>
-            )
-          }
-
-          // Expanded view (desktop) and always on mobile
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={handleNavClick}
-              className={cn(
-                "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
-                isActive
-                  ? "bg-primary text-primary-foreground"
-                  : "text-muted-foreground hover:bg-accent hover:text-accent-foreground",
-                // On mobile when collapsed, still show expanded (collapsed is desktop only)
-                collapsed && "md:justify-center md:px-2"
-              )}
-            >
-              <item.icon className="h-4 w-4 shrink-0" />
-              <span className={cn(collapsed && "md:hidden")}>{item.label}</span>
-              {!collapsed && badge}
-              {/* On mobile always show badge even when desktop is collapsed */}
-              {collapsed && <span className="md:hidden">{badge}</span>}
-            </Link>
-          )
-        })}
+      {/* Navigation */}
+      <nav className="flex-1 overflow-y-auto py-2 px-2">
+        {navGroups.map((group, gi) => (
+          <div key={gi} className={cn(gi > 0 && "mt-4")}>
+            {group.label && (
+              <p className="section-label px-2 mb-1">{group.label}</p>
+            )}
+            <div className="space-y-0.5">
+              {group.items.map((item) => {
+                const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href)
+                const count = badgeFor(item.href)
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    onClick={() => onMobileClose?.()}
+                    className={cn(
+                      "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+                      isActive
+                        ? "bg-accent text-foreground font-medium"
+                        : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                    )}
+                  >
+                    <item.icon className="h-4 w-4 shrink-0 opacity-60" />
+                    <span className="flex-1 truncate">{item.label}</span>
+                    {count > 0 && (
+                      <span className="h-4.5 min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">
+                        {count > 99 ? "99+" : count}
+                      </span>
+                    )}
+                  </Link>
+                )
+              })}
+            </div>
+          </div>
+        ))}
       </nav>
 
-      <div className="border-t border-border p-2 space-y-1">
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn("w-full text-muted-foreground hover:text-red-400", collapsed ? "md:justify-center justify-start gap-3 px-3" : "justify-start gap-3 px-3")}
+      {/* Footer */}
+      <div className="border-t border-border p-2 space-y-0.5">
+        <Link
+          href="/builder"
+          className={cn(
+            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            pathname === "/builder"
+              ? "bg-accent text-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+          )}
+        >
+          <PlusCircle className="h-4 w-4 shrink-0 opacity-60" />
+          <span>Hire Agent</span>
+        </Link>
+        <Link
+          href="/settings"
+          className={cn(
+            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            pathname === "/settings"
+              ? "bg-accent text-foreground font-medium"
+              : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+          )}
+        >
+          <Settings className="h-4 w-4 shrink-0 opacity-60" />
+          <span>Settings</span>
+        </Link>
+        <button
           onClick={handleLogout}
+          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-sidebar-foreground hover:bg-accent hover:text-foreground transition-colors w-full"
         >
-          <LogOut className="h-4 w-4 shrink-0" />
-          <span className={cn(collapsed && "md:hidden")}>Log Out</span>
-        </Button>
-        <Button
-          variant="ghost"
-          size="sm"
-          className="w-full justify-center hidden md:flex"
-          onClick={() => setCollapsed(!collapsed)}
-        >
-          {collapsed ? <ChevronRight className="h-4 w-4" /> : <ChevronLeft className="h-4 w-4" />}
-        </Button>
+          <LogOut className="h-4 w-4 shrink-0 opacity-60" />
+          <span>Log out</span>
+        </button>
       </div>
     </aside>
   )
-
-  return sidebarContent
 }
 
 export function MobileMenuButton({ onClick }: { onClick: () => void }) {
@@ -245,11 +196,11 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
     <Button
       variant="ghost"
       size="sm"
-      className="md:hidden fixed top-3 left-3 z-40"
+      className="md:hidden fixed top-2 left-2 z-40 h-8 w-8 p-0"
       onClick={onClick}
       aria-label="Open menu"
     >
-      <Menu className="h-5 w-5" />
+      <Menu className="h-4 w-4" />
     </Button>
   )
 }

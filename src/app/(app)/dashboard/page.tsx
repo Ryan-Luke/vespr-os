@@ -47,19 +47,14 @@ export default async function DashboardPage() {
   }))
 
   return (
-    <div className="p-8 space-y-8 overflow-y-auto h-full">
+    <div className="p-6 space-y-6 overflow-y-auto h-full">
       <MorningCheckin />
 
-      {/* Page header */}
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
-        <p className="text-sm text-muted-foreground mt-0.5">Overview of your AI workforce</p>
-      </div>
+      <h1 className="text-lg font-semibold tracking-tight">Dashboard</h1>
 
       <ApprovalQueue />
 
-      {/* KPIs — clean, typographic, no decoration */}
-      <div className="grid gap-px bg-border rounded-lg overflow-hidden md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-2 lg:grid-cols-4">
         {[
           { label: "Tasks Completed", value: totalTasksCompleted.toLocaleString(), change: 12.5, sub: "vs last month" },
           { label: "Hours Saved", value: hoursSaved.toLocaleString(), change: 18.3, sub: "vs last month" },
@@ -86,7 +81,7 @@ export default async function DashboardPage() {
           { title: "Cost by Team", content: <CostByTeamChart data={costByTeamData} /> },
           { title: "Task Distribution", content: <TaskStatusChart data={taskStatusData} /> },
         ].map((chart) => (
-          <div key={chart.title} className="bg-card border border-border rounded-lg p-5">
+          <div key={chart.title} className="bg-card border border-border rounded-md p-5">
             <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">{chart.title}</p>
             {chart.content}
           </div>
@@ -96,7 +91,7 @@ export default async function DashboardPage() {
       {/* Workforce + Activity */}
       <div className="grid gap-6 lg:grid-cols-5">
         {/* Workforce Health */}
-        <div className="lg:col-span-2 bg-card border border-border rounded-lg p-5">
+        <div className="lg:col-span-2 bg-card border border-border rounded-md p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Workforce</p>
           <div className="space-y-3">
             {[
@@ -131,7 +126,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* Activity Feed */}
-        <div className="lg:col-span-3 bg-card border border-border rounded-lg p-5">
+        <div className="lg:col-span-3 bg-card border border-border rounded-md p-5">
           <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Activity</p>
           <div className="space-y-0.5">
             {recentActivity.map((entry) => {
@@ -170,7 +165,7 @@ export default async function DashboardPage() {
       </div>
 
       {/* Task Pipeline */}
-      <div className="bg-card border border-border rounded-lg p-5">
+      <div className="bg-card border border-border rounded-md p-5">
         <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">Task Pipeline</p>
         <div className="grid gap-4 md:grid-cols-5">
           {(["backlog", "todo", "in_progress", "review", "done"] as const).map((status) => {
