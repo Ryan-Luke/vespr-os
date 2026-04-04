@@ -260,12 +260,6 @@ export default async function DashboardPage() {
                   <p className="text-[10px] text-muted-foreground/60 truncate">{agent.role}</p>
                   <div className="flex items-center gap-2 mt-2">
                     <span className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded">Lv.{agent.level}</span>
-                    {agent.streak >= 3 && (
-                      <span className="flex items-center gap-0.5 text-[10px] text-orange-400">
-                        <Flame className="h-3 w-3" />
-                        {agent.streak}d
-                      </span>
-                    )}
                     <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
                       {agent.tasksCompleted} tasks
                     </span>

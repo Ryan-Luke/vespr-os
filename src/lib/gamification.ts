@@ -25,17 +25,36 @@ export function levelProgress(xp: number): number {
   return Math.round(((xp - currentLevelXp) / range) * 100)
 }
 
-/** XP rewards for different actions */
+/** XP rewards — outcome-based allowlist only.
+ * Per engagement spec Section 6.3: XP may ONLY be granted for business outcomes.
+ * NEVER grant XP for logins, messages, time in app, or interactions.
+ */
 export const XP_REWARDS = {
-  task_completed: 25,
-  task_completed_urgent: 50,
-  sop_created: 40,
-  sop_updated: 15,
-  positive_feedback: 10,
-  message_sent: 2,
-  cross_team_coordination: 30,
-  approval_auto_earned: 100,
+  qualified_lead: 15,
+  meeting_booked: 30,
+  deal_closed_small: 100,      // < $5k
+  deal_closed_medium: 250,     // $5k-25k
+  deal_closed_large: 500,      // $25k+
+  revenue_influenced: 5,       // per $100 influenced
+  task_shipped: 25,            // task completed and accepted by user
+  sop_authored: 40,
+  sop_adopted: 20,             // when other agents reference it
+  document_delivered: 30,
 } as const
+
+/** Forbidden XP sources — enforced at service layer. Do NOT add to this list. */
+export const FORBIDDEN_XP_SOURCES = [
+  "login",
+  "message_sent",
+  "time_in_app",
+  "interaction_count",
+  "streak",
+] as const
+
+/** Validates that an XP source is in the allowlist. Returns true if allowed. */
+export function isValidXpSource(source: string): boolean {
+  return Object.keys(XP_REWARDS).includes(source)
+}
 
 /** Level title/rank */
 export function levelTitle(level: number): string {
@@ -60,16 +79,14 @@ export interface MilestoneDef {
 }
 
 export const MILESTONE_DEFINITIONS: MilestoneDef[] = [
-  // Agent milestones
-  { id: "first-task", name: "First Blood", description: "Completed first task", icon: "🎯", type: "agent", check: (s) => s.tasksCompleted >= 1 },
-  { id: "ten-tasks", name: "Getting Started", description: "Completed 10 tasks", icon: "🏃", type: "agent", check: (s) => s.tasksCompleted >= 10 },
-  { id: "fifty-tasks", name: "Workhorse", description: "Completed 50 tasks", icon: "🐎", type: "agent", check: (s) => s.tasksCompleted >= 50 },
-  { id: "century-club", name: "Century Club", description: "Completed 100 tasks", icon: "💯", type: "agent", check: (s) => s.tasksCompleted >= 100 },
-  { id: "500-tasks", name: "Machine", description: "Completed 500 tasks", icon: "🤖", type: "agent", check: (s) => s.tasksCompleted >= 500 },
-  { id: "1000-tasks", name: "Legendary", description: "Completed 1,000 tasks", icon: "👑", type: "agent", check: (s) => s.tasksCompleted >= 1000 },
+  // Outcome-based only per engagement spec. No streaks.
+  { id: "first-task", name: "First Shipment", description: "Shipped first task", icon: "🎯", type: "agent", check: (s) => s.tasksCompleted >= 1 },
+  { id: "ten-tasks", name: "On The Board", description: "Shipped 10 tasks", icon: "🏃", type: "agent", check: (s) => s.tasksCompleted >= 10 },
+  { id: "fifty-tasks", name: "Workhorse", description: "Shipped 50 tasks", icon: "🐎", type: "agent", check: (s) => s.tasksCompleted >= 50 },
+  { id: "century-club", name: "Century Club", description: "Shipped 100 tasks", icon: "💯", type: "agent", check: (s) => s.tasksCompleted >= 100 },
+  { id: "500-tasks", name: "Machine", description: "Shipped 500 tasks", icon: "🤖", type: "agent", check: (s) => s.tasksCompleted >= 500 },
+  { id: "1000-tasks", name: "Legendary", description: "Shipped 1,000 tasks", icon: "👑", type: "agent", check: (s) => s.tasksCompleted >= 1000 },
   { id: "level-5", name: "Specialist", description: "Reached Level 5", icon: "⭐", type: "agent", check: (s) => s.level >= 5 },
   { id: "level-10", name: "Expert", description: "Reached Level 10", icon: "🌟", type: "agent", check: (s) => s.level >= 10 },
   { id: "level-20", name: "Lead", description: "Reached Level 20", icon: "💫", type: "agent", check: (s) => s.level >= 20 },
-  { id: "week-streak", name: "Consistent", description: "7-day active streak", icon: "🔥", type: "agent", check: (s) => s.streak >= 7 },
-  { id: "month-streak", name: "Unstoppable", description: "30-day active streak", icon: "🔥🔥", type: "agent", check: (s) => s.streak >= 30 },
 ]

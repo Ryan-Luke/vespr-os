@@ -2,6 +2,7 @@ import { neon } from "@neondatabase/serverless"
 import { drizzle } from "drizzle-orm/neon-http"
 import { eq } from "drizzle-orm"
 import * as schema from "./schema"
+import { ARCHETYPES, inferArchetype, type ArchetypeId } from "../archetypes"
 
 const DATABASE_URL = process.env.DATABASE_URL!
 const sql = neon(DATABASE_URL)
@@ -11,6 +12,8 @@ async function seed() {
   console.log("Seeding database...")
 
   // Clear existing data (order matters for FK constraints)
+  await db.delete(schema.trophyEvents)
+  await db.delete(schema.evolutionEvents)
   await db.delete(schema.milestones)
   await db.delete(schema.approvalLog)
   await db.delete(schema.autoApprovals)
@@ -160,6 +163,37 @@ async function seed() {
     tasksCompleted: 198,
     costThisMonth: 19.5,
   }]).returning()
+
+  // Assign archetypes, tiers, and identity stats based on role
+  // Per engagement spec: every agent has an identity card with archetype and tier
+  const allAgentsForIdentity = [...insertedAgents, chiefOfStaff, qaAgent]
+  for (const ag of allAgentsForIdentity) {
+    const archetypeId: ArchetypeId = inferArchetype(ag.role)
+    const archetype = ARCHETYPES[archetypeId]
+
+    // Determine form based on tasks completed (proxy for shipped work)
+    let currentForm = archetype.forms[0]
+    for (let i = archetype.forms.length - 1; i >= 0; i--) {
+      const f = archetype.forms[i]
+      if (f.thresholds.length === 0) { currentForm = f; break }
+      const shippedMet = f.thresholds.some((t) => t.metric === "tasks_shipped" && ag.tasksCompleted >= t.value)
+      if (shippedMet) { currentForm = f; break }
+    }
+
+    // Vary stats slightly from archetype defaults
+    const stats = { ...archetype.defaultStats }
+    for (const key of Object.keys(stats) as Array<keyof typeof stats>) {
+      const base = stats[key] ?? 50
+      stats[key] = Math.min(100, Math.max(0, base + Math.floor((Math.random() - 0.5) * 10)))
+    }
+
+    await db.update(schema.agents).set({
+      archetype: archetypeId,
+      tier: currentForm.tier,
+      identityStats: stats,
+      nickname: ag.name, // default nickname = name; user can rename via ritual
+    }).where(eq(schema.agents.id, ag.id))
+  }
 
   // Update teams with lead agent IDs
   const teamLeadMap = [
@@ -667,6 +701,23 @@ async function seed() {
     { agentId: qaAgent.id, memoryType: "observation", content: "Agents with 7+ day streaks deliver 40% higher quality work — consistency compounds, streaks are a leading indicator of output quality.", importance: 0.9, source: "task_outcome" },
     { agentId: qaAgent.id, memoryType: "learning", content: "Performance reviews work better weekly than quarterly for AI agents — quarterly cadence lets issues compound too long before surfacing.", importance: 0.85, source: "feedback" },
     { agentId: qaAgent.id, memoryType: "preference", content: "Specific, actionable feedback beats vague praise every time — 'great work' is noise, 'this metric moved because of X' is signal.", importance: 0.9, source: "system" },
+  ])
+
+  // Seed trophy events — home screen highlight reel
+  const trophyNow = Date.now()
+  await db.insert(schema.trophyEvents).values([
+    { workspaceId: verspr.id, agentId: agent("Jordan").id, agentName: "Jordan", type: "deal_closed", title: "Jordan closed TechFlow Inc — $48K ARR", description: "First enterprise AI department build of Q2. 6-month commitment.", icon: "💰", amount: 48000, createdAt: new Date(trophyNow - 2 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Casey").id, agentName: "Casey", type: "milestone", title: "NovaBrand hit their first AI-automated revenue milestone", description: "$12k/mo in email campaign revenue — fully automated.", icon: "🎯", createdAt: new Date(trophyNow - 4 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Maya").id, agentName: "Maya", type: "first", title: "First LinkedIn article to cross 10k views", description: "'Why 7-Figure Companies Need AI Departments' — driving 14 inbound DMs.", icon: "🏆", createdAt: new Date(trophyNow - 6 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Jordan").id, agentName: "Jordan", type: "meeting_booked", title: "Jordan booked a strategy call with $8M DTC founder", description: "Warm lead from Instagram content.", icon: "📅", createdAt: new Date(trophyNow - 8 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Nyx").id, agentName: "Nyx", type: "capability_unlocked", title: "Nyx shipped the client onboarding automation", description: "New clients now go from contract to kickoff in 15 minutes.", icon: "⚡", createdAt: new Date(trophyNow - 12 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Riley").id, agentName: "Riley", type: "milestone", title: "Cold email reply rate crossed 8%", description: "Up from 5.1% — pain-first subject lines working.", icon: "📈", createdAt: new Date(trophyNow - 18 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Zara").id, agentName: "Zara", type: "first", title: "Instagram hit 5,000 followers", description: "Organic only. AI automation content series driving growth.", icon: "🎉", createdAt: new Date(trophyNow - 24 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Jordan").id, agentName: "Jordan", type: "deal_closed", title: "Jordan closed GrowthCo — $22K retainer", description: "3-month retainer to build out their sales automation stack.", icon: "💰", amount: 22000, createdAt: new Date(trophyNow - 28 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Casey").id, agentName: "Casey", type: "milestone", title: "TechFlow Inc renewed for 6 months", description: "NPS +22 points since we started. They said 'we can't imagine running without AI now.'", icon: "🏆", createdAt: new Date(trophyNow - 36 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Finley").id, agentName: "Finley", type: "milestone", title: "Q1 gross margin came in 12% above projection", description: "Automation savings pushed margins from 56% target to 68% actual.", icon: "📊", createdAt: new Date(trophyNow - 48 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Maya").id, agentName: "Maya", type: "deal_closed", title: "Sarah Chen signed — $8k/mo AI workflow automation", description: "Skincare brand. First DTC client from the Instagram inbound funnel.", icon: "💰", amount: 8000, createdAt: new Date(trophyNow - 60 * 3600000) },
+    { workspaceId: verspr.id, agentId: agent("Drew").id, agentName: "Drew", type: "milestone", title: "12 deliverables shipped this week, 0 overdue", description: "Perfect delivery week across all active clients.", icon: "⚡", createdAt: new Date(trophyNow - 72 * 3600000) },
   ])
 
   // Seed milestones based on current agent stats

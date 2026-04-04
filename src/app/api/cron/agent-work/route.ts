@@ -151,13 +151,8 @@ CRITICAL RULES:
     }
   }
 
-  // Update streaks for agents that posted (they were active today)
-  for (const agent of posting) {
-    await db.update(agentsTable).set({
-      streak: (agent.streak ?? 0) + 1,
-      updatedAt: new Date(),
-    }).where(eq(agentsTable.id, agent.id))
-  }
+  // Note: Streaks removed per engagement spec Section 12 (no time-based engagement metrics).
+  // XP is only awarded for outcomes (tasks shipped, deals closed), never for activity.
 
   // 30% chance: also trigger a team-leaders conversation
   if (Math.random() > 0.7) {

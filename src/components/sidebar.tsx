@@ -21,6 +21,7 @@ import {
   Shield,
   TrendingUp,
   GitCompareArrows,
+  Trophy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -37,6 +38,7 @@ const navGroups = [
   {
     label: null, // primary — no label
     items: [
+      { href: "/feed", label: "Home", icon: Trophy },
       { href: "/", label: "Chat", icon: MessageSquare },
       { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
     ],

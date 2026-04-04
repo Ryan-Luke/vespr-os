@@ -84,11 +84,53 @@ export const agents = pgTable("agents", {
   isTeamLead: boolean("is_team_lead").notNull().default(false),
   xp: integer("xp").notNull().default(0),
   level: integer("level").notNull().default(1),
-  streak: integer("streak").notNull().default(0), // consecutive days active
+  streak: integer("streak").notNull().default(0), // DEPRECATED per engagement spec — no longer displayed or incremented
   tasksCompleted: integer("tasks_completed").notNull().default(0),
   costThisMonth: real("cost_this_month").notNull().default(0),
+  // Identity system (per engagement spec Section 5)
+  nickname: text("nickname"), // user-set when agent is hired
+  archetype: text("archetype"), // Scout, Closer, Analyst, Strategist, Builder, Operator, Communicator
+  tier: text("tier").notNull().default("common"), // common, uncommon, rare, epic, legendary
+  identityStats: jsonb("identity_stats").$type<{
+    outreach?: number
+    research?: number
+    negotiation?: number
+    execution?: number
+    creativity?: number
+  }>().notNull().default({}),
+  evolvedFromForm: text("evolved_from_form"), // previous form name, if evolved
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// ── Evolution Events ──────────────────────────────────────
+export const evolutionEvents = pgTable("evolution_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  fromForm: text("from_form").notNull(),
+  toForm: text("to_form").notNull(),
+  triggerMetric: text("trigger_metric").notNull(), // e.g. "qualified_leads", "deals_closed"
+  triggerValue: integer("trigger_value").notNull(),
+  unlockedCapabilities: jsonb("unlocked_capabilities").$type<string[]>().notNull().default([]),
+  shareableCardUrl: text("shareable_card_url"),
+  occurredAt: timestamp("occurred_at").defaultNow().notNull(),
+  acknowledgedAt: timestamp("acknowledged_at"),
+})
+
+// ── Trophy Feed Events ────────────────────────────────────
+// Home screen highlight reel — wins only, per engagement spec Section 7
+export const trophyEvents = pgTable("trophy_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id"),
+  agentId: uuid("agent_id"),
+  agentName: text("agent_name"),
+  type: text("type").notNull(), // deal_closed, meeting_booked, milestone, evolution, first, capability_unlocked
+  title: text("title").notNull(), // e.g. "Kira closed Acme — $12K ARR"
+  description: text("description"),
+  icon: text("icon"), // emoji
+  amount: real("amount"), // for deal_closed events
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
 // ── Channels ───────────────────────────────────────────────

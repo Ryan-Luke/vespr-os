@@ -5,6 +5,7 @@ import {} from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits, type CustomPersonalityConfig, TEMPERAMENT_OPTIONS, SOCIAL_OPTIONS, HUMOR_OPTIONS, ENERGY_OPTIONS, QUIRK_OPTIONS } from "@/lib/personality-presets"
+import { IdentityCard } from "@/components/identity-card"
 import { levelProgress, levelTitle, xpForLevel } from "@/lib/gamification"
 import { getMood, MOOD_EMOJI, MOOD_LABEL, type AgentMood } from "@/lib/agent-mood"
 import {
@@ -44,6 +45,8 @@ interface DBAgent {
   autonomyLevel: string; isTeamLead: boolean
   xp: number; level: number; streak: number
   tasksCompleted: number; costThisMonth: number
+  nickname: string | null; archetype: string | null; tier: string
+  identityStats: { outreach?: number; research?: number; negotiation?: number; execution?: number; creativity?: number }
 }
 
 interface SOP {
@@ -692,7 +695,6 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
   const nextLevelXp = xpForLevel((agent.level ?? 1) + 1)
 
   const mood: AgentMood = getMood({
-    streak: agent.streak ?? 0,
     tasksCompleted: agent.tasksCompleted ?? 0,
     status: agent.status,
     feedbackPositive: feedback?.positive,
@@ -707,7 +709,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
         </Link>
 
         {/* Header */}
-        <div className={cn("flex items-start gap-3", mood === "thriving" ? "border-l-2 border-emerald-500/50 pl-3" : mood === "stressed" ? "border-l-2 border-red-500/50 pl-3" : "")}>
+        <div className={cn("flex items-start gap-3", mood === "thriving" ? "border-l-2 border-emerald-500/50 pl-3" : "")}>
           <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -767,7 +769,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             { label: "Tasks", value: (agent.tasksCompleted ?? 0).toLocaleString() },
             { label: "Cost/mo", value: `$${(agent.costThisMonth ?? 0).toFixed(2)}` },
             { label: "Feedback", value: feedback ? `${feedback.positive}/${feedback.total}` : "—" },
-            { label: "Streak", value: (agent.streak ?? 0) > 0 ? `🔥 ${agent.streak}d` : "—" },
+            { label: "XP", value: (agent.xp ?? 0).toLocaleString() },
           ].map((s) => (
             <div key={s.label} className="bg-card px-3 py-2.5">
               <p className="text-[11px] text-muted-foreground">{s.label}</p>
@@ -855,8 +857,14 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
-          {/* ── Overview: Personality + Skills ── */}
+          {/* ── Overview: Identity Card + Personality + Skills ── */}
           <TabsContent value="overview" className="mt-4 space-y-6">
+            {/* Identity Card */}
+            <div>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Identity</p>
+              <IdentityCard agent={agent as any} />
+            </div>
+
             {/* Personality */}
             <div>
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Personality</p>

@@ -110,9 +110,6 @@ export default async function TeamsPage() {
                         {(agent.level ?? 0) > 1 && (
                           <span className="text-[10px] font-mono text-muted-foreground/60 bg-muted/40 rounded px-1 py-px">Lv.{agent.level}</span>
                         )}
-                        {(agent.streak ?? 0) >= 7 && (
-                          <span className="text-[10px]" title={`${agent.streak}d streak`}>🔥</span>
-                        )}
                       </div>
                       <div className="flex items-center gap-2">
                         <p className="text-xs text-muted-foreground/50 truncate">{agent.role} · {levelTitle(agent.level ?? 1)}</p>
