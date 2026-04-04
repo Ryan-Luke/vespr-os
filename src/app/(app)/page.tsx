@@ -8,9 +8,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { StatusDot } from "@/components/status-dot"
 import { AgentProfileCard } from "@/components/agent-profile-card"
-import type { AgentStatus } from "@/lib/types"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,

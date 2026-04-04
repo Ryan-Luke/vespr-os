@@ -8,8 +8,6 @@ import { Input } from "@/components/ui/input"
 import { Textarea } from "@/components/ui/textarea"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { StatusDot } from "@/components/status-dot"
-import type { AgentStatus } from "@/lib/types"
 import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits } from "@/lib/personality-presets"
 import { levelProgress, levelTitle, xpForLevel } from "@/lib/gamification"
 import {
