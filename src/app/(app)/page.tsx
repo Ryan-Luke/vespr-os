@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, Pin,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Pin,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -203,8 +203,18 @@ function renderInlineMarkdown(text: string, keyPrefix: string): React.ReactNode[
 }
 
 // Message component
+function getQuickReplies(content: string): string[] {
+  const lower = content.toLowerCase()
+  if (lower.includes("approve") || lower.includes("approval")) return ["Approve", "Reject", "Tell me more"]
+  if (lower.includes("blocker") || lower.includes("blocked") || lower.includes("help")) return ["I'll handle it", "Escalate to Nova", "What do you need?"]
+  if (lower.includes("done") || lower.includes("completed") || lower.includes("finished")) return ["Great work!", "What's next?", "Show me the results"]
+  if (/\d+%|\$[\d,]+|\d+\.\d+|\breport\b|\bmetrics?\b/.test(lower)) return ["Looks good", "Can you break that down?", "Compare to last month"]
+  if (content.includes("?")) return ["Yes", "No", "Let me think about it"]
+  return ["Tell me more", "Good work", "What's the priority?"]
+}
+
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, isLastAgentMessage, onQuickReply,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -216,6 +226,8 @@ function MessageBubble({
   onTogglePin?: (messageId: string) => void
   isBookmarked?: boolean
   onToggleBookmark?: (messageId: string) => void
+  isLastAgentMessage?: boolean
+  onQuickReply?: (text: string) => void
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
   const [hovered, setHovered] = useState(false)
@@ -286,6 +298,16 @@ function MessageBubble({
             <MessageSquare className="h-3 w-3" />
             {threadCount} {threadCount === 1 ? "reply" : "replies"}
           </button>
+        )}
+        {/* Quick reply chips */}
+        {isLastAgentMessage && onQuickReply && message.senderAgentId && (
+          <div className="flex gap-1.5 mt-2 flex-wrap">
+            {getQuickReplies(message.content).map((chip) => (
+              <button key={chip} className="text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50 hover:bg-accent hover:border-muted-foreground/30 transition-colors cursor-pointer" onClick={() => onQuickReply(chip)}>
+                {chip}
+              </button>
+            ))}
+          </div>
         )}
       </div>
       {hovered && (
@@ -429,10 +451,12 @@ export default function ChatPage() {
   const [threadLoading, setThreadLoading] = useState(false)
   const [scheduledMessages, setScheduledMessages] = useState<{ id: string; channelId: string; content: string; sendAt: string }[]>([])
   const [showSchedulePicker, setShowSchedulePicker] = useState(false)
+  const [showChannelStats, setShowChannelStats] = useState(false)
   const [attachments, setAttachments] = useState<{ name: string; size: number; type: string; preview?: string }[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
+  const quickReplyRef = useRef<string | null>(null)
 
   // Load agents and channels from DB
   useEffect(() => {
@@ -664,9 +688,16 @@ export default function ChatPage() {
     }))
   }
 
+  function handleQuickReply(text: string) {
+    quickReplyRef.current = text
+    handleChannelSend()
+  }
+
   async function handleChannelSend() {
-    if (!inputValue.trim() || channelLoading || !activeChannel) return
-    const text = inputValue
+    const quickText = quickReplyRef.current
+    quickReplyRef.current = null
+    if ((!inputValue.trim() && !quickText) || channelLoading || !activeChannel) return
+    const text = quickText || inputValue
     setInputValue("")
     setMentionQuery(null)
 
@@ -1238,6 +1269,41 @@ export default function ChatPage() {
               ) : (
                 <button onClick={() => setChatSearchOpen(true)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Search"><Search className="h-3.5 w-3.5 text-muted-foreground" /></button>
               )}
+              <div className="relative">
+                <button onClick={() => setShowChannelStats(!showChannelStats)} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent transition-colors" title="Channel stats"><BarChart3 className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                {showChannelStats && (
+                  <div className="absolute right-0 top-full mt-1 w-72 bg-card border border-border rounded-md shadow-lg z-50 p-3">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-semibold">Channel Stats</span>
+                      <button onClick={() => setShowChannelStats(false)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent"><X className="h-3 w-3" /></button>
+                    </div>
+                    <div className="grid grid-cols-2 gap-px bg-border rounded-md overflow-hidden mb-3">
+                      <div className="bg-card p-2.5"><p className="text-[11px] text-muted-foreground">Messages</p><p className="text-sm font-semibold tabular-nums">{channelMessages.filter((m) => !m.threadId).length}</p></div>
+                      <div className="bg-card p-2.5"><p className="text-[11px] text-muted-foreground">Reactions</p><p className="text-sm font-semibold tabular-nums">{channelMessages.reduce((sum, m) => sum + m.reactions.reduce((s, r) => s + r.count, 0), 0)}</p></div>
+                    </div>
+                    {(() => {
+                      const emojiCounts: Record<string, number> = {}
+                      channelMessages.forEach((m) => m.reactions.forEach((r) => { emojiCounts[r.emoji] = (emojiCounts[r.emoji] || 0) + r.count }))
+                      const sorted = Object.entries(emojiCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+                      if (sorted.length === 0) return <p className="text-[11px] text-muted-foreground">No reactions yet</p>
+                      return (
+                        <div>
+                          <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">Top Reactions</p>
+                          <div className="space-y-1">
+                            {sorted.map(([emoji, count]) => (
+                              <div key={emoji} className="flex items-center gap-2">
+                                <span className="text-sm">{emoji}</span>
+                                <div className="flex-1 h-1 rounded-full bg-border overflow-hidden"><div className="h-full rounded-full bg-primary/50" style={{ width: `${(count / sorted[0][1]) * 100}%` }} /></div>
+                                <span className="text-[11px] text-muted-foreground tabular-nums">{count}</span>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                )}
+              </div>
               <button
                 onClick={() => setAutonomousMode(!autonomousMode)}
                 className={cn("h-7 px-2.5 rounded-md text-xs font-medium transition-colors flex items-center gap-1.5", autonomousMode ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground")}
@@ -1283,6 +1349,7 @@ export default function ChatPage() {
                 <div className="space-y-1">
                   {(() => {
                     const topLevel = channelMessages.filter((m) => !m.threadId && (!chatSearch || m.content.toLowerCase().includes(chatSearch.toLowerCase()) || m.senderName.toLowerCase().includes(chatSearch.toLowerCase())))
+                    const lastAgentMsgId = [...topLevel].reverse().find((m) => m.senderAgentId)?.id
                     let lastDate = ""
                     return topLevel.map((msg) => {
                       const msgDate = new Date(msg.createdAt)
@@ -1305,7 +1372,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} isLastAgentMessage={msg.id === lastAgentMsgId} onQuickReply={handleQuickReply} />
                         </div>
                       )
                     })

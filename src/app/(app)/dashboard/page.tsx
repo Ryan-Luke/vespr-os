@@ -138,6 +138,42 @@ export default async function DashboardPage() {
           </div>
         </div>
 
+        {/* ── TEAM HEALTH SCORES ─────────────────────────────── */}
+        <div className="bg-card border border-border rounded-md p-4">
+          <p className="section-label mb-3">Team Health</p>
+          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-{allTeams.length > 4 ? 4 : allTeams.length}">
+            {allTeams.map((team) => {
+              const ta = allAgents.filter((a) => a.teamId === team.id)
+              const goals = allTasks.filter((t) => t.teamId === team.id)
+              const completed = goals.filter((t) => t.status === "done").length
+              const total = goals.length || 1
+              const completionRate = Math.round((completed / total) * 100)
+              const errorCount = ta.filter((a) => a.status === "error").length
+              const avgStreak = ta.length > 0 ? Math.round(ta.reduce((sum, a) => sum + (a.streak ?? 0), 0) / ta.length) : 0
+              // Health score: weighted average of completion rate, error penalty, streak bonus
+              const healthScore = Math.min(100, Math.max(0, completionRate - (errorCount * 15) + Math.min(avgStreak * 2, 20)))
+              const healthColor = healthScore >= 70 ? "text-emerald-500" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
+              const barColor = healthScore >= 70 ? "bg-emerald-500" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
+              return (
+                <div key={team.id} className="rounded-md border border-border p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium">{team.icon} {team.name}</span>
+                    <span className={cn("text-sm font-bold tabular-nums", healthColor)}>{healthScore}</span>
+                  </div>
+                  <div className="h-1.5 rounded-full bg-border overflow-hidden mb-2">
+                    <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${healthScore}%` }} />
+                  </div>
+                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                    <span>{completionRate}% done</span>
+                    <span>{ta.length} agents</span>
+                    {errorCount > 0 && <span className="text-red-400">{errorCount} error</span>}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+
         {/* ── COST PER AGENT ────────────────────────────────── */}
         {(() => {
           const agentCosts = allAgents

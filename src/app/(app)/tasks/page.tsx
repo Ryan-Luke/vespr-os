@@ -10,7 +10,7 @@ import {
   Plus, Clock, CheckCircle2, Loader2, AlertCircle,
   ChevronRight, ChevronLeft, Bell, Upload, Check,
   MessageSquare, X, Save, Search, ExternalLink,
-  Link2, Lock, Unlink,
+  Link2, Lock, Unlink, Layout, FileText, Target, Bug, DollarSign, ClipboardList,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -65,6 +65,47 @@ const priorityDots: Record<string, string> = {
   medium: "bg-blue-400",
   low: "bg-zinc-500",
 }
+
+// --- Task Templates ---
+const TASK_TEMPLATES = [
+  {
+    id: "blog-post",
+    title: "Blog Post Pipeline",
+    description: "End-to-end blog post creation workflow",
+    icon: FileText,
+    subtasks: ["Research", "Outline", "Draft", "Edit", "Publish"],
+  },
+  {
+    id: "client-onboarding",
+    title: "Client Onboarding",
+    description: "New client setup and first deliverable",
+    icon: Layout,
+    subtasks: ["Welcome email", "Intake call", "Setup account", "First deliverable"],
+  },
+  {
+    id: "marketing-campaign",
+    title: "Marketing Campaign",
+    description: "Full campaign lifecycle from strategy to reporting",
+    icon: Target,
+    subtasks: ["Strategy", "Creative", "Launch", "Monitor", "Report"],
+  },
+  {
+    id: "bug-fix",
+    title: "Bug Fix",
+    description: "Standard bug investigation and resolution flow",
+    icon: Bug,
+    subtasks: ["Reproduce", "Investigate", "Fix", "Test", "Deploy"],
+  },
+  {
+    id: "financial-report",
+    title: "Financial Report",
+    description: "Data gathering through final submission",
+    icon: DollarSign,
+    subtasks: ["Gather data", "Reconcile", "Draft report", "Review", "Submit"],
+  },
+]
+
+const TEMPLATE_TAG = "[template]"
 
 // Owner tasks (agents delegate to you)
 const ownerTasks = [
@@ -184,6 +225,9 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
             <p className="text-[13px] font-medium leading-snug flex-1">{task.title}</p>
+            {task.description?.includes(TEMPLATE_TAG) && (
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">📋 Template</span>
+            )}
             {/* Link button — visible on hover */}
             <button
               onClick={(e) => { e.stopPropagation(); onStartLink(task.id) }}
@@ -266,6 +310,8 @@ export default function TasksPage() {
   const [newAgentId, setNewAgentId] = useState("")
   const [newTeamId, setNewTeamId] = useState("")
   const [saving, setSaving] = useState(false)
+  const [showTemplates, setShowTemplates] = useState(false)
+  const [templateLoading, setTemplateLoading] = useState<string | null>(null)
 
   // --- Dependency state ---
   const [deps, setDeps] = useState<DepsMap>({})
@@ -309,13 +355,17 @@ export default function TasksPage() {
     return set
   }, [hoveredTaskId, deps])
 
-  // Cancel linking mode on Escape
+  // Cancel linking mode / close template picker on Escape
   useEffect(() => {
-    if (!linkingFrom) return
-    function onKey(e: KeyboardEvent) { if (e.key === "Escape") setLinkingFrom(null) }
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        if (linkingFrom) setLinkingFrom(null)
+        if (showTemplates) setShowTemplates(false)
+      }
+    }
     window.addEventListener("keydown", onKey)
     return () => window.removeEventListener("keydown", onKey)
-  }, [linkingFrom])
+  }, [linkingFrom, showTemplates])
 
   const fetchData = useCallback(async () => {
     const [tasksRes, chatData] = await Promise.all([
@@ -370,6 +420,33 @@ export default function TasksPage() {
     setSaving(false)
   }
 
+  async function instantiateTemplate(templateId: string) {
+    const template = TASK_TEMPLATES.find((t) => t.id === templateId)
+    if (!template) return
+    setTemplateLoading(templateId)
+    const created: DBTask[] = []
+    for (let i = 0; i < template.subtasks.length; i++) {
+      const subtask = template.subtasks[i]
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title: `${template.title}: ${subtask}`,
+          description: `${TEMPLATE_TAG} Part of "${template.title}" template (${i + 1}/${template.subtasks.length})`,
+          priority: "medium",
+          status: i === 0 ? "in_progress" : "backlog",
+        }),
+      })
+      if (res.ok) {
+        const task = await res.json()
+        created.push(task)
+      }
+    }
+    setTasks((prev) => [...prev, ...created])
+    setShowTemplates(false)
+    setTemplateLoading(null)
+  }
+
   const unresolvedOwner = myTasks.filter((t) => !t.resolved)
   const filteredTasks = tasks.filter((t) => {
     if (filterTeam && t.teamId !== filterTeam) return false
@@ -392,6 +469,35 @@ export default function TasksPage() {
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-32 rounded-md border border-border bg-muted/50 pl-7 pr-2 text-xs outline-none focus:border-muted-foreground/30 transition-colors" />
+          </div>
+          <div className="relative">
+            <button onClick={() => setShowTemplates((p) => !p)} className="h-7 px-2 rounded-md text-xs font-medium border border-border text-foreground flex items-center gap-1 hover:bg-accent transition-colors"><ClipboardList className="h-3 w-3" />Templates</button>
+            {showTemplates && (
+              <div className="absolute right-0 top-full mt-1 z-50 bg-card border border-border rounded-md shadow-lg p-2 w-72">
+                <p className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wide px-2 py-1">Task Templates</p>
+                {TASK_TEMPLATES.map((tpl) => {
+                  const Icon = tpl.icon
+                  const isLoading = templateLoading === tpl.id
+                  return (
+                    <button
+                      key={tpl.id}
+                      onClick={() => instantiateTemplate(tpl.id)}
+                      disabled={!!templateLoading}
+                      className="w-full p-3 rounded-md hover:bg-accent transition-colors cursor-pointer text-left flex items-start gap-2.5 disabled:opacity-50"
+                    >
+                      <div className="h-8 w-8 rounded-md bg-muted flex items-center justify-center shrink-0 mt-0.5">
+                        {isLoading ? <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" /> : <Icon className="h-4 w-4 text-muted-foreground" />}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[13px] font-medium">{tpl.title}</p>
+                        <p className="text-[11px] text-muted-foreground mt-0.5">{tpl.description}</p>
+                        <p className="text-[10px] text-muted-foreground/70 mt-1">{tpl.subtasks.length} subtasks</p>
+                      </div>
+                    </button>
+                  )
+                })}
+              </div>
+            )}
           </div>
           <button onClick={() => setShowNewTask(true)} className="h-7 px-2 rounded-md text-xs font-medium bg-primary text-primary-foreground flex items-center gap-1 hover:bg-primary/90 transition-colors"><Plus className="h-3 w-3" />New</button>
         </div>

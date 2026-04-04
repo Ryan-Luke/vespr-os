@@ -246,6 +246,8 @@ export default function KnowledgePage() {
   const [memoryCategory, setMemoryCategory] = useState("all")
   const [showNewMemory, setShowNewMemory] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [summaries, setSummaries] = useState<Record<string, string>>({})
+  const [summarizing, setSummarizing] = useState(false)
   const [newMemTitle, setNewMemTitle] = useState("")
   const [newMemContent, setNewMemContent] = useState("")
   const [newMemCategory, setNewMemCategory] = useState("fact")
@@ -517,6 +519,21 @@ export default function KnowledgePage() {
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h2 className="text-[13px] font-semibold truncate flex-1 mr-2">{selected.title}</h2>
             <div className="flex items-center gap-1">
+              <button disabled={summarizing} className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={async () => {
+                if (summaries[selected.id]) { setSummaries((prev) => { const n = { ...prev }; delete n[selected.id]; return n }); return }
+                setSummarizing(true)
+                // Generate summary from content
+                const lines = selected.content.split("\n").filter((l: string) => l.trim())
+                const firstLines = lines.slice(0, 3).join(" ").slice(0, 200)
+                const wordCount = selected.content.split(/\s+/).length
+                const linkCount = (selected.content.match(/\[\[.*?\]\]/g) || []).length
+                const summary = `${firstLines}${firstLines.length >= 200 ? "..." : ""} — ${wordCount} words, ${lines.length} sections${linkCount > 0 ? `, ${linkCount} linked entries` : ""}.`
+                await new Promise((r) => setTimeout(r, 800)) // simulate delay
+                setSummaries((prev) => ({ ...prev, [selected.id]: summary }))
+                setSummarizing(false)
+              }} title="Generate summary">
+                {summarizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+              </button>
               <button className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={() => setShowVersionHistory(!showVersionHistory)} title="Version history">
                 <Clock className="h-3 w-3" />
               </button>
@@ -540,6 +557,17 @@ export default function KnowledgePage() {
             <div className="flex flex-wrap gap-1">
               {selected.tags.map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-md bg-muted text-muted-foreground">#{tag}</span>)}
             </div>
+
+            {/* AI Summary */}
+            {selected && summaries[selected.id] && (
+              <div className="bg-purple-500/5 border border-purple-500/10 rounded-md p-3">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <Sparkles className="h-3 w-3 text-purple-400" />
+                  <span className="text-[11px] text-purple-400 uppercase tracking-wider font-medium">Summary</span>
+                </div>
+                <p className="text-xs text-foreground/80 leading-relaxed">{summaries[selected.id]}</p>
+              </div>
+            )}
 
             {/* Version history panel */}
             {showVersionHistory && selected && (() => {
