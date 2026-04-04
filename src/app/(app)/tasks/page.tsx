@@ -261,18 +261,18 @@ export default function TasksPage() {
         {/* New Task Form */}
         {showNewTask && (
           <div className="px-6 py-4 border-b border-border">
-            <Card className="p-4 border-primary/30 space-y-3">
-              <h3 className="text-sm font-bold">Create New Task</h3>
-              <Input placeholder="Task title..." value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="h-8 text-sm" />
-              <Textarea placeholder="Description (optional)..." value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} className="text-sm" />
+            <div className="bg-card border border-border rounded-md p-4 space-y-3">
+              <p className="section-label">New Task</p>
+              <input placeholder="Task title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+              <textarea placeholder="Description (optional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
               <div className="grid grid-cols-3 gap-2">
                 <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? "medium")}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="urgent">🔴 Urgent</SelectItem>
-                    <SelectItem value="high">🟠 High</SelectItem>
-                    <SelectItem value="medium">🔵 Medium</SelectItem>
-                    <SelectItem value="low">⚪ Low</SelectItem>
+                    <SelectItem value="urgent">Urgent</SelectItem>
+                    <SelectItem value="high">High</SelectItem>
+                    <SelectItem value="medium">Medium</SelectItem>
+                    <SelectItem value="low">Low</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={newTeamId} onValueChange={(v) => setNewTeamId(v ?? "")}>
@@ -282,19 +282,19 @@ export default function TasksPage() {
                   </SelectContent>
                 </Select>
                 <Select value={newAgentId} onValueChange={(v) => setNewAgentId(v ?? "")}>
-                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Assign to" /></SelectTrigger>
+                  <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Assign" /></SelectTrigger>
                   <SelectContent>
                     {(newTeamId ? dbAgents.filter((a) => a.teamId === newTeamId) : dbAgents).map((a) => <SelectItem key={a.id} value={a.id}>{a.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <div className="flex gap-2">
-                <Button size="sm" onClick={createTask} disabled={!newTitle.trim() || saving}>
-                  {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}Create Task
-                </Button>
-                <Button size="sm" variant="ghost" onClick={() => setShowNewTask(false)}>Cancel</Button>
+                <button onClick={createTask} disabled={!newTitle.trim() || saving} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
+                  {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}Create
+                </button>
+                <button onClick={() => setShowNewTask(false)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
               </div>
-            </Card>
+            </div>
           </div>
         )}
 

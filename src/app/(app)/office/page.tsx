@@ -69,98 +69,66 @@ export default function OfficePage() {
       </div>
 
       {selectedAgent && (
-        <div className="w-80 shrink-0 border-l border-border p-4 space-y-4 overflow-y-auto">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm">Agent Details</h3>
-            <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => setSelectedAgent(null)}>
-              <X className="h-4 w-4" />
-            </Button>
+        <div className="w-64 shrink-0 border-l border-border overflow-y-auto bg-sidebar">
+          <div className="flex items-center justify-between h-12 px-3 border-b border-border">
+            <span className="text-[13px] font-medium">Details</span>
+            <button className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent" onClick={() => setSelectedAgent(null)}><X className="h-3 w-3 text-muted-foreground" /></button>
           </div>
 
-          <div className="flex items-center gap-3">
-            <PixelAvatar characterIndex={selectedAgent.pixelAvatarIndex} size={48} className="rounded-md border border-border" />
-            <div>
-              <div className="flex items-center gap-2">
-                <p className="font-medium">{selectedAgent.name}</p>
-                {selectedAgent.isTeamLead && <Crown className="h-3 w-3 text-amber-400" />}
-              </div>
-              <p className="text-xs text-muted-foreground">{selectedAgent.role}</p>
-              <div className="flex items-center gap-2 mt-0.5">
-                <StatusDot status={selectedAgent.status} showLabel />
-                {(selectedAgent.level ?? 0) > 0 && (
-                  <span className="text-xs font-mono text-muted-foreground">Lv.{selectedAgent.level} {levelTitle(selectedAgent.level ?? 1)}</span>
-                )}
+          <div className="p-3 space-y-3">
+            <div className="flex items-center gap-2.5">
+              <PixelAvatar characterIndex={selectedAgent.pixelAvatarIndex} size={28} className="rounded-sm" />
+              <div>
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[13px] font-semibold">{selectedAgent.name}</span>
+                  {selectedAgent.isTeamLead && <Crown className="h-3 w-3 text-amber-500" />}
+                  <span className={cn("h-1.5 w-1.5 rounded-full", selectedAgent.status === "working" ? "status-working" : selectedAgent.status === "error" ? "status-error" : selectedAgent.status === "paused" ? "status-paused" : "status-idle")} />
+                </div>
+                <p className="text-[11px] text-muted-foreground">{selectedAgent.role} · Lv.{selectedAgent.level ?? 1}</p>
               </div>
             </div>
-          </div>
 
-          {/* Personality */}
-          {(preset || selectedAgent.personalityPresetId) && (
-            <div className="p-2.5 rounded-md bg-muted border border-border">
-              <div className="flex items-center gap-1.5 text-xs">
-                <Sparkles className="h-3 w-3 text-muted-foreground" />
-                {preset ? (
-                  <span><span className="font-medium">{preset.name}</span> <span className="text-muted-foreground">— {preset.description}</span></span>
-                ) : (
-                  <span className="text-muted-foreground">Custom personality</span>
-                )}
-              </div>
-            </div>
-          )}
+            {preset && (
+              <p className="text-[11px] text-muted-foreground"><span className="font-medium text-foreground">{preset.name}</span> — {preset.description}</p>
+            )}
 
-          {selectedAgent.currentTask && (
-            <Card className="p-3">
-              <p className="text-xs text-muted-foreground mb-1">Current Task</p>
-              <p className="text-sm">{selectedAgent.currentTask}</p>
-            </Card>
-          )}
-
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Model</span>
-              <span className="font-mono text-xs">{selectedAgent.model}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Tasks Done</span>
-              <span className="font-mono text-xs">{(selectedAgent.tasksCompleted ?? 0).toLocaleString()}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Cost/mo</span>
-              <span className="font-mono text-xs">${(selectedAgent.costThisMonth ?? 0).toFixed(2)}</span>
-            </div>
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Autonomy</span>
-              <Badge variant="secondary" className={cn("text-xs h-5", selectedAgent.autonomyLevel === "full_auto" && "bg-green-500/10 text-green-600")}>
-                {selectedAgent.autonomyLevel === "full_auto" ? "Full Auto" : selectedAgent.autonomyLevel === "supervised" ? "Supervised" : "Manual"}
-              </Badge>
-            </div>
-            {(selectedAgent.streak ?? 0) > 0 && (
-              <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Streak</span>
-                <span className="text-xs text-orange-500">🔥 {selectedAgent.streak}d</span>
+            {selectedAgent.currentTask && (
+              <div className="bg-muted/50 rounded-md px-2.5 py-2">
+                <p className="text-[11px] text-muted-foreground">Working on</p>
+                <p className="text-xs mt-0.5">{selectedAgent.currentTask}</p>
               </div>
             )}
-          </div>
 
-          <div className="flex flex-wrap gap-1.5">
-            {(selectedAgent.skills as string[]).map((skill) => (
-              <Badge key={skill} variant="secondary" className="text-xs">{skill}</Badge>
-            ))}
-          </div>
+            <div className="space-y-1.5">
+              {[
+                { label: "Model", value: selectedAgent.model },
+                { label: "Tasks", value: (selectedAgent.tasksCompleted ?? 0).toLocaleString() },
+                { label: "Cost/mo", value: `$${(selectedAgent.costThisMonth ?? 0).toFixed(2)}` },
+                { label: "Autonomy", value: selectedAgent.autonomyLevel === "full_auto" ? "Full Auto" : selectedAgent.autonomyLevel === "supervised" ? "Supervised" : "Manual" },
+              ].map((s) => (
+                <div key={s.label} className="flex justify-between text-xs">
+                  <span className="text-muted-foreground">{s.label}</span>
+                  <span className="tabular-nums">{s.value}</span>
+                </div>
+              ))}
+            </div>
 
-          <div className="flex gap-2">
-            <Link href="/" className="flex-1">
-              <Button variant="outline" size="sm" className="w-full">
-                <MessageSquare className="h-3 w-3 mr-1" />Chat
-              </Button>
-            </Link>
-            <Button variant="outline" size="sm" className="flex-1" onClick={() => togglePause(selectedAgent)}>
-              {selectedAgent.status === "paused" ? <><Play className="h-3 w-3 mr-1" />Resume</> : <><Pause className="h-3 w-3 mr-1" />Pause</>}
-            </Button>
+            <div className="flex flex-wrap gap-1">
+              {(selectedAgent.skills as string[]).map((skill) => (
+                <span key={skill} className="text-[11px] text-muted-foreground bg-muted rounded px-1.5 py-0.5">{skill}</span>
+              ))}
+            </div>
+
+            <div className="flex gap-1.5 pt-1 border-t border-border">
+              <Link href="/" className="flex-1 h-7 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center justify-center gap-1 transition-colors">
+                <MessageSquare className="h-3 w-3" />Chat
+              </Link>
+              <button onClick={() => togglePause(selectedAgent)} className="flex-1 h-7 rounded-md text-xs text-muted-foreground hover:bg-accent hover:text-foreground flex items-center justify-center gap-1 transition-colors">
+                {selectedAgent.status === "paused" ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
+              </button>
+            </div>
+            <Link href={`/teams/${selectedAgent.teamId}/agents/${selectedAgent.id}`} className="block text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors">Full Profile</Link>
           </div>
-          <Link href={`/teams/${selectedAgent.teamId}/agents/${selectedAgent.id}`}>
-            <Button variant="outline" size="sm" className="w-full text-xs">View Full Profile</Button>
-          </Link>
         </div>
       )}
     </div>

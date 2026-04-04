@@ -253,168 +253,125 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             <TabsTrigger value="settings">Settings</TabsTrigger>
           </TabsList>
 
+          {/* Skills */}
           <TabsContent value="skills" className="mt-4">
-            <Card><CardHeader><CardTitle className="text-base flex items-center gap-2"><Brain className="h-4 w-4" />Skills</CardTitle></CardHeader>
-              <CardContent><div className="flex flex-wrap gap-2">{(agent.skills as string[]).map((skill) => <Badge key={skill} variant="secondary">{skill}</Badge>)}</div></CardContent>
-            </Card>
+            <div className="bg-card border border-border rounded-md p-4">
+              <p className="section-label mb-2">Skills</p>
+              <div className="flex flex-wrap gap-1.5">{(agent.skills as string[]).map((skill) => <span key={skill} className="text-xs text-muted-foreground bg-muted rounded-md px-2 py-0.5">{skill}</span>)}</div>
+            </div>
           </TabsContent>
 
-          <TabsContent value="sops" className="mt-4 space-y-4">
+          {/* SOPs */}
+          <TabsContent value="sops" className="mt-4 space-y-3">
             <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-sm font-semibold">Standard Operating Procedures</h3>
-                <p className="text-xs text-muted-foreground">Step-by-step instructions for how {agent.name} does their job</p>
-              </div>
-              <Button size="sm" onClick={() => setShowNewSop(true)} disabled={showNewSop}><Plus className="h-3.5 w-3.5 mr-1" />Add SOP</Button>
+              <p className="section-label">Procedures</p>
+              <button onClick={() => setShowNewSop(true)} disabled={showNewSop} className="text-xs text-primary hover:text-primary/80 font-medium transition-colors">+ Add SOP</button>
             </div>
 
             {showNewSop && (
-              <Card className="border-primary/30">
-                <CardContent className="pt-5 space-y-3">
-                  <Input placeholder="SOP Title" value={newSopTitle} onChange={(e) => setNewSopTitle(e.target.value)} />
-                  <div className="flex gap-1 flex-wrap">
-                    {sopCategories.map((cat) => (
-                      <button key={cat.id} onClick={() => setNewSopCategory(cat.id)} className={cn("px-2.5 py-1 rounded-full text-xs font-medium transition-colors", newSopCategory === cat.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.icon} {cat.label}</button>
-                    ))}
-                  </div>
-                  <Textarea placeholder="Write step-by-step instructions..." value={newSopContent} onChange={(e) => setNewSopContent(e.target.value)} rows={6} />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={createSop} disabled={!newSopTitle.trim() || !newSopContent.trim() || saving}>
-                      {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
-                    </Button>
-                    <Button size="sm" variant="ghost" onClick={() => { setShowNewSop(false); setNewSopTitle(""); setNewSopContent("") }}>Cancel</Button>
-                  </div>
-                </CardContent>
-              </Card>
+              <div className="bg-card border border-border rounded-md p-4 space-y-3">
+                <input placeholder="SOP Title" value={newSopTitle} onChange={(e) => setNewSopTitle(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+                <div className="flex gap-1 flex-wrap">
+                  {sopCategories.map((cat) => (
+                    <button key={cat.id} onClick={() => setNewSopCategory(cat.id)} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors", newSopCategory === cat.id ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>{cat.icon} {cat.label}</button>
+                  ))}
+                </div>
+                <textarea placeholder="Write step-by-step instructions..." value={newSopContent} onChange={(e) => setNewSopContent(e.target.value)} rows={5} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                <div className="flex gap-2">
+                  <button onClick={createSop} disabled={!newSopTitle.trim() || !newSopContent.trim() || saving} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1">
+                    {saving ? <Loader2 className="h-3 w-3 animate-spin" /> : <Save className="h-3 w-3" />}Save
+                  </button>
+                  <button onClick={() => { setShowNewSop(false); setNewSopTitle(""); setNewSopContent("") }} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Cancel</button>
+                </div>
+              </div>
             )}
 
             {sops.length === 0 && !showNewSop && (
-              <Card className="border-dashed"><CardContent className="pt-6 flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <FileText className="h-8 w-8 mb-2 opacity-30" /><p className="text-sm font-medium">No SOPs yet</p>
-                <p className="text-xs mt-1">SOPs are auto-generated when {agent.name} completes tasks, or you can create them manually.</p>
-              </CardContent></Card>
+              <div className="text-center py-8 text-xs text-muted-foreground">No SOPs yet. They auto-generate as {agent.name} completes tasks.</div>
             )}
 
             {sops.map((sop) => {
               const cat = sopCategories.find((c) => c.id === sop.category)
               const isEditing = editingSop === sop.id
               return (
-                <Card key={sop.id}>
-                  <CardContent className="pt-5">
-                    <div className="flex items-start justify-between">
-                      <div className="flex items-center gap-2">
-                        <span>{cat?.icon || "📝"}</span>
-                        <div>
-                          <h4 className="text-sm font-semibold">{sop.title}</h4>
-                          <p className="text-xs text-muted-foreground">v{sop.version} · Updated {new Date(sop.updatedAt).toLocaleDateString()}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Button variant="ghost" size="sm" className="h-7 text-xs" onClick={() => setEditingSop(isEditing ? null : sop.id)}>
-                          <Edit3 className="h-3 w-3 mr-1" />{isEditing ? "Cancel" : "Edit"}
-                        </Button>
-                        <Button variant="ghost" size="sm" className="h-7 text-xs text-red-400 hover:text-red-300" onClick={() => deleteSop(sop.id)}>
-                          <Trash2 className="h-3 w-3" />
-                        </Button>
+                <div key={sop.id} className="bg-card border border-border rounded-md p-4">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm">{cat?.icon || "📝"}</span>
+                      <div>
+                        <p className="text-[13px] font-medium">{sop.title}</p>
+                        <p className="text-[11px] text-muted-foreground">v{sop.version} · {new Date(sop.updatedAt).toLocaleDateString()}</p>
                       </div>
                     </div>
-                    {isEditing ? (
-                      <div className="mt-3 space-y-2">
-                        <Textarea defaultValue={sop.content} id={`sop-edit-${sop.id}`} rows={8} />
-                        <Button size="sm" disabled={saving} onClick={() => {
-                          const el = document.getElementById(`sop-edit-${sop.id}`) as HTMLTextAreaElement
-                          updateSop(sop.id, el.value)
-                        }}>
-                          {saving ? <Loader2 className="h-3.5 w-3.5 animate-spin mr-1" /> : <Save className="h-3.5 w-3.5 mr-1" />}Save
-                        </Button>
-                      </div>
-                    ) : (
-                      <div className="mt-3 text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{sop.content}</div>
-                    )}
-                  </CardContent>
-                </Card>
+                    <div className="flex items-center gap-1">
+                      <button onClick={() => setEditingSop(isEditing ? null : sop.id)} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">{isEditing ? "Cancel" : "Edit"}</button>
+                      <button onClick={() => deleteSop(sop.id)} className="text-[11px] text-red-400 hover:text-red-300 transition-colors ml-2">Delete</button>
+                    </div>
+                  </div>
+                  {isEditing ? (
+                    <div className="mt-3 space-y-2">
+                      <textarea defaultValue={sop.content} id={`sop-edit-${sop.id}`} rows={6} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+                      <button disabled={saving} onClick={() => { const el = document.getElementById(`sop-edit-${sop.id}`) as HTMLTextAreaElement; updateSop(sop.id, el.value) }} className="h-6 px-2 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors">Save</button>
+                    </div>
+                  ) : (
+                    <div className="mt-2 text-[13px] text-foreground/80 whitespace-pre-wrap leading-relaxed">{sop.content}</div>
+                  )}
+                </div>
               )
             })}
           </TabsContent>
 
-          <TabsContent value="memory" className="mt-4 space-y-4">
-            <div>
-              <h3 className="text-sm font-semibold flex items-center gap-2"><Brain className="h-4 w-4" />Agent Memory</h3>
-              <p className="text-xs text-muted-foreground">What {agent.name} has learned and remembers across conversations</p>
-            </div>
+          {/* Memory */}
+          <TabsContent value="memory" className="mt-4 space-y-3">
+            <p className="section-label">Memory</p>
             {memories.length === 0 ? (
-              <Card className="border-dashed"><CardContent className="pt-6 flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <Brain className="h-8 w-8 mb-2 opacity-30" /><p className="text-sm font-medium">No memories yet</p>
-                <p className="text-xs mt-1">As you chat with {agent.name} and provide feedback, they'll build up memories that persist across conversations.</p>
-              </CardContent></Card>
+              <div className="text-center py-8 text-xs text-muted-foreground">No memories yet. They build up through conversations and feedback.</div>
             ) : (
-              <div className="space-y-2">
-                {memories.map((mem) => {
-                  const typeColors: Record<string, string> = {
-                    observation: "bg-blue-500/10 text-blue-600",
-                    preference: "bg-purple-500/10 text-purple-600",
-                    learning: "bg-green-500/10 text-green-600",
-                    relationship: "bg-pink-500/10 text-pink-600",
-                    skill: "bg-amber-500/10 text-amber-600",
-                  }
-                  return (
-                    <Card key={mem.id}>
-                      <CardContent className="py-3 px-4">
-                        <div className="flex items-start gap-2">
-                          <Badge variant="secondary" className={cn("text-xs h-5 shrink-0 capitalize", typeColors[mem.memoryType] || "")}>
-                            {mem.memoryType}
-                          </Badge>
-                          <p className="text-sm flex-1">{mem.content}</p>
-                          <div className="flex items-center gap-1 shrink-0">
-                            <div className="w-12 h-1.5 rounded-full bg-muted overflow-hidden" title={`Importance: ${Math.round(mem.importance * 100)}%`}>
-                              <div className="h-full rounded-full bg-primary" style={{ width: `${mem.importance * 100}%` }} />
-                            </div>
-                          </div>
-                        </div>
-                      </CardContent>
-                    </Card>
-                  )
-                })}
-              </div>
-            )}
-          </TabsContent>
-
-          <TabsContent value="history" className="mt-4 space-y-4">
-            <h3 className="text-sm font-semibold flex items-center gap-2"><Shield className="h-4 w-4" />Recent Activity</h3>
-            {decisions.length === 0 ? (
-              <Card className="border-dashed"><CardContent className="pt-6 flex flex-col items-center justify-center py-8 text-muted-foreground">
-                <Shield className="h-8 w-8 mb-2 opacity-30" /><p className="text-sm font-medium">No activity logged yet</p>
-                <p className="text-xs mt-1">As {agent.name} works, their decisions and actions will appear here.</p>
-              </CardContent></Card>
-            ) : (
-              <div className="space-y-2">
-                {decisions.map((d) => (
-                  <Card key={d.id}>
-                    <CardContent className="py-3 px-4">
-                      <div className="flex items-start gap-3">
-                        <Zap className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
-                        <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium">{d.title}</p>
-                          <p className="text-xs text-muted-foreground">{d.description}</p>
-                          {d.reasoning && <p className="text-xs text-muted-foreground mt-1 italic">Reasoning: {d.reasoning}</p>}
-                        </div>
-                        <span className="text-xs text-muted-foreground flex items-center gap-1 shrink-0"><Clock className="h-3 w-3" />{timeAgo(d.createdAt)}</span>
-                      </div>
-                    </CardContent>
-                  </Card>
+              <div className="bg-card border border-border rounded-md divide-y divide-border">
+                {memories.map((mem) => (
+                  <div key={mem.id} className="flex items-start gap-2 px-4 py-2.5">
+                    <span className="text-[11px] text-muted-foreground capitalize shrink-0 w-16">{mem.memoryType}</span>
+                    <p className="text-[13px] flex-1">{mem.content}</p>
+                    <div className="w-10 h-1 rounded-full bg-border overflow-hidden shrink-0 mt-1.5">
+                      <div className="h-full rounded-full bg-primary" style={{ width: `${mem.importance * 100}%` }} />
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
           </TabsContent>
 
+          {/* History */}
+          <TabsContent value="history" className="mt-4 space-y-3">
+            <p className="section-label">Activity</p>
+            {decisions.length === 0 ? (
+              <div className="text-center py-8 text-xs text-muted-foreground">No activity logged yet.</div>
+            ) : (
+              <div className="bg-card border border-border rounded-md divide-y divide-border">
+                {decisions.map((d) => (
+                  <div key={d.id} className="flex items-start gap-2.5 px-4 py-2.5">
+                    <Zap className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-medium">{d.title}</p>
+                      <p className="text-xs text-muted-foreground">{d.description}</p>
+                    </div>
+                    <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{timeAgo(d.createdAt)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </TabsContent>
+
+          {/* Settings */}
           <TabsContent value="settings" className="mt-4">
-            <Card><CardHeader><CardTitle className="text-base">Agent Configuration</CardTitle></CardHeader>
-              <CardContent className="space-y-4">
-                <div className="space-y-2"><label className="text-sm font-medium">System Prompt</label>
-                  <Textarea defaultValue={agent.systemPrompt || ""} placeholder="Custom instructions for this agent..." rows={4} /></div>
-                <Button size="sm">Save Settings</Button>
-              </CardContent>
-            </Card>
+            <div className="bg-card border border-border rounded-md p-4 space-y-3">
+              <p className="section-label">Configuration</p>
+              <div className="space-y-1.5">
+                <label className="text-[13px] font-medium">System Prompt</label>
+                <textarea defaultValue={agent.systemPrompt || ""} placeholder="Custom instructions..." rows={4} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+              </div>
+              <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save</button>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
