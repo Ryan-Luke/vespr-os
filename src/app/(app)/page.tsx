@@ -277,6 +277,7 @@ export default function ChatPage() {
   const [dmAgent, setDmAgent] = useState<DBAgent | null>(null)
   const [inputValue, setInputValue] = useState("")
   const [channelLoading, setChannelLoading] = useState(false)
+  const [typingAgent, setTypingAgent] = useState<string | null>(null) // agent name currently "typing"
   const [dataLoaded, setDataLoaded] = useState(false)
   const [autonomousMode, setAutonomousMode] = useState(false)
   const autonomousRef = useRef(false)
@@ -475,6 +476,7 @@ export default function ChatPage() {
     if (!respondingAgent) respondingAgent = channelAgents[Math.floor(Math.random() * channelAgents.length)]
 
     setChannelLoading(true)
+    setTypingAgent(respondingAgent.name)
     try {
       const res = await fetch("/api/chat", {
         method: "POST",
@@ -548,6 +550,7 @@ export default function ChatPage() {
       setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
     } finally {
       setChannelLoading(false)
+      setTypingAgent(null)
     }
   }
 
@@ -679,7 +682,17 @@ export default function ChatPage() {
                 </button>
               )
             })()}
-            <div className="ml-auto flex items-center gap-2">
+            <div className="ml-auto flex items-center gap-3">
+              {(() => {
+                const members = getChannelAgents()
+                const working = members.filter((a) => a.status === "working").length
+                const online = members.filter((a) => a.status !== "paused").length
+                return (
+                  <span className="text-xs text-muted-foreground">
+                    {working > 0 && <><span className="text-green-500">{working} working</span> · </>}{online} online
+                  </span>
+                )
+              })()}
               <Button variant={autonomousMode ? "default" : "outline"} size="sm" className="h-7 text-xs gap-1.5" onClick={() => setAutonomousMode(!autonomousMode)}>
                 {autonomousMode ? <Square className="h-3 w-3" /> : <Play className="h-3 w-3" />}
                 {autonomousMode ? "Pause Agents" : "Run Autonomous"}
@@ -721,6 +734,16 @@ export default function ChatPage() {
               ) : (
                 <div className="space-y-1">
                   {channelMessages.filter((m) => !m.threadId).map((msg) => <MessageBubble key={msg.id} message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} />)}
+                  {typingAgent && (
+                    <div className="flex items-center gap-2 px-4 py-1.5 text-xs text-muted-foreground animate-pulse">
+                      <div className="flex gap-0.5">
+                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+                        <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                      </div>
+                      <span>{typingAgent} is typing...</span>
+                    </div>
+                  )}
                   <div ref={messagesEndRef} />
                 </div>
               )}
