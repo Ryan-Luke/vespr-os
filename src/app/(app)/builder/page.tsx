@@ -279,17 +279,17 @@ function BuilderPageInner() {
           </div>
 
           {personalityMode === "preset" ? (
-            <Card>
-              <CardHeader className="pb-3">
-                <CardTitle className="text-base flex items-center gap-2">
+            <div className="bg-card border border-border rounded-md">
+              <div>
+                <p className="section-label mb-2">
                   <Sparkles className="h-4 w-4" />
                   Character Library
-                </CardTitle>
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Choose a famous personality — your agent will communicate in their style
                 </p>
-              </CardHeader>
-              <CardContent className="space-y-3">
+              </div>
+              <div>
                 {/* Search + Filter */}
                 <div className="flex gap-2">
                   <Input
@@ -318,7 +318,7 @@ function BuilderPageInner() {
                       key={preset.id}
                       onClick={() => setSelectedPreset(preset)}
                       className={cn(
-                        "flex flex-col gap-1 rounded-lg border p-3 text-left transition-all hover:border-primary/50",
+                        "flex flex-col gap-1 rounded-md border p-3 text-left transition-all hover:border-primary/50",
                         selectedPreset?.id === preset.id
                           ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                           : "border-border"
@@ -344,7 +344,7 @@ function BuilderPageInner() {
 
                 {/* Selected Preview */}
                 {selectedPreset && (
-                  <div className="rounded-lg border border-primary/30 bg-primary/5 p-4 space-y-3">
+                  <div className="rounded-md border border-primary/30 bg-primary/5 p-4 space-y-3">
                     <div className="flex items-center justify-between">
                       <div>
                         <h4 className="font-semibold text-sm">{selectedPreset.name}</h4>
@@ -369,17 +369,17 @@ function BuilderPageInner() {
                     </div>
                   </div>
                 )}
-              </CardContent>
-            </Card>
+              </div>
+            </div>
           ) : (
             <div className="space-y-4">
               {/* Communication Style — pick one per axis */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Communication Style</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Communication Style</p>
                   <p className="text-xs text-muted-foreground">How your agent speaks — pick one per row</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                </div>
+                <div>
                   {(Object.entries(COMMUNICATION_AXES) as [keyof typeof COMMUNICATION_AXES, typeof COMMUNICATION_AXES[keyof typeof COMMUNICATION_AXES]][]).map(([key, axis]) => (
                     <div key={key}>
                       <Label className="text-xs text-muted-foreground mb-1.5 block">{axis.label}</Label>
@@ -389,7 +389,7 @@ function BuilderPageInner() {
                             key={opt.id}
                             onClick={() => setCustomConfig((prev) => ({ ...prev, communication: { ...prev.communication, [key]: opt.id } }))}
                             className={cn(
-                              "rounded-lg border p-2.5 text-sm text-left transition-all",
+                              "rounded-md border p-2.5 text-sm text-left transition-all",
                               customConfig.communication[key] === opt.id
                                 ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                                 : "border-border hover:border-primary/40"
@@ -401,16 +401,16 @@ function BuilderPageInner() {
                       </div>
                     </div>
                   ))}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Temperament — pick 2-3 */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Temperament</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Temperament</p>
                   <p className="text-xs text-muted-foreground">Their core emotional nature — pick 2-3</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="flex flex-wrap gap-2">
                     {TEMPERAMENT_OPTIONS.map((opt) => {
                       const selected = customConfig.temperament.includes(opt.id)
@@ -431,16 +431,16 @@ function BuilderPageInner() {
                       )
                     })}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Social Traits — pick 2-3 */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Social Traits</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Social Traits</p>
                   <p className="text-xs text-muted-foreground">How they interact with people — pick 2-3</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="flex flex-wrap gap-2">
                     {SOCIAL_OPTIONS.map((opt) => {
                       const selected = customConfig.social.includes(opt.id)
@@ -461,16 +461,16 @@ function BuilderPageInner() {
                       )
                     })}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Humor — pick 0-2 */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Humor Style</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Humor Style</p>
                   <p className="text-xs text-muted-foreground">How (or if) they use humor — pick 0-2</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="flex flex-wrap gap-2">
                     {HUMOR_OPTIONS.map((opt) => {
                       const selected = customConfig.humor.includes(opt.id)
@@ -499,23 +499,23 @@ function BuilderPageInner() {
                       )
                     })}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Energy — pick one */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Energy & Vibe</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Energy & Vibe</p>
                   <p className="text-xs text-muted-foreground">Their overall energy — pick one</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="grid grid-cols-2 gap-2">
                     {ENERGY_OPTIONS.map((opt) => (
                       <button
                         key={opt.id}
                         onClick={() => setCustomConfig((prev) => ({ ...prev, energy: opt.id }))}
                         className={cn(
-                          "rounded-lg border p-2.5 text-sm text-left transition-all flex items-center gap-2",
+                          "rounded-md border p-2.5 text-sm text-left transition-all flex items-center gap-2",
                           customConfig.energy === opt.id
                             ? "border-primary bg-primary/5 ring-1 ring-primary/30"
                             : "border-border hover:border-primary/40"
@@ -525,16 +525,16 @@ function BuilderPageInner() {
                       </button>
                     ))}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Quirks — pick 0-3 */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Communication Quirks</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Communication Quirks</p>
                   <p className="text-xs text-muted-foreground">Distinctive habits in how they communicate — pick 0-3</p>
-                </CardHeader>
-                <CardContent>
+                </div>
+                <div>
                   <div className="flex flex-wrap gap-2">
                     {QUIRK_OPTIONS.map((opt) => {
                       const selected = customConfig.quirks.includes(opt.id)
@@ -555,16 +555,16 @@ function BuilderPageInner() {
                       )
                     })}
                   </div>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
 
               {/* Catchphrases */}
-              <Card>
-                <CardHeader className="pb-3">
-                  <CardTitle className="text-base">Signature Expressions</CardTitle>
+              <div className="bg-card border border-border rounded-md">
+                <div>
+                  <p className="section-label mb-2">Signature Expressions</p>
                   <p className="text-xs text-muted-foreground">Custom catchphrases they'll use naturally — optional</p>
-                </CardHeader>
-                <CardContent className="space-y-3">
+                </div>
+                <div>
                   <div className="flex gap-2">
                     <Input
                       placeholder="e.g., Let's get after it, Here's the play..."
@@ -594,8 +594,8 @@ function BuilderPageInner() {
                       ))}
                     </div>
                   )}
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
           )}
 
