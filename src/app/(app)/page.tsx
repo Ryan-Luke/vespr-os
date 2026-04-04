@@ -12,7 +12,7 @@ import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
   Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
-  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Pin,
+  Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Pin, Code,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
@@ -980,7 +980,39 @@ export default function ChatPage() {
     setMentionQuery(null); inputRef.current?.focus()
   }
 
+  function applyFormat(type: "bold" | "italic" | "code" | "list") {
+    const ta = inputRef.current
+    if (!ta) return
+    const start = ta.selectionStart
+    const end = ta.selectionEnd
+    const val = inputValue
+    let newVal: string
+    let cursorPos: number
+
+    if (type === "list") {
+      // Find start of current line
+      const lineStart = val.lastIndexOf("\n", start - 1) + 1
+      newVal = val.slice(0, lineStart) + "- " + val.slice(lineStart)
+      cursorPos = start + 2
+    } else {
+      const wrap = type === "bold" ? "**" : type === "italic" ? "*" : "`"
+      const selected = val.slice(start, end)
+      if (start !== end) {
+        newVal = val.slice(0, start) + wrap + selected + wrap + val.slice(end)
+        cursorPos = end + wrap.length * 2
+      } else {
+        newVal = val.slice(0, start) + wrap + wrap + val.slice(start)
+        cursorPos = start + wrap.length
+      }
+    }
+    setInputValue(newVal)
+    requestAnimationFrame(() => { ta.focus(); ta.selectionStart = ta.selectionEnd = cursorPos })
+  }
+
   function handleInputKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if ((e.metaKey || e.ctrlKey) && e.key === "b") { e.preventDefault(); applyFormat("bold"); return }
+    if ((e.metaKey || e.ctrlKey) && e.key === "i") { e.preventDefault(); applyFormat("italic"); return }
+    if ((e.metaKey || e.ctrlKey) && e.key === "e") { e.preventDefault(); applyFormat("code"); return }
     if (mentionQuery !== null && mentionAgents.length > 0) {
       if (e.key === "ArrowDown") { e.preventDefault(); setMentionIndex((i) => Math.min(i + 1, mentionAgents.length - 1)); return }
       if (e.key === "ArrowUp") { e.preventDefault(); setMentionIndex((i) => Math.max(i - 1, 0)); return }
@@ -1263,7 +1295,8 @@ export default function ChatPage() {
               </button>
               {chatSearchOpen ? (
                 <div className="flex items-center gap-1">
-                  <input autoFocus placeholder="Search..." value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { setChatSearch(""); setChatSearchOpen(false) } }} className="h-7 w-36 rounded-md border border-border bg-muted px-2 text-xs outline-none" />
+                  <input autoFocus placeholder="Search messages..." value={chatSearch} onChange={(e) => setChatSearch(e.target.value)} onKeyDown={(e) => { if (e.key === "Escape") { setChatSearch(""); setChatSearchOpen(false) } }} className="h-7 w-44 rounded-md border border-border bg-muted px-2 text-xs outline-none" />
+                  {chatSearch && <span className="text-[10px] text-muted-foreground tabular-nums">{channelMessages.filter((m) => !m.threadId && (m.content.toLowerCase().includes(chatSearch.toLowerCase()) || m.senderName.toLowerCase().includes(chatSearch.toLowerCase()))).length} found</span>}
                   <button onClick={() => { setChatSearch(""); setChatSearchOpen(false) }} className="h-7 w-7 flex items-center justify-center rounded-md hover:bg-accent"><X className="h-3 w-3" /></button>
                 </div>
               ) : (
@@ -1443,6 +1476,14 @@ export default function ChatPage() {
                 setAttachments((prev) => [...prev, ...newAttachments])
                 e.target.value = ""
               }} />
+              {/* Formatting toolbar */}
+              <div className="flex items-center gap-0.5 px-2 pt-1.5">
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Bold (Cmd+B)"><span className="font-bold">B</span></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Italic (Cmd+I)"><span className="italic">I</span></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("code") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Code (Cmd+E)"><Code className="h-3 w-3" /></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("list") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="List"><span>-</span></button>
+                <div className="h-4 w-px bg-border mx-1" />
+              </div>
               <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
               <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
                 <button onClick={() => fileInputRef.current?.click()} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Attach file"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /></button>

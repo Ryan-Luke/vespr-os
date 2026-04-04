@@ -11,6 +11,7 @@ import {
   ChevronRight, ChevronLeft, Bell, Upload, Check,
   MessageSquare, X, Save, Search, ExternalLink,
   Link2, Lock, Unlink, Layout, FileText, Target, Bug, DollarSign, ClipboardList,
+  Play, Square,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -31,6 +32,26 @@ function getBlockers(deps: DepsMap, taskId: string): string[] {
 /** Return set of taskIds that the given task blocks */
 function getBlocking(deps: DepsMap, taskId: string): string[] {
   return Object.entries(deps).filter(([, blockers]) => blockers.includes(taskId)).map(([id]) => id)
+}
+
+// --- Timer helpers ---
+type TimerMap = Record<string, { totalSeconds: number; startedAt: string | null }>
+
+function loadTimers(): TimerMap {
+  if (typeof window === "undefined") return {}
+  try { return JSON.parse(localStorage.getItem("bos-task-timers") || "{}") } catch { return {} }
+}
+function saveTimers(timers: TimerMap) {
+  localStorage.setItem("bos-task-timers", JSON.stringify(timers))
+}
+function formatTime(totalSeconds: number): string {
+  const h = Math.floor(totalSeconds / 3600)
+  const m = Math.floor((totalSeconds % 3600) / 60)
+  return h > 0 ? `${h}h ${m}m` : `${m}m`
+}
+function getElapsed(timer: { totalSeconds: number; startedAt: string | null }): number {
+  if (!timer.startedAt) return timer.totalSeconds
+  return timer.totalSeconds + Math.floor((Date.now() - new Date(timer.startedAt).getTime()) / 1000)
 }
 
 interface DBAgent { id: string; name: string; role: string; pixelAvatarIndex: number; teamId: string | null; status: string }
@@ -190,9 +211,14 @@ interface TaskCardProps {
   hoveredTaskId: string | null
   onHover: (taskId: string | null) => void
   highlightedIds: Set<string>
+  // timer props
+  timerData: { totalSeconds: number; startedAt: string | null } | undefined
+  isTimerRunning: boolean
+  onToggleTimer: (taskId: string) => void
+  now: number
 }
 
-function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds }: TaskCardProps) {
+function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds, timerData, isTimerRunning, onToggleTimer, now }: TaskCardProps) {
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
@@ -228,6 +254,17 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
             {task.description?.includes(TEMPLATE_TAG) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">📋 Template</span>
             )}
+            {/* Timer button */}
+            <button
+              onClick={(e) => { e.stopPropagation(); onToggleTimer(task.id) }}
+              className={cn(
+                "h-5 w-5 rounded flex items-center justify-center shrink-0 transition-opacity",
+                isTimerRunning ? "opacity-100 text-emerald-400 hover:bg-emerald-500/10" : "opacity-0 group-hover:opacity-100 text-muted-foreground hover:bg-accent",
+              )}
+              title={isTimerRunning ? "Stop timer" : "Start timer"}
+            >
+              {isTimerRunning ? <Square className="h-2.5 w-2.5" /> : <Play className="h-2.5 w-2.5" />}
+            </button>
             {/* Link button — visible on hover */}
             <button
               onClick={(e) => { e.stopPropagation(); onStartLink(task.id) }}
@@ -279,6 +316,14 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
               <span>{task.linkedMessageIds.length}</span>
             </a>
           )}
+          {/* Timer display */}
+          {timerData && (timerData.totalSeconds > 0 || timerData.startedAt) && (
+            <div className="flex items-center gap-1">
+              {isTimerRunning && <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />}
+              <Clock className="h-3 w-3 text-muted-foreground" />
+              <span className="text-[11px] text-muted-foreground tabular-nums">{formatTime(getElapsed(timerData))}</span>
+            </div>
+          )}
         </div>
         <div className="flex gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
           <button disabled={colIndex <= 0} onClick={(e) => { e.stopPropagation(); colIndex > 0 && onMove(task.id, columns[colIndex - 1].id) }} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent text-muted-foreground disabled:opacity-30">
@@ -317,6 +362,50 @@ export default function TasksPage() {
   const [deps, setDeps] = useState<DepsMap>({})
   const [linkingFrom, setLinkingFrom] = useState<string | null>(null)
   const [hoveredTaskId, setHoveredTaskId] = useState<string | null>(null)
+
+  // --- Timer state ---
+  const [timers, setTimers] = useState<TimerMap>({})
+  const [now, setNow] = useState(Date.now())
+
+  // Load timers from localStorage on mount
+  useEffect(() => { setTimers(loadTimers()) }, [])
+
+  // Tick every second while any timer is running
+  useEffect(() => {
+    const hasRunning = Object.values(timers).some((t) => t.startedAt !== null)
+    if (!hasRunning) return
+    const interval = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(interval)
+  }, [timers])
+
+  function updateTimers(next: TimerMap) { setTimers(next); saveTimers(next) }
+
+  function handleToggleTimer(taskId: string) {
+    const current = { ...timers }
+    const entry = current[taskId] ?? { totalSeconds: 0, startedAt: null }
+
+    if (entry.startedAt) {
+      // Stop this timer
+      const elapsed = Math.floor((Date.now() - new Date(entry.startedAt).getTime()) / 1000)
+      current[taskId] = { totalSeconds: entry.totalSeconds + elapsed, startedAt: null }
+    } else {
+      // Stop any other running timer first
+      for (const [id, t] of Object.entries(current)) {
+        if (t.startedAt) {
+          const elapsed = Math.floor((Date.now() - new Date(t.startedAt).getTime()) / 1000)
+          current[id] = { totalSeconds: t.totalSeconds + elapsed, startedAt: null }
+        }
+      }
+      // Start this timer
+      current[taskId] = { totalSeconds: entry.totalSeconds, startedAt: new Date().toISOString() }
+    }
+    updateTimers(current)
+  }
+
+  // Find currently running timer
+  const activeTimerEntry = Object.entries(timers).find(([, t]) => t.startedAt !== null)
+  const activeTimerId = activeTimerEntry ? activeTimerEntry[0] : null
+  const activeTimerTask = activeTimerId ? tasks.find((t) => t.id === activeTimerId) : null
 
   // Load deps from localStorage on mount
   useEffect(() => { setDeps(loadDeps()) }, [])
@@ -683,6 +772,19 @@ export default function TasksPage() {
           </div>
         )}
 
+        {/* Active timer indicator */}
+        {activeTimerTask && activeTimerEntry && (
+          <div className="px-6 py-1.5 border-b border-border flex items-center gap-2">
+            <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span className="bg-emerald-500/10 text-emerald-400 rounded-md px-3 py-1.5 text-xs flex items-center gap-2">
+              Timer running: {activeTimerTask.title} — {formatTime(getElapsed(activeTimerEntry[1]))}
+              <button onClick={() => handleToggleTimer(activeTimerId!)} className="h-4 w-4 rounded flex items-center justify-center hover:bg-emerald-500/20 transition-colors">
+                <Square className="h-2.5 w-2.5" />
+              </button>
+            </span>
+          </div>
+        )}
+
         {/* Kanban Board */}
         <div className={cn("flex-1 overflow-x-auto", linkingFrom && "cursor-crosshair")}>
           <div className="flex gap-px bg-border min-w-max h-full">
@@ -711,6 +813,10 @@ export default function TasksPage() {
                         hoveredTaskId={hoveredTaskId}
                         onHover={setHoveredTaskId}
                         highlightedIds={highlightedIds}
+                        timerData={timers[task.id]}
+                        isTimerRunning={timers[task.id]?.startedAt !== null && timers[task.id]?.startedAt !== undefined}
+                        onToggleTimer={handleToggleTimer}
+                        now={now}
                       />
                     ))}
                     {colTasks.length === 0 && (

@@ -20,6 +20,7 @@ export async function PATCH(
   if (body.systemPrompt !== undefined) updates.systemPrompt = body.systemPrompt
   if (body.isTeamLead !== undefined) updates.isTeamLead = body.isTeamLead
   if (body.autonomyLevel !== undefined) updates.autonomyLevel = body.autonomyLevel
+  if (body.skills !== undefined) updates.skills = body.skills
 
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: "No valid fields to update" }, { status: 400 })

@@ -14,6 +14,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import { cn } from "@/lib/utils"
 import Link from "next/link"
 import { CollapsibleSection } from "@/components/collapsible-section"
+import { FocusModeToggle } from "@/components/focus-mode-toggle"
 import { ActivityTicker } from "@/components/activity-ticker"
 import { WeeklyReportButton } from "@/components/weekly-report"
 
@@ -51,7 +52,10 @@ export default async function DashboardPage() {
       <div className="p-6 space-y-5 max-w-[1400px]">
         <div className="flex items-center justify-between">
           <h1 className="text-sm font-semibold text-muted-foreground">Dashboard</h1>
-          <WeeklyReportButton />
+          <div className="flex items-center gap-2">
+            <FocusModeToggle />
+            <WeeklyReportButton />
+          </div>
         </div>
         <ActivityTicker />
         <MorningCheckin />
@@ -114,7 +118,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* ── SECONDARY ZONE: Charts + Pipeline ────────────── */}
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div data-dashboard-section="charts" className="grid gap-5 lg:grid-cols-3">
           <div className="bg-card border border-border rounded-md p-4">
             <p className="section-label mb-3">Activity</p>
             <AgentActivityChart />
@@ -139,7 +143,7 @@ export default async function DashboardPage() {
         </div>
 
         {/* ── TEAM HEALTH SCORES ─────────────────────────────── */}
-        <div className="bg-card border border-border rounded-md p-4">
+        <div data-dashboard-section="health" className="bg-card border border-border rounded-md p-4">
           <p className="section-label mb-3">Team Health</p>
           <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-{allTeams.length > 4 ? 4 : allTeams.length}">
             {allTeams.map((team) => {

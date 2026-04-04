@@ -12,6 +12,12 @@ import {
   MessageSquare, Cpu, Plus, FileText, Trash2, Save, Loader2,
   Crown, Edit3, ThumbsUp, ThumbsDown, Shield, Sparkles,
   Trophy, Zap, Clock, TrendingUp, Target, X, Copy,
+  Globe, Mail, Database, Calendar, Search, BarChart3,
+  ShoppingCart, Megaphone, Headphones, Code, Wrench,
+  Users, PenTool, Send, GitBranch, Package, Truck,
+  Receipt, CreditCard, PieChart, BookOpen, Wallet,
+  Terminal, Server, TestTube, Rocket, Check,
+  type LucideIcon,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -175,6 +181,93 @@ const sopCategories = [
   { id: "escalation", label: "Escalation", icon: "⚠️" },
   { id: "reference", label: "Reference", icon: "📖" },
   { id: "general", label: "General", icon: "📝" },
+]
+
+// ── Skills Marketplace Catalog ───────────────────────────────
+interface SkillDef {
+  id: string
+  name: string
+  icon: LucideIcon
+  description: string
+}
+
+interface SkillCategory {
+  id: string
+  label: string
+  skills: SkillDef[]
+}
+
+const SKILL_CATALOG: SkillCategory[] = [
+  {
+    id: "research",
+    label: "Research & Analysis",
+    skills: [
+      { id: "web-search", name: "Web Search", icon: Globe, description: "Search the internet for information" },
+      { id: "research", name: "Deep Research", icon: Search, description: "Conduct thorough research on topics" },
+      { id: "competitor-analysis", name: "Competitor Analysis", icon: Target, description: "Analyze competitor strategies and positioning" },
+      { id: "market-research", name: "Market Research", icon: TrendingUp, description: "Research market trends and opportunities" },
+      { id: "data-analysis", name: "Data Analysis", icon: BarChart3, description: "Analyze datasets and extract insights" },
+      { id: "analytics", name: "Analytics", icon: BarChart3, description: "Access analytics dashboards and data" },
+    ],
+  },
+  {
+    id: "communication",
+    label: "Communication",
+    skills: [
+      { id: "email", name: "Email", icon: Mail, description: "Send and read emails" },
+      { id: "messaging", name: "Messaging", icon: MessageSquare, description: "Post to Slack, Teams, etc." },
+      { id: "social", name: "Social Media", icon: Megaphone, description: "Post to social platforms" },
+      { id: "content-writing", name: "Content Writing", icon: FileText, description: "Write blog posts, articles, and long-form content" },
+      { id: "copywriting", name: "Copywriting", icon: PenTool, description: "Write persuasive marketing and ad copy" },
+      { id: "pr", name: "Public Relations", icon: Users, description: "Draft press releases and media outreach" },
+      { id: "support", name: "Customer Support", icon: Headphones, description: "Handle support tickets and customer inquiries" },
+    ],
+  },
+  {
+    id: "sales",
+    label: "Sales & CRM",
+    skills: [
+      { id: "crm", name: "CRM Access", icon: Database, description: "Read and write CRM data" },
+      { id: "lead-scoring", name: "Lead Scoring", icon: Target, description: "Score and qualify incoming leads" },
+      { id: "outreach", name: "Outreach", icon: Send, description: "Automate cold email and LinkedIn outreach" },
+      { id: "pipeline-mgmt", name: "Pipeline Management", icon: GitBranch, description: "Track and manage sales pipeline stages" },
+      { id: "proposal-writing", name: "Proposal Writing", icon: FileText, description: "Draft proposals and SOWs" },
+    ],
+  },
+  {
+    id: "operations",
+    label: "Operations",
+    skills: [
+      { id: "calendar", name: "Calendar", icon: Calendar, description: "Manage calendar events" },
+      { id: "file-mgmt", name: "File Management", icon: FileText, description: "Create and edit documents" },
+      { id: "project-mgmt", name: "Project Management", icon: Package, description: "Track tasks, sprints, and milestones" },
+      { id: "inventory", name: "Inventory", icon: ShoppingCart, description: "Track stock levels and reorder points" },
+      { id: "shipping", name: "Shipping", icon: Truck, description: "Manage shipping and logistics" },
+      { id: "ecommerce", name: "E-commerce", icon: ShoppingCart, description: "Manage orders and storefronts" },
+    ],
+  },
+  {
+    id: "finance",
+    label: "Finance",
+    skills: [
+      { id: "bookkeeping", name: "Bookkeeping", icon: BookOpen, description: "Categorize transactions and reconcile accounts" },
+      { id: "invoicing", name: "Invoicing", icon: Receipt, description: "Generate and send invoices" },
+      { id: "expense-tracking", name: "Expense Tracking", icon: CreditCard, description: "Track and categorize expenses" },
+      { id: "financial-reporting", name: "Financial Reporting", icon: PieChart, description: "Generate P&L, balance sheets, and reports" },
+      { id: "budgeting", name: "Budgeting", icon: Wallet, description: "Create and monitor budgets" },
+    ],
+  },
+  {
+    id: "technical",
+    label: "Technical",
+    skills: [
+      { id: "coding", name: "Code Generation", icon: Code, description: "Write and review code" },
+      { id: "api-integration", name: "API Integration", icon: Terminal, description: "Connect to external APIs and services" },
+      { id: "database-queries", name: "Database Queries", icon: Server, description: "Query and manage databases" },
+      { id: "testing", name: "Testing", icon: TestTube, description: "Write and run automated tests" },
+      { id: "deployment", name: "Deployment", icon: Rocket, description: "Deploy code and manage releases" },
+    ],
+  },
 ]
 
 function getTopTraits(traits: PersonalityTraits) {
@@ -384,6 +477,20 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
     setSops((prev) => prev.filter((s) => s.id !== id))
   }
 
+  async function toggleSkill(skillId: string) {
+    if (!agent) return
+    const current = agent.skills || []
+    const next = current.includes(skillId)
+      ? current.filter((s) => s !== skillId)
+      : [...current, skillId]
+    setAgent({ ...agent, skills: next })
+    await fetch(`/api/agents/${agentId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ skills: next }),
+    })
+  }
+
   if (loading) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
   if (!agent) return <div className="p-6">Agent not found</div>
 
@@ -448,12 +555,13 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           </div>
         </div>
 
-        {agent.currentTask && (
-          <div className="bg-card border border-border rounded-md px-4 py-3">
-            <p className="section-label mb-1">Current Task</p>
-            <p className="text-[13px]">{agent.currentTask}</p>
+        <div className="bg-card border border-border rounded-md px-4 py-3">
+          <div className="flex items-center justify-between mb-1">
+            <p className="section-label">Status</p>
+            <button onClick={() => { const s = prompt(`Set status for ${agent.name}:`, agent.currentTask || ""); if (s !== null) { fetch(`/api/agents/${agent.id}`, { method: "PATCH", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ currentTask: s || null }) }); setAgent({ ...agent, currentTask: s || null }) } }} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Edit</button>
           </div>
-        )}
+          <p className="text-[13px]">{agent.currentTask || <span className="text-muted-foreground italic">No status set</span>}</p>
+        </div>
 
         {/* Autonomy */}
         <div className="bg-card border border-border rounded-md p-4">
@@ -694,10 +802,68 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
           </TabsContent>
 
           {/* Skills */}
-          <TabsContent value="skills" className="mt-4">
+          <TabsContent value="skills" className="mt-4 space-y-5">
+            {/* Equipped skills summary */}
             <div className="bg-card border border-border rounded-md p-4">
-              <p className="section-label mb-2">Skills</p>
-              <div className="flex flex-wrap gap-1.5">{(agent.skills as string[]).map((skill) => <span key={skill} className="text-xs text-muted-foreground bg-muted rounded-md px-2 py-0.5">{skill}</span>)}</div>
+              <p className="section-label mb-2">Equipped Skills ({(agent.skills || []).length})</p>
+              {(agent.skills || []).length === 0 ? (
+                <p className="text-xs text-muted-foreground">No skills equipped. Browse below to add skills.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {(agent.skills as string[]).map((skillId) => {
+                    const def = SKILL_CATALOG.flatMap((c) => c.skills).find((s) => s.id === skillId)
+                    const Icon = def?.icon || Wrench
+                    return (
+                      <button key={skillId} onClick={() => toggleSkill(skillId)} className="flex items-center gap-1.5 text-xs bg-primary/10 border border-primary/20 text-foreground rounded-md px-2.5 py-1 hover:bg-primary/20 transition-colors">
+                        <Icon className="h-3 w-3" />
+                        {def?.name || skillId}
+                        <X className="h-3 w-3 text-muted-foreground ml-0.5" />
+                      </button>
+                    )
+                  })}
+                </div>
+              )}
+            </div>
+
+            {/* Browse Skills Marketplace */}
+            <div className="bg-card border border-border rounded-md p-4">
+              <p className="section-label mb-4">Browse Skills</p>
+              <div className="space-y-5">
+                {SKILL_CATALOG.map((category) => (
+                  <div key={category.id}>
+                    <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">{category.label}</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {category.skills.map((skill) => {
+                        const equipped = (agent.skills || []).includes(skill.id)
+                        const Icon = skill.icon
+                        return (
+                          <button
+                            key={skill.id}
+                            onClick={() => toggleSkill(skill.id)}
+                            className={cn(
+                              "rounded-md border p-2.5 cursor-pointer transition-colors text-left flex items-start gap-2.5",
+                              equipped
+                                ? "bg-primary/10 border-primary/20"
+                                : "bg-card border-border hover:border-muted-foreground/20"
+                            )}
+                          >
+                            <div className={cn("mt-0.5 shrink-0", equipped ? "text-primary" : "text-muted-foreground")}>
+                              <Icon className="h-4 w-4" />
+                            </div>
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-1.5">
+                                <span className="text-xs font-medium text-foreground truncate">{skill.name}</span>
+                                {equipped && <Check className="h-3 w-3 text-primary shrink-0" />}
+                              </div>
+                              <p className="text-[11px] text-muted-foreground leading-tight mt-0.5">{skill.description}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
           </TabsContent>
 
