@@ -1,7 +1,7 @@
 import Link from "next/link"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { db } from "@/lib/db"
-import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable, milestones as milestonesTable } from "@/lib/db/schema"
+import { teams as teamsTable, agents as agentsTable, teamGoals as goalsTable, milestones as milestonesTable, agentBonds as agentBondsTable } from "@/lib/db/schema"
 import { eq, inArray, or, isNull } from "drizzle-orm"
 import { Plus, Crown } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -23,12 +23,13 @@ export default async function TeamsPage() {
   const teamIds = allTeams.map((t) => t.id)
 
   // Filter agents by teams in this workspace (include unassigned agents like Nova)
-  const [allAgents, allGoals, allMilestones] = await Promise.all([
+  const [allAgents, allGoals, allMilestones, allBonds] = await Promise.all([
     teamIds.length > 0
       ? db.select().from(agentsTable).where(or(inArray(agentsTable.teamId, teamIds), isNull(agentsTable.teamId)))
       : db.select().from(agentsTable).where(isNull(agentsTable.teamId)),
     teamIds.length > 0 ? db.select().from(goalsTable).where(inArray(goalsTable.teamId, teamIds)) : Promise.resolve([]),
     db.select().from(milestonesTable),
+    db.select().from(agentBondsTable),
   ])
 
   // Build milestone count per agent
@@ -37,8 +38,18 @@ export default async function TeamsPage() {
   for (const m of allMilestones) {
     if (!m.agentId) continue
     milestoneCounts[m.agentId] = (milestoneCounts[m.agentId] || 0) + 1
-    // Keep the "highest" milestone (last in insertion order tends to be highest)
     topMilestone[m.agentId] = { icon: m.icon, name: m.name }
+  }
+
+  // Compute team chemistry score — average outcome lift of bonds where both agents are in the team
+  const teamChemistry: Record<string, { score: number; bondCount: number }> = {}
+  for (const team of allTeams) {
+    const teamAgentIds = new Set(allAgents.filter((a) => a.teamId === team.id).map((a) => a.id))
+    const teamBonds = allBonds.filter((b) => teamAgentIds.has(b.agentAId) && teamAgentIds.has(b.agentBId))
+    const avgLift = teamBonds.length > 0
+      ? teamBonds.reduce((sum, b) => sum + (b.outcomeLift ?? 0), 0) / teamBonds.length
+      : 0
+    teamChemistry[team.id] = { score: avgLift, bondCount: teamBonds.length }
   }
 
   return (
@@ -56,6 +67,7 @@ export default async function TeamsPage() {
           const teamAgents = allAgents.filter((a) => a.teamId === team.id)
           const goals = allGoals.filter((g) => g.teamId === team.id && g.status === "active")
 
+          const chemistry = teamChemistry[team.id]
           return (
             <div key={team.id} className="bg-card border border-border rounded-md">
               {/* Team header */}
@@ -64,6 +76,11 @@ export default async function TeamsPage() {
                   <div className="flex items-center gap-2">
                     <span className="text-base">{team.icon}</span>
                     <span className="text-[13px] font-semibold">{team.name}</span>
+                    {chemistry && chemistry.bondCount > 0 && (
+                      <span className="inline-flex items-center gap-0.5 text-[10px] font-medium text-emerald-400 bg-emerald-500/10 border border-emerald-500/20 rounded-full px-1.5 py-0.5" title={`${chemistry.bondCount} tracked bond${chemistry.bondCount === 1 ? "" : "s"}`}>
+                        +{Math.round(chemistry.score * 100)}% chemistry
+                      </span>
+                    )}
                   </div>
                   <span className="text-xs text-muted-foreground tabular-nums">{teamAgents.length} {teamAgents.length === 1 ? "agent" : "agents"}</span>
                 </div>
