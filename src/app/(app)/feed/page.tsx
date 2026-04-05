@@ -71,7 +71,7 @@ export default function TrophyFeedPage() {
 
   useEffect(() => {
     async function load() {
-      const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+      const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
       const [eventsRes, chatData] = await Promise.all([
         fetch(wsId ? `/api/trophy-events?workspaceId=${wsId}` : "/api/trophy-events").then((r) => r.json()),
         fetch(wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data").then((r) => r.json()),

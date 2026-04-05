@@ -12,8 +12,8 @@ import {
 // ── Workspaces ────────────────────────────────────────────
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(), // e.g. "VERSPR"
-  slug: text("slug").notNull(), // URL-friendly: "verspr"
+  name: text("name").notNull(), // e.g. "VESPR"
+  slug: text("slug").notNull(), // URL-friendly: "vespr"
   icon: text("icon").notNull().default("🏢"), // emoji or letter
   description: text("description"), // what the business does
   businessType: text("business_type").notNull().default("agency"), // agency, saas, ecommerce, info_product, consulting, other
@@ -28,6 +28,9 @@ export const workspaces = pgTable("workspaces", {
     tools?: string[]
   }>().default({}),
   isActive: boolean("is_active").notNull().default(true),
+  // Public trainer profile (opt-in) — per engagement spec Phase 3
+  isPublic: boolean("is_public").notNull().default(false),
+  publicTagline: text("public_tagline"), // one-line founder flex
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 

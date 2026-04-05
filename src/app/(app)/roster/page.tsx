@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { ARCHETYPES, TIER_STYLES, UNLOCK_LADDER, STARTER_ARCHETYPES, type ArchetypeId, type Tier } from "@/lib/archetypes"
 import { cn } from "@/lib/utils"
-import { Lock, Check, Loader2 } from "lucide-react"
+import { Check, Loader2 } from "lucide-react"
 import Link from "next/link"
 
 interface RosterUnlock {
@@ -19,7 +19,7 @@ export default function RosterPage() {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
-    const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+    const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
     const url = wsId ? `/api/roster-unlocks?workspaceId=${wsId}` : "/api/roster-unlocks"
     fetch(url)
       .then((r) => r.json())
@@ -72,34 +72,39 @@ export default function RosterPage() {
                   "rounded-xl border p-5 transition-all",
                   isUnlocked
                     ? "bg-card border-border hover:border-muted-foreground/30"
-                    : "bg-muted/20 border-border/50 opacity-60"
+                    : "bg-muted/20 border-border/50"
                 )}
               >
                 {/* Header */}
                 <div className="flex items-start gap-3">
-                  <div className={cn("h-12 w-12 rounded-lg flex items-center justify-center text-2xl shrink-0", isUnlocked ? "bg-primary/10" : "bg-muted")}>
-                    {isUnlocked ? arch.icon : <Lock className="h-5 w-5 text-muted-foreground" />}
+                  <div className={cn("h-12 w-12 rounded-lg flex items-center justify-center text-2xl shrink-0", isUnlocked ? "bg-primary/10" : "bg-muted/60")}>
+                    {isUnlocked ? arch.icon : <span className="opacity-40">{arch.icon}</span>}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <h3 className="text-base font-bold">{arch.label}</h3>
-                      {isUnlocked && <Check className="h-3.5 w-3.5 text-emerald-400" />}
+                      {isUnlocked ? (
+                        <Check className="h-3.5 w-3.5 text-emerald-400" />
+                      ) : (
+                        <span className="text-[9px] uppercase tracking-wider font-medium text-muted-foreground/70 bg-muted/60 border border-border/60 rounded px-1.5 py-0.5">Earn to hire</span>
+                      )}
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5 italic">{arch.description}</p>
                   </div>
                 </div>
 
-                {/* Lock/unlock info */}
+                {/* Unlock info */}
                 {!isUnlocked && ladderEntry && (
                   <div className="mt-4 bg-muted/40 border border-border/50 rounded-lg p-3">
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Unlock by hitting</p>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Hire this archetype after</p>
                     <p className="text-[13px] font-semibold">{ladderEntry.trigger.label}</p>
+                    <p className="text-[11px] text-muted-foreground mt-1 italic">{ladderEntry.tagline}</p>
                   </div>
                 )}
 
                 {/* Forms ladder */}
                 <div className="mt-4 space-y-1.5">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Evolution forms</p>
+                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Specialty progression</p>
                   {arch.forms.map((form, i) => {
                     const tierStyle = TIER_STYLES[form.tier]
                     return (

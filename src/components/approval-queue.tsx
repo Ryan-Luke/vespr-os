@@ -53,7 +53,7 @@ export function ApprovalQueue() {
   const [autoCountdown, setAutoCountdown] = useState<Record<string, number>>({})
 
   useEffect(() => {
-    const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+    const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
     const chatUrl = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
     Promise.all([
       fetch("/api/approval-requests?status=pending").then((r) => r.json()),

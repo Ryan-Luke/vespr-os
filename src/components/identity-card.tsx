@@ -53,8 +53,15 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
   const tierStyle = TIER_STYLES[tier] || TIER_STYLES.common
 
   // Find current form based on archetype + tier
-  const currentForm = archetype.forms.find((f) => f.tier === tier) || archetype.forms[0]
+  const currentFormIdx = archetype.forms.findIndex((f) => f.tier === tier)
+  const currentForm = currentFormIdx >= 0 ? archetype.forms[currentFormIdx] : archetype.forms[0]
   const formName = currentForm?.name || archetype.label
+
+  // Cumulative specialties — all capabilities from current form and all previous forms
+  // This matters for framing: agents are already capable. Leveling up ADDS specialties, not basic abilities.
+  const masteredSpecialties = archetype.forms
+    .slice(0, currentFormIdx >= 0 ? currentFormIdx + 1 : 1)
+    .flatMap((f) => f.unlockedCapabilities)
 
   // Evolution progress toward next form
   const outcomeStats = (agent.outcomeStats || {}) as Record<string, number>
@@ -127,15 +134,15 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
         })}
       </div>
 
-      {/* Capabilities */}
-      {currentForm?.unlockedCapabilities && currentForm.unlockedCapabilities.length > 0 && (
+      {/* Mastered specialties — cumulative, additive */}
+      {masteredSpecialties.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border/50">
           <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1.5 flex items-center gap-1">
             <Zap className="h-2.5 w-2.5" />
-            Unlocked
+            Mastered Specialties
           </p>
           <div className="flex flex-wrap gap-1">
-            {currentForm.unlockedCapabilities.map((cap) => (
+            {masteredSpecialties.map((cap) => (
               <span key={cap} className={cn("text-[10px] px-1.5 py-0.5 rounded border", tierStyle.bg, tierStyle.border, tierStyle.text)}>
                 {cap}
               </span>
@@ -144,18 +151,31 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
         </div>
       )}
 
-      {/* Evolution Progress */}
+      {/* Growing toward next specialty — additive framing */}
       {evolution?.nextForm && evolution.progress.length > 0 && (
         <div className="mt-4 pt-3 border-t border-border/50">
           <div className="flex items-center justify-between mb-2">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
               <TrendingUp className="h-2.5 w-2.5" />
-              Next form: {evolution.nextForm.name}
+              Growing toward {evolution.nextForm.name}
             </p>
             <span className={cn("text-[10px] uppercase tracking-wider font-bold", TIER_STYLES[evolution.nextForm.tier].text)}>
               {TIER_STYLES[evolution.nextForm.tier].label}
             </span>
           </div>
+          {/* Show the new specialties they'll earn */}
+          {evolution.nextForm.unlockedCapabilities.length > 0 && (
+            <div className="mb-2.5">
+              <p className="text-[9px] text-muted-foreground/60 mb-1">Earns new specialties:</p>
+              <div className="flex flex-wrap gap-1">
+                {evolution.nextForm.unlockedCapabilities.map((cap) => (
+                  <span key={cap} className="text-[10px] px-1.5 py-0.5 rounded border border-dashed border-border text-muted-foreground/70">
+                    + {cap}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="space-y-1.5">
             {evolution.progress.map((p) => (
               <div key={p.metric}>
@@ -174,7 +194,7 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
           </div>
           {evolution.progress.every((p) => p.pct >= 90) && (
             <p className={cn("text-[10px] mt-2 font-medium", TIER_STYLES[evolution.nextForm.tier].text)}>
-              ⚡ Evolution imminent
+              ⚡ New specialty unlock imminent
             </p>
           )}
         </div>

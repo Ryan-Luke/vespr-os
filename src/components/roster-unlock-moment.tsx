@@ -22,7 +22,7 @@ export function RosterUnlockMoment() {
   const [animating, setAnimating] = useState(false)
 
   useEffect(() => {
-    const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+    const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
     const url = wsId
       ? `/api/roster-unlocks?workspaceId=${wsId}&unacknowledged=true`
       : "/api/roster-unlocks?unacknowledged=true"

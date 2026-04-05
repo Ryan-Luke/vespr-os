@@ -3,7 +3,7 @@ import { db } from "@/lib/db"
 import { workspaces } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 
-const STORAGE_KEY = "verspr-active-workspace"
+const STORAGE_KEY = "vespr-active-workspace"
 
 /** Get the active workspace ID from cookies (server-side) */
 export async function getActiveWorkspaceId(): Promise<string | null> {

@@ -17,6 +17,8 @@ export async function PATCH(
   if (body.industry !== undefined) updates.industry = body.industry
   if (body.website !== undefined) updates.website = body.website
   if (body.businessProfile !== undefined) updates.businessProfile = body.businessProfile
+  if (body.isPublic !== undefined) updates.isPublic = body.isPublic
+  if (body.publicTagline !== undefined) updates.publicTagline = body.publicTagline
 
   if (Object.keys(updates).length === 0) {
     return Response.json({ error: "No fields to update" }, { status: 400 })

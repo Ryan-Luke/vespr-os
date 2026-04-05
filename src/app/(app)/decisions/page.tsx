@@ -53,7 +53,7 @@ export default function DecisionsPage() {
   const [expandedId, setExpandedId] = useState<string | null>(null)
 
   useEffect(() => {
-    const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+    const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
     const chatUrl = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
     Promise.all([
       fetch("/api/decisions?limit=100").then((r) => r.json()),

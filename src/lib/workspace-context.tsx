@@ -24,7 +24,7 @@ interface WorkspaceContextValue {
 
 const WorkspaceContext = createContext<WorkspaceContextValue | null>(null)
 
-const STORAGE_KEY = "verspr-active-workspace"
+const STORAGE_KEY = "vespr-active-workspace"
 
 export function WorkspaceProvider({ children }: { children: ReactNode }) {
   const [workspaces, setWorkspaces] = useState<Workspace[]>([])
@@ -39,7 +39,19 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
       setWorkspaces(ws)
 
       // Restore active workspace from localStorage, or pick first
-      const storedId = typeof window !== "undefined" ? localStorage.getItem(STORAGE_KEY) : null
+      // Backwards compat: also read legacy verspr-active-workspace key
+      let storedId: string | null = null
+      if (typeof window !== "undefined") {
+        storedId = localStorage.getItem(STORAGE_KEY)
+        if (!storedId) {
+          const legacy = localStorage.getItem("verspr-active-workspace")
+          if (legacy) {
+            storedId = legacy
+            localStorage.setItem(STORAGE_KEY, legacy)
+            localStorage.removeItem("verspr-active-workspace")
+          }
+        }
+      }
       const active = ws.find((w) => w.id === storedId) || ws[0] || null
       setActiveWorkspaceState(active)
     } catch {}

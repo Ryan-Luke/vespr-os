@@ -75,8 +75,8 @@ export default function OnboardingPage() {
       if (res.ok) {
         const data = await res.json()
         if (data.workspaceId) {
-          localStorage.setItem("verspr-active-workspace", data.workspaceId)
-          document.cookie = `verspr-active-workspace=${data.workspaceId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
+          localStorage.setItem("vespr-active-workspace", data.workspaceId)
+          document.cookie = `vespr-active-workspace=${data.workspaceId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
         }
       }
 
@@ -99,7 +99,7 @@ export default function OnboardingPage() {
             <div className="h-10 w-10 rounded-md bg-primary flex items-center justify-center mx-auto">
               <Rocket className="h-5 w-5 text-primary-foreground" />
             </div>
-            <h1 className="text-lg font-semibold tracking-tight">Welcome to VERSPR OS</h1>
+            <h1 className="text-lg font-semibold tracking-tight">Welcome to VESPR OS</h1>
             <p className="text-sm text-muted-foreground">
               Set up your AI-powered team in 60 seconds.
             </p>

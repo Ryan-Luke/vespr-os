@@ -19,6 +19,7 @@ import { cn } from "@/lib/utils"
 import { levelTitle } from "@/lib/gamification"
 import { getMood, MOOD_EMOJI } from "@/lib/agent-mood"
 import { ChatSkeleton } from "@/components/loading-skeletons"
+import { VoiceInputButton } from "@/components/voice-input-button"
 import Link from "next/link"
 
 // Types from DB
@@ -599,7 +600,8 @@ function DMChat({ agent }: { agent: DBAgent }) {
       <div className="border-t border-border px-4 py-3 shrink-0">
         <div className="rounded-md border border-border bg-muted/50 focus-within:border-muted-foreground/30 transition-colors">
           <textarea ref={inputRef} placeholder={`Message ${agent.name}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" disabled={status === "submitted" || status === "streaming"} style={{ maxHeight: 100 }} />
-          <div className="flex items-center justify-end px-2 pb-1.5">
+          <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
+            <VoiceInputButton size="sm" onTranscript={(text) => setInput((prev) => prev ? `${prev} ${text}` : text)} />
             <button onClick={handleSend} disabled={!input.trim() || status === "streaming" || status === "submitted"} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", input.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
               {(status === "submitted" || status === "streaming") ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
             </button>
@@ -652,7 +654,7 @@ export default function ChatPage() {
   // Load agents and channels from DB (filtered by active workspace)
   useEffect(() => {
     function loadData() {
-      const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+      const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
       const url = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
       fetch(url).then((r) => r.json()).then(async (data) => {
         setDbAgents(data.agents)
@@ -1495,7 +1497,7 @@ export default function ChatPage() {
           <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center mx-auto">
             <Bot className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h2 className="text-xl font-semibold">Welcome to VERSPR OS</h2>
+          <h2 className="text-xl font-semibold">Welcome to VESPR OS</h2>
           <p className="text-sm text-muted-foreground">Set up your AI workforce to get started.</p>
           <Link href="/onboarding">
             <Button className="mt-2">Get Started</Button>
@@ -1906,6 +1908,10 @@ export default function ChatPage() {
               <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
               <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
                 <button onClick={() => fileInputRef.current?.click()} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Attach file"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /></button>
+                <VoiceInputButton
+                  size="sm"
+                  onTranscript={(text) => setInputValue((prev) => prev ? `${prev} ${text}` : text)}
+                />
                 {/* Voice recording */}
                 <button onClick={() => {
                   if (isRecording) {

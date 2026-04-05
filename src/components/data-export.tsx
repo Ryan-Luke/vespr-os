@@ -82,7 +82,7 @@ export function DataExport() {
       const data = await fetch(exp.endpoint).then((r) => r.json())
       const ext = exp.format === "CSV" ? "csv" : "json"
       const date = new Date().toISOString().split("T")[0]
-      downloadFile(data, `verspr-${exp.id}-${date}.${ext}`, exp.format)
+      downloadFile(data, `vespr-${exp.id}-${date}.${ext}`, exp.format)
       setExported((prev) => new Set([...prev, exp.id]))
     } catch { /* silent */ }
     setExporting(null)
@@ -136,7 +136,7 @@ export function DataExport() {
                 const data = await fetch(exp.endpoint).then((r) => r.json())
                 const ext = exp.format === "CSV" ? "csv" : "json"
                 const date = new Date().toISOString().split("T")[0]
-                downloadFile(data, `verspr-${exp.id}-${date}.${ext}`, exp.format)
+                downloadFile(data, `vespr-${exp.id}-${date}.${ext}`, exp.format)
               } catch { /* skip */ }
             }
             setExported(new Set(EXPORTS.map((e) => e.id)))

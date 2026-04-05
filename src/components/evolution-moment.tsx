@@ -178,12 +178,12 @@ export function EvolutionMoment() {
             </p>
           </div>
 
-          {/* Unlocked capabilities */}
+          {/* New specialties mastered */}
           {event.unlockedCapabilities && event.unlockedCapabilities.length > 0 && (
             <div className="mt-5 pt-5 border-t border-border/50">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-2 flex items-center justify-center gap-1">
                 <Zap className="h-3 w-3" />
-                New capabilities unlocked
+                New specialties mastered
               </p>
               <div className="space-y-1.5">
                 {event.unlockedCapabilities.map((cap, i) => (
