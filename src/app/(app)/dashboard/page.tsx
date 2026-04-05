@@ -162,9 +162,9 @@ export default async function DashboardPage() {
               const total = goals.length || 1
               const completionRate = Math.round((completed / total) * 100)
               const errorCount = ta.filter((a) => a.status === "error").length
-              const avgStreak = ta.length > 0 ? Math.round(ta.reduce((sum, a) => sum + (a.streak ?? 0), 0) / ta.length) : 0
-              // Health score: weighted average of completion rate, error penalty, streak bonus
-              const healthScore = Math.min(100, Math.max(0, completionRate - (errorCount * 15) + Math.min(avgStreak * 2, 20)))
+              const avgLevel = ta.length > 0 ? Math.round(ta.reduce((sum, a) => sum + (a.level ?? 1), 0) / ta.length) : 0
+              // Health score: completion rate, minus error penalty, plus small team-level bonus
+              const healthScore = Math.min(100, Math.max(0, completionRate - (errorCount * 15) + Math.min(avgLevel, 20)))
               const healthColor = healthScore >= 70 ? "text-emerald-500" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
               const barColor = healthScore >= 70 ? "bg-emerald-500" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
               return (

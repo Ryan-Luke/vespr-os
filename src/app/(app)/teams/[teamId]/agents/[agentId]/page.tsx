@@ -1286,58 +1286,76 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             </div>
           </TabsContent>
 
-          {/* ── Memory (kept as-is) ── */}
-          <TabsContent value="memory" className="mt-4 space-y-3">
+          {/* ── Memory — observations, preferences, learnings, relationships, skills ── */}
+          <TabsContent value="memory" className="mt-4 space-y-4">
             <div className="flex items-center justify-between">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Memory</p>
-              {memories.length > 0 && <span className="text-[11px] text-muted-foreground">{memories.length} entries</span>}
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">What {agent.name} remembers</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">Built up through conversations, feedback, and experience</p>
+              </div>
+              {memories.length > 0 && <span className="text-[11px] text-muted-foreground tabular-nums">{memories.length} entries</span>}
             </div>
+
             {memories.length === 0 ? (
-              <div className="text-center py-8">
-                <Brain className="h-6 w-6 text-muted-foreground/20 mx-auto mb-2" />
-                <p className="text-xs text-muted-foreground">No memories yet. They build up through conversations and feedback.</p>
+              <div className="text-center py-12">
+                <Brain className="h-8 w-8 text-muted-foreground/20 mx-auto mb-3" />
+                <p className="text-sm text-muted-foreground">No memories yet.</p>
+                <p className="text-xs text-muted-foreground/60 mt-1">Memories form through conversations and feedback.</p>
               </div>
             ) : (
               <>
-                <div className="grid gap-px bg-border rounded-md overflow-hidden grid-cols-4">
-                  {(["short_term", "long_term", "shared", "skill"] as const).map((type) => {
+                {/* Type counts */}
+                <div className="grid gap-px bg-border rounded-md overflow-hidden grid-cols-5">
+                  {(["observation", "preference", "learning", "relationship", "skill"] as const).map((type) => {
                     const count = memories.filter((m) => m.memoryType === type).length
-                    const labels: Record<string, { label: string; icon: string }> = {
-                      short_term: { label: "Short-term", icon: "⚡" },
-                      long_term: { label: "Long-term", icon: "🧠" },
-                      shared: { label: "Shared", icon: "🔗" },
-                      skill: { label: "Skill", icon: "🎯" },
+                    const labels: Record<string, { label: string; icon: string; color: string }> = {
+                      observation: { label: "Observed", icon: "👁️", color: "text-blue-400" },
+                      preference: { label: "Prefers", icon: "⭐", color: "text-amber-400" },
+                      learning: { label: "Learned", icon: "💡", color: "text-yellow-400" },
+                      relationship: { label: "Bonds", icon: "🤝", color: "text-rose-400" },
+                      skill: { label: "Skills", icon: "🎯", color: "text-emerald-400" },
                     }
-                    const info = labels[type] || { label: type, icon: "💭" }
+                    const info = labels[type]
                     return (
                       <div key={type} className="bg-card px-3 py-2.5">
-                        <p className="text-[11px] text-muted-foreground">{info.icon} {info.label}</p>
-                        <p className="text-sm font-semibold tabular-nums">{count}</p>
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1"><span>{info.icon}</span>{info.label}</p>
+                        <p className={cn("text-sm font-semibold tabular-nums mt-0.5", info.color)}>{count}</p>
                       </div>
                     )
                   })}
                 </div>
 
-                {(["short_term", "long_term", "shared", "skill"] as const).map((type) => {
+                {/* Memory entries grouped by type */}
+                {(["observation", "preference", "learning", "relationship", "skill"] as const).map((type) => {
                   const typeMemories = memories.filter((m) => m.memoryType === type)
                   if (typeMemories.length === 0) return null
-                  const typeLabels: Record<string, string> = { short_term: "Short-term Memory", long_term: "Long-term Memory", shared: "Shared Memory", skill: "Skill Memory" }
+                  const typeLabels: Record<string, { label: string; icon: string; accent: string }> = {
+                    observation: { label: "Observations", icon: "👁️", accent: "border-l-blue-500/50" },
+                    preference: { label: "Preferences", icon: "⭐", accent: "border-l-amber-500/50" },
+                    learning: { label: "Learnings", icon: "💡", accent: "border-l-yellow-500/50" },
+                    relationship: { label: "Relationships", icon: "🤝", accent: "border-l-rose-500/50" },
+                    skill: { label: "Skill Memories", icon: "🎯", accent: "border-l-emerald-500/50" },
+                  }
+                  const info = typeLabels[type]
                   return (
-                    <div key={type}>
-                      <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-1.5">{typeLabels[type] || type}</p>
-                      <div className="bg-card border border-border rounded-md divide-y divide-border">
+                    <div key={type} className="space-y-1.5">
+                      <div className="flex items-center gap-2">
+                        <span className="text-sm">{info.icon}</span>
+                        <p className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">{info.label}</p>
+                        <span className="text-[11px] text-muted-foreground/60">· {typeMemories.length}</span>
+                      </div>
+                      <div className="space-y-1.5">
                         {typeMemories.map((mem) => (
-                          <div key={mem.id} className="flex items-start gap-3 px-4 py-2.5">
-                            <div className="flex-1 min-w-0">
-                              <p className="text-[13px] leading-relaxed">{mem.content}</p>
-                            </div>
-                            <div className="flex items-center gap-2 shrink-0">
-                              <div className="flex gap-px">
+                          <div key={mem.id} className={cn("bg-card border-l-2 border border-border rounded-md p-3 hover:border-l-primary transition-colors", info.accent)}>
+                            <div className="flex items-start gap-3">
+                              <div className="flex-1 min-w-0">
+                                <p className="text-[13px] leading-relaxed text-foreground/85">{mem.content}</p>
+                              </div>
+                              <div className="flex items-center gap-1 shrink-0" title={`Importance: ${Math.round(mem.importance * 100)}%`}>
                                 {[1, 2, 3, 4, 5].map((i) => (
-                                  <div key={i} className={cn("h-1.5 w-1.5 rounded-full", i <= Math.ceil(mem.importance * 5) ? "bg-primary" : "bg-border")} />
+                                  <div key={i} className={cn("h-1 w-1 rounded-full", i <= Math.ceil(mem.importance * 5) ? "bg-primary" : "bg-border")} />
                                 ))}
                               </div>
-                              <span className="text-[11px] text-muted-foreground tabular-nums">{timeAgo(mem.createdAt)}</span>
                             </div>
                           </div>
                         ))}

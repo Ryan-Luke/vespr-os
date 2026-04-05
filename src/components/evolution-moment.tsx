@@ -26,10 +26,25 @@ interface EvolutionEvent {
   } | null
 }
 
+type AnimationStage = "hidden" | "flash" | "glow" | "reveal"
+
 export function EvolutionMoment() {
   const [events, setEvents] = useState<EvolutionEvent[]>([])
   const [currentIndex, setCurrentIndex] = useState(0)
-  const [animating, setAnimating] = useState(false)
+  const [stage, setStage] = useState<AnimationStage>("hidden")
+
+  function runAnimation() {
+    // Stage 1: white flash (~200ms)
+    setStage("flash")
+    setTimeout(() => {
+      // Stage 2: tier glow pulse (~400ms)
+      setStage("glow")
+      setTimeout(() => {
+        // Stage 3: full card reveal
+        setStage("reveal")
+      }, 400)
+    }, 250)
+  }
 
   useEffect(() => {
     // Check for unacknowledged evolutions on mount (next session start)
@@ -38,8 +53,7 @@ export function EvolutionMoment() {
       .then((data: EvolutionEvent[]) => {
         if (Array.isArray(data) && data.length > 0) {
           setEvents(data)
-          // Trigger flash animation
-          setTimeout(() => setAnimating(true), 100)
+          setTimeout(runAnimation, 150)
         }
       })
       .catch(() => {})
@@ -56,14 +70,17 @@ export function EvolutionMoment() {
     }).catch(() => {})
 
     if (currentIndex < events.length - 1) {
-      setAnimating(false)
+      setStage("hidden")
       setCurrentIndex(currentIndex + 1)
-      setTimeout(() => setAnimating(true), 200)
+      setTimeout(runAnimation, 200)
     } else {
       setEvents([])
       setCurrentIndex(0)
+      setStage("hidden")
     }
   }
+
+  const animating = stage === "reveal"
 
   if (events.length === 0) return null
   const event = events[currentIndex]
@@ -82,7 +99,21 @@ export function EvolutionMoment() {
 
   return (
     <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-sm animate-in fade-in duration-300">
-      <div className="relative max-w-lg w-full mx-4">
+      {/* White flash overlay — stage 1 */}
+      {stage === "flash" && (
+        <div className="absolute inset-0 bg-white animate-in fade-in duration-150" style={{ animationDuration: "150ms" }} />
+      )}
+      {/* Tier glow pulse — stage 2 */}
+      {(stage === "glow" || stage === "reveal") && (
+        <div
+          className={cn("absolute inset-0 pointer-events-none transition-opacity duration-700", stage === "glow" ? "opacity-100" : "opacity-30")}
+          style={{
+            background: `radial-gradient(circle at center, ${newTier === "legendary" ? "rgba(245,158,11,0.35)" : newTier === "epic" ? "rgba(168,85,247,0.35)" : newTier === "rare" ? "rgba(59,130,246,0.35)" : newTier === "uncommon" ? "rgba(16,185,129,0.30)" : "rgba(100,116,139,0.25)"} 0%, transparent 60%)`,
+          }}
+        />
+      )}
+
+      <div className={cn("relative max-w-lg w-full mx-4 transition-all duration-500", stage === "reveal" ? "scale-100 opacity-100" : "scale-90 opacity-0")}>
         {/* Close */}
         <button
           onClick={dismissCurrent}

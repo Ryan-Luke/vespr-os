@@ -109,8 +109,7 @@ export function CompanyAchievements() {
 
   const totalTasks = agents.reduce((sum, a) => sum + (a.tasksCompleted ?? 0), 0)
   const totalXP = agents.reduce((sum, a) => sum + (a.xp ?? 0), 0)
-  const totalStreakDays = agents.reduce((sum, a) => sum + (a.streak ?? 0), 0)
-  const longestStreak = agents.reduce((max, a) => Math.max(max, a.streak ?? 0), 0)
+  const avgLevel = agents.length > 0 ? Math.round(agents.reduce((sum, a) => sum + (a.level ?? 1), 0) / agents.length) : 0
 
   // Milestone progress — how many of the 11 milestones are unlocked globally
   const unlockedIds = new Set(milestones.map((m) => m.id))
@@ -125,10 +124,10 @@ export function CompanyAchievements() {
 
       <div className="grid grid-cols-2 gap-px bg-border rounded-md overflow-hidden mb-4">
         {[
-          { label: "Tasks Done", value: totalTasks.toLocaleString(), icon: <Star className="h-3 w-3 text-muted-foreground/40" /> },
+          { label: "Tasks Shipped", value: totalTasks.toLocaleString(), icon: <Star className="h-3 w-3 text-muted-foreground/40" /> },
           { label: "Total XP", value: totalXP.toLocaleString(), icon: <TrendingUp className="h-3 w-3 text-muted-foreground/40" /> },
           { label: "Agents", value: String(agents.length), icon: null },
-          { label: "Best Streak", value: longestStreak > 0 ? `${longestStreak}d` : "—", icon: null },
+          { label: "Avg Level", value: `Lv.${avgLevel}`, icon: null },
         ].map((s) => (
           <div key={s.label} className="bg-card p-3">
             <p className="text-[11px] text-muted-foreground flex items-center gap-1">{s.icon}{s.label}</p>
