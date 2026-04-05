@@ -47,7 +47,9 @@ const BUSINESS_TYPES: BusinessType[] = [
 
 const TOTAL_STEPS = 9
 
+// Anthropic FIRST so Nova can reason for the rest of the flow (per user direction)
 const STEP_ORDER: Step[] = [
+  "anthropic",
   "user_name",
   "business_name",
   "business_type",
@@ -56,7 +58,6 @@ const STEP_ORDER: Step[] = [
   "business_goal",
   "target_scale",
   "timeline",
-  "anthropic",
 ]
 
 export default function OnboardingPage() {
@@ -65,6 +66,7 @@ export default function OnboardingPage() {
   const [entries, setEntries] = useState<ChatEntry[]>([])
   const [textInput, setTextInput] = useState("")
   const [progress, setProgress] = useState("")
+  const [riffing, setRiffing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
 
@@ -78,13 +80,14 @@ export default function OnboardingPage() {
   const [businessGoal, setBusinessGoal] = useState("")
   const [targetScale, setTargetScale] = useState("")
   const [timeline, setTimeline] = useState("")
+  const [anthropicKey, setAnthropicKey] = useState("")
 
   const stepIdx = STEP_ORDER.indexOf(step)
   const progressPct = stepIdx >= 0 ? Math.round(((stepIdx + 1) / TOTAL_STEPS) * 100) : 0
 
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
-  }, [entries, step])
+  }, [entries, step, riffing])
 
   useEffect(() => {
     if (["user_name", "business_name", "business_description", "business_goal", "target_scale", "timeline", "anthropic"].includes(step)) {
@@ -97,9 +100,9 @@ export default function OnboardingPage() {
       setTimeout(() => {
         setEntries([{ role: "assistant", content: "Hey 👋 I'm Nova, your Chief of Staff. I'm going to get your business set up with an AI team that actually runs things." }])
         setTimeout(() => {
-          setEntries((prev) => [...prev, { role: "assistant", content: "Takes about 2 minutes. Ready when you are." }])
-          setTimeout(() => setStep("user_name"), 800)
-        }, 900)
+          setEntries((prev) => [...prev, { role: "assistant", content: "First thing I need is your Anthropic API key — that's what powers me and the rest of your team. I'll use it to actually reason through this setup with you, not just fill out a form." }])
+          setTimeout(() => setStep("anthropic"), 900)
+        }, 1000)
       }, 300)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -115,55 +118,113 @@ export default function OnboardingPage() {
 
   function getQuestion(s: Step): string {
     switch (s) {
-      case "user_name": return "First — what's your name? I want to make sure the team calls you the right thing."
-      case "business_name": return `Nice to meet you, ${userName || "there"}. What's the name of your business? You can skip this and name it later if you're still figuring it out.`
-      case "business_type": return "What type of business is this? Pick the one that fits best."
-      case "business_description": return "Got it. In one or two sentences — what does your business do?"
-      case "competitors": return "Anyone you're watching as competition? Drop their website or Instagram here so the team can study them. You can skip this."
-      case "business_goal": return "What's the main goal for this business? What are you actually trying to achieve?"
-      case "target_scale": return "Where do you want to scale this to? (Revenue target, customer count, market position — whatever matters to you.)"
-      case "timeline": return "What's your timeline? When do you want to hit that?"
-      case "anthropic": return "Last thing — I need your Anthropic API key so I can actually run your AI team on your account. You can grab one from console.anthropic.com/settings/keys. I'll keep it secure."
+      case "anthropic": return "Paste your Anthropic API key to get started. Grab one at console.anthropic.com/settings/keys if you don't have one."
+      case "user_name": return "Perfect — I'm wired in. So, what's your name? I want to make sure the team calls you the right thing."
+      case "business_name": return `What's the name of your business? You can skip this if you're still figuring it out.`
+      case "business_type": return "What type of business is this?"
+      case "business_description": return "In one or two sentences — what does your business do?"
+      case "competitors": return "Anyone you're watching as competition? Drop websites or Instagram handles here. You can skip this."
+      case "business_goal": return "What's the main goal for this business? What are you trying to achieve?"
+      case "target_scale": return "Where do you want to scale this to? Revenue target, customer count, market position — whatever matters."
+      case "timeline": return "Last one — what's your timeline? When do you want to hit that?"
       default: return ""
     }
   }
 
-  function submitText(value: string) {
+  async function submitText(value: string) {
     if (!value.trim()) return
     setEntries((prev) => [...prev, { role: "user", content: value }])
     setTextInput("")
 
-    setTimeout(() => {
-      switch (step) {
-        case "user_name":
-          setUserName(value.trim())
-          setStep("business_name")
-          break
-        case "business_name":
-          setBusinessName(value.trim())
-          setStep("business_type")
-          break
-        case "business_description":
-          setBusinessDescription(value.trim())
-          setStep("competitors")
-          break
-        case "business_goal":
-          setBusinessGoal(value.trim())
-          setStep("target_scale")
-          break
-        case "target_scale":
-          setTargetScale(value.trim())
-          setStep("timeline")
-          break
-        case "timeline":
-          setTimeline(value.trim())
-          setStep("anthropic")
-          break
-        case "anthropic":
-          launchBusiness(value.trim())
-          break
+    // Step 1: Anthropic auth — validate immediately, no riff (Nova isn't reasoning yet)
+    if (step === "anthropic") {
+      setEntries((prev) => [...prev, { role: "assistant", content: "Verifying your key..." }])
+      try {
+        const res = await fetch("/api/validate-anthropic", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ apiKey: value.trim() }),
+        })
+        const data = await res.json()
+        if (data.valid) {
+          setAnthropicKey(value.trim())
+          setTimeout(() => setStep("user_name"), 400)
+        } else {
+          setEntries((prev) => [...prev, { role: "assistant", content: `That key didn't work: ${data.error || "Unknown error"}. Try another key or skip to continue without AI reasoning during setup.` }])
+        }
+      } catch {
+        setEntries((prev) => [...prev, { role: "assistant", content: "Couldn't reach Anthropic. Try again or skip." }])
       }
-    }, 300)
+      return
+    }
+
+    // Determine the next step and update local state for this step
+    let nextStep: Step = step
+    switch (step) {
+      case "user_name":
+        setUserName(value.trim())
+        nextStep = "business_name"
+        break
+      case "business_name":
+        setBusinessName(value.trim())
+        nextStep = "business_type"
+        break
+      case "business_description":
+        setBusinessDescription(value.trim())
+        nextStep = "competitors"
+        break
+      case "business_goal":
+        setBusinessGoal(value.trim())
+        nextStep = "target_scale"
+        break
+      case "target_scale":
+        setTargetScale(value.trim())
+        nextStep = "timeline"
+        break
+      case "timeline":
+        setTimeline(value.trim())
+        // Timeline is the final step — launch directly
+        launchBusiness(anthropicKey)
+        return
+    }
+
+    // Riff: Nova generates a contextual acknowledgment before the next question
+    if (anthropicKey) {
+      setRiffing(true)
+      try {
+        const nextQ = getQuestion(nextStep)
+        const res = await fetch("/api/onboarding/riff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apiKey: anthropicKey,
+            stepJustAnswered: step,
+            latestAnswer: value.trim(),
+            nextQuestion: nextQ,
+            context: {
+              userName: step === "user_name" ? value.trim() : userName,
+              businessName: step === "business_name" ? value.trim() : businessName,
+              businessType,
+              businessDescription: step === "business_description" ? value.trim() : businessDescription,
+              competitors,
+              businessGoal: step === "business_goal" ? value.trim() : businessGoal,
+              targetScale: step === "target_scale" ? value.trim() : targetScale,
+              timeline,
+            },
+          }),
+        })
+        const data = await res.json()
+        if (data.riff && !data.fallback) {
+          setEntries((prev) => [...prev, { role: "assistant", content: data.riff }])
+          setRiffing(false)
+          setTimeout(() => setStep(nextStep), 700)
+          return
+        }
+      } catch {}
+      setRiffing(false)
+    }
+    // Fallback (no key or riff failed): skip to next question
+    setTimeout(() => setStep(nextStep), 300)
   }
 
   function skipCurrent() {
@@ -171,15 +232,41 @@ export default function OnboardingPage() {
     setTimeout(() => {
       if (step === "business_name") setStep("business_type")
       else if (step === "competitors") setStep("business_goal")
-      else if (step === "anthropic") launchBusiness("")
+      // Note: anthropic step is no longer skippable — it's required for Nova to reason
     }, 300)
   }
 
-  function selectBusinessType(typeId: string) {
+  async function selectBusinessType(typeId: string) {
     const t = BUSINESS_TYPES.find((x) => x.id === typeId)
     if (!t) return
     setBusinessType(typeId)
     setEntries((prev) => [...prev, { role: "user", content: `${t.icon} ${t.label}` }])
+
+    // Riff based on business type selection
+    if (anthropicKey) {
+      setRiffing(true)
+      try {
+        const res = await fetch("/api/onboarding/riff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            apiKey: anthropicKey,
+            stepJustAnswered: "business_type",
+            latestAnswer: t.label,
+            nextQuestion: getQuestion("business_description"),
+            context: { userName, businessName, businessType: t.label },
+          }),
+        })
+        const data = await res.json()
+        if (data.riff && !data.fallback) {
+          setEntries((prev) => [...prev, { role: "assistant", content: data.riff }])
+          setRiffing(false)
+          setTimeout(() => setStep("business_description"), 700)
+          return
+        }
+      } catch {}
+      setRiffing(false)
+    }
     setTimeout(() => setStep("business_description"), 400)
   }
 
@@ -254,7 +341,7 @@ export default function OnboardingPage() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-dvh flex flex-col bg-background overflow-hidden">
       {/* Progress bar */}
       <div className="sticky top-0 z-10 bg-background/95 backdrop-blur border-b border-border">
         <div className="h-1 w-full bg-muted">
@@ -361,6 +448,18 @@ export default function OnboardingPage() {
               </div>
             </div>
           )}
+
+          {riffing && (
+            <div className="flex justify-start">
+              <div className="rounded-2xl px-4 py-2.5 bg-card border border-border">
+                <div className="flex items-center gap-1">
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
+                  <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -387,7 +486,7 @@ export default function OnboardingPage() {
                 }
                 className="flex-1 h-11 rounded-xl border border-border bg-card px-4 text-[13.5px] outline-none focus:border-primary/50 transition-colors"
               />
-              {(step === "business_name" || step === "anthropic") && (
+              {step === "business_name" && (
                 <button
                   onClick={skipCurrent}
                   className="h-11 px-4 rounded-xl border border-border bg-card text-[12px] text-muted-foreground hover:bg-accent transition-colors"
