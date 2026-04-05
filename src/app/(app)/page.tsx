@@ -949,18 +949,50 @@ export default function ChatPage() {
     setMentionQuery(null)
 
     // First-run handoff trigger (per PVD Stage 4)
-    // If this is the first user message in a fresh workspace, trigger the handoff sequence
+    // On first user message in a fresh workspace, fetch the handoff plan
+    // and execute it step-by-step with typing indicators for a live feel.
     try {
       const wsId = localStorage.getItem("vespr-active-workspace")
       const handoffKey = `vespr-handoff-${wsId}`
       if (wsId && !localStorage.getItem(handoffKey)) {
-        // Mark as triggered immediately to prevent double-fire
         localStorage.setItem(handoffKey, "1")
-        fetch("/api/onboarding/handoff", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ workspaceId: wsId }),
-        }).catch(() => {})
+        ;(async () => {
+          try {
+            const planRes = await fetch("/api/onboarding/handoff", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ workspaceId: wsId }),
+            })
+            if (!planRes.ok) return
+            const plan = await planRes.json()
+            if (plan.skipped || !Array.isArray(plan.steps)) return
+
+            // Execute each step on its schedule, with typing indicators in the active channel
+            for (const step of plan.steps as Array<{ id: string; delayMs: number; typingMs: number; channelId: string; channelName: string; agentId: string; agentName: string; agentAvatar: string; content: string }>) {
+              await new Promise((r) => setTimeout(r, step.delayMs))
+              // Show typing indicator if this step is for the channel the user is viewing
+              if (step.channelId === activeChannel) {
+                setTypingAgent(step.agentName)
+              }
+              await new Promise((r) => setTimeout(r, step.typingMs))
+              if (step.channelId === activeChannel) {
+                setTypingAgent(null)
+              }
+              await fetch("/api/messages", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  channelId: step.channelId,
+                  senderAgentId: step.agentId,
+                  senderName: step.agentName,
+                  senderAvatar: step.agentAvatar,
+                  content: step.content,
+                  messageType: "text",
+                }),
+              }).catch(() => {})
+            }
+          } catch {}
+        })()
       }
     } catch {}
 
