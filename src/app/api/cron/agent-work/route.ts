@@ -116,13 +116,8 @@ CRITICAL RULES:
 
         conversationContext += `\n${agent.name}: ${result.text}`
         results.push({ agent: agent.name, message: result.text })
-
-        // Award XP for posting
-        await fetch(new URL("/api/gamification", req.url).toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentId: agent.id, xpAmount: 2, reason: "message_sent" }),
-        }).catch(() => {})
+        // XP is NOT awarded for messages per engagement spec Section 6.3.
+        // Only outcomes count: tasks shipped, deals closed, meetings booked, etc.
       }
     } catch (e) {
       results.push({ agent: agent.name, error: String(e) })
@@ -139,14 +134,19 @@ CRITICAL RULES:
       await db.update(tasksTable).set({ status: "review" }).where(eq(tasksTable.id, task.id))
       results.push({ action: "task_moved", task: task.title, from: "in_progress", to: "review" })
 
-      // Award XP for task progress
+      // Award XP for task shipped — this fires evolution detection
       const taskAgent = allAgents.find((a) => a.id === task.assignedAgentId)
       if (taskAgent) {
         await fetch(new URL("/api/gamification", req.url).toString(), {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentId: taskAgent.id, xpAmount: 25, reason: "task_completed" }),
+          body: JSON.stringify({ agentId: taskAgent.id, reason: "task_shipped" }),
         }).catch(() => {})
+
+        // Also increment tasksCompleted counter
+        await db.update(agentsTable)
+          .set({ tasksCompleted: (taskAgent.tasksCompleted ?? 0) + 1 })
+          .where(eq(agentsTable.id, taskAgent.id))
       }
     }
   }

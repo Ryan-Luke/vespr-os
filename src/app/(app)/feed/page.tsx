@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { Trophy, TrendingUp, Zap, Star, DollarSign, Calendar, Sparkles, Loader2 } from "lucide-react"
+import { Trophy, TrendingUp, Zap, Star, DollarSign, Calendar, Sparkles, Loader2, Share2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TrophyEvent {
@@ -161,6 +161,19 @@ export default function TrophyFeedPage() {
                           {event.description && (
                             <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{event.description}</p>
                           )}
+
+                          {/* Share button */}
+                          <div className="mt-2 flex justify-end">
+                            <a
+                              href={`/api/share-card/trophy?id=${event.id}`}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                            >
+                              <Share2 className="h-3 w-3" />
+                              Share
+                            </a>
+                          </div>
                         </div>
                       </div>
                     </div>

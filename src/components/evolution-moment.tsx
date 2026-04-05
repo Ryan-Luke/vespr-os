@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { ARCHETYPES, TIER_STYLES, type ArchetypeId, type Tier } from "@/lib/archetypes"
 import { cn } from "@/lib/utils"
-import { Sparkles, ArrowRight, Zap, X } from "lucide-react"
+import { Sparkles, ArrowRight, Zap, X, Share2 } from "lucide-react"
 
 interface EvolutionEvent {
   id: string
@@ -174,20 +174,34 @@ export function EvolutionMoment() {
             </div>
           )}
 
-          {/* CTA */}
-          <button
-            onClick={dismissCurrent}
-            className={cn(
-              "w-full mt-6 h-10 rounded-lg font-semibold text-[13px] transition-colors",
-              tierStyle.text,
-              "border-2",
-              tierStyle.border,
-              tierStyle.bg,
-              "hover:brightness-125"
-            )}
-          >
-            Continue
-          </button>
+          {/* CTAs */}
+          <div className="flex gap-2 mt-6">
+            <a
+              href={`/api/share-card/evolution?id=${event.id}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "h-10 px-4 rounded-lg font-semibold text-[13px] transition-colors border-2 flex items-center gap-2",
+                "text-muted-foreground border-border hover:bg-accent"
+              )}
+            >
+              <Share2 className="h-3.5 w-3.5" />
+              Share
+            </a>
+            <button
+              onClick={dismissCurrent}
+              className={cn(
+                "flex-1 h-10 rounded-lg font-semibold text-[13px] transition-colors",
+                tierStyle.text,
+                "border-2",
+                tierStyle.border,
+                tierStyle.bg,
+                "hover:brightness-125"
+              )}
+            >
+              Continue
+            </button>
+          </div>
         </div>
       </div>
     </div>

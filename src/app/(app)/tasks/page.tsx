@@ -846,12 +846,25 @@ export default function TasksPage() {
   useEffect(() => { fetchData() }, [fetchData])
 
   async function moveTask(taskId: string, newStatus: string) {
+    const task = tasks.find((t) => t.id === taskId)
+    const wasDone = task?.status === "done"
+    const isNowDone = newStatus === "done"
+
     setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, status: newStatus } : t))
     await fetch("/api/tasks", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ id: taskId, status: newStatus }),
     })
+
+    // Fire XP award + evolution check when task transitions into "done"
+    if (!wasDone && isNowDone && task?.assignedAgentId) {
+      await fetch("/api/gamification", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ agentId: task.assignedAgentId, reason: "task_shipped" }),
+      }).catch(() => {})
+    }
   }
 
   async function createTask() {
