@@ -148,6 +148,7 @@ function BuilderPageInner() {
   const cloneSkills = searchParams.get("skills")
   const clonePersonality = searchParams.get("personality")
   const cloneAutonomy = searchParams.get("autonomy")
+  const prefillArchetype = searchParams.get("archetype")
   const [step, setStep] = useState(prefillTeam || isClone ? 1 : 0) // skip template if coming from team page or cloning
   const [selectedTemplate, setSelectedTemplate] = useState<string | null>(isClone ? "custom" : null)
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(() => {
@@ -828,6 +829,7 @@ function BuilderPageInner() {
                     personality: selectedPreset ? selectedPreset.traits : customTraits,
                     personalityConfig: personalityMode === "custom" ? customConfig : null,
                     autonomyLevel: agentAutonomy,
+                    archetype: prefillArchetype || undefined,
                   }),
                 })
                 router.push("/teams")
