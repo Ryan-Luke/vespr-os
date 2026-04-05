@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react"
 import { useRouter } from "next/navigation"
 import { Sparkles, ArrowRight, Loader2, X, Plus, Rocket } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { PixelAvatar } from "@/components/pixel-avatar"
 
 // ── Chat-style onboarding per PVD ──────────────────────────
 // Lemonade-inspired flow: one question at a time, conversational, with inline buttons.
@@ -98,11 +99,14 @@ export default function OnboardingPage() {
   useEffect(() => {
     if (entries.length === 0) {
       setTimeout(() => {
-        setEntries([{ role: "assistant", content: "Hey 👋 I'm Nova, your Chief of Staff. I'm going to get your business set up with an AI team that actually runs things." }])
+        setEntries([{ role: "assistant", content: "Hi — I'm Nova. I'll be your Chief of Staff here at VESPR OS." }])
         setTimeout(() => {
-          setEntries((prev) => [...prev, { role: "assistant", content: "First thing I need is your Anthropic API key — that's what powers me and the rest of your team. I'll use it to actually reason through this setup with you, not just fill out a form." }])
-          setTimeout(() => setStep("anthropic"), 900)
-        }, 1000)
+          setEntries((prev) => [...prev, { role: "assistant", content: "Before we launch the rest of your team — your marketing lead, your ops lead, your finance lead, everyone — I'm going to personally walk you through setup. I want to understand your business properly so I can brief the team before they even start." }])
+          setTimeout(() => {
+            setEntries((prev) => [...prev, { role: "assistant", content: "First thing I need is your Anthropic API key. That's what powers me and the rest of your team. Once you plug it in, I'll actually be able to reason through this setup with you — not just collect answers." }])
+            setTimeout(() => setStep("anthropic"), 900)
+          }, 1300)
+        }, 1500)
       }, 300)
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
@@ -350,15 +354,20 @@ export default function OnboardingPage() {
             style={{ width: step === "launching" || step === "done" ? "100%" : `${progressPct}%` }}
           />
         </div>
-        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2">
-          <div className="h-7 w-7 rounded-md bg-primary flex items-center justify-center shrink-0">
-            <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
-          </div>
+        <div className="max-w-2xl mx-auto px-4 py-3 flex items-center gap-2.5">
+          <PixelAvatar characterIndex={3} size={32} className="rounded-md shrink-0" />
           <div className="flex-1">
-            <p className="text-[13px] font-semibold">VESPR OS</p>
-            <p className="text-[10px] text-muted-foreground">
-              {step === "launching" || step === "done" ? "Launching" : step === "welcome" ? "Welcome" : `Step ${stepIdx + 1} of ${TOTAL_STEPS}`}
+            <div className="flex items-center gap-1.5">
+              <p className="text-[13px] font-semibold">Nova</p>
+              <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
+              <span className="text-[10px] text-muted-foreground">Chief of Staff</span>
+            </div>
+            <p className="text-[10px] text-muted-foreground/70">
+              {step === "launching" || step === "done" ? "Launching your team..." : step === "welcome" ? "Getting you set up" : `Setup · Step ${stepIdx + 1} of ${TOTAL_STEPS}`}
             </p>
+          </div>
+          <div className="text-right">
+            <p className="text-[9px] text-muted-foreground/50 uppercase tracking-wider">VESPR OS</p>
           </div>
         </div>
       </div>
@@ -366,18 +375,27 @@ export default function OnboardingPage() {
       {/* Chat area */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto px-4 py-6 space-y-4">
-          {entries.map((entry, i) => (
-            <div key={i} className={cn("flex", entry.role === "user" ? "justify-end" : "justify-start")}>
-              <div className={cn(
-                "max-w-[85%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap",
-                entry.role === "assistant"
-                  ? "bg-card border border-border"
-                  : "bg-primary text-primary-foreground"
-              )}>
-                {entry.content}
+          {entries.map((entry, i) => {
+            // Show avatar only on the first message of an assistant run
+            const isFirstOfRun = entry.role === "assistant" && (i === 0 || entries[i - 1].role !== "assistant")
+            return (
+              <div key={i} className={cn("flex items-end gap-2", entry.role === "user" ? "justify-end" : "justify-start")}>
+                {entry.role === "assistant" && (
+                  <div className="shrink-0 w-7">
+                    {isFirstOfRun && <PixelAvatar characterIndex={3} size={28} className="rounded-md" />}
+                  </div>
+                )}
+                <div className={cn(
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap",
+                  entry.role === "assistant"
+                    ? "bg-card border border-border"
+                    : "bg-primary text-primary-foreground"
+                )}>
+                  {entry.content}
+                </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
 
           {step === "business_type" && (
             <div className="grid gap-2 md:grid-cols-2 pt-2">
@@ -439,8 +457,9 @@ export default function OnboardingPage() {
           )}
 
           {step === "launching" && (
-            <div className="flex justify-start pt-4">
-              <div className="max-w-[85%] rounded-2xl px-4 py-3 bg-card border border-border">
+            <div className="flex items-end gap-2 justify-start pt-4">
+              <PixelAvatar characterIndex={3} size={28} className="rounded-md shrink-0" />
+              <div className="max-w-[78%] rounded-2xl px-4 py-3 bg-card border border-border">
                 <div className="flex items-center gap-2">
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
                   <p className="text-[13px] text-muted-foreground">{progress}</p>
@@ -450,7 +469,8 @@ export default function OnboardingPage() {
           )}
 
           {riffing && (
-            <div className="flex justify-start">
+            <div className="flex items-end gap-2 justify-start">
+              <PixelAvatar characterIndex={3} size={28} className="rounded-md shrink-0" />
               <div className="rounded-2xl px-4 py-2.5 bg-card border border-border">
                 <div className="flex items-center gap-1">
                   <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
