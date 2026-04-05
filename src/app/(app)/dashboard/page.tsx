@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { agents as agentsTable, teams as teamsTable, tasks as tasksTable, activityLog as activityLogTable } from "@/lib/db/schema"
-import { desc } from "drizzle-orm"
+import { desc, eq, inArray, or, isNull } from "drizzle-orm"
+import { getActiveWorkspace } from "@/lib/workspace-server"
 import {
   ArrowUpRight, ArrowDownRight, CheckCircle2, Clock,
   AlertCircle, MessageSquare, BookOpen, FileText, Flag, Activity,
@@ -25,10 +26,18 @@ import { UtilizationHeatmap } from "@/components/utilization-heatmap"
 export const dynamic = "force-dynamic"
 
 export default async function DashboardPage() {
-  const [allAgents, allTeams, allTasks, recentActivity] = await Promise.all([
-    db.select().from(agentsTable),
-    db.select().from(teamsTable),
-    db.select().from(tasksTable),
+  const activeWs = await getActiveWorkspace()
+
+  const allTeams = activeWs
+    ? await db.select().from(teamsTable).where(eq(teamsTable.workspaceId, activeWs.id))
+    : await db.select().from(teamsTable)
+  const teamIds = allTeams.map((t) => t.id)
+
+  const [allAgents, allTasks, recentActivity] = await Promise.all([
+    teamIds.length > 0
+      ? db.select().from(agentsTable).where(or(inArray(agentsTable.teamId, teamIds), isNull(agentsTable.teamId)))
+      : db.select().from(agentsTable).where(isNull(agentsTable.teamId)),
+    teamIds.length > 0 ? db.select().from(tasksTable).where(inArray(tasksTable.teamId, teamIds)) : db.select().from(tasksTable),
     db.select().from(activityLogTable).orderBy(desc(activityLogTable.createdAt)).limit(12),
   ])
 
