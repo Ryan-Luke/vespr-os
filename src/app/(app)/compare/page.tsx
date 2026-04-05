@@ -138,13 +138,13 @@ export default function ComparePage() {
       detail: `${effVal} tasks/$`,
     })
 
-    // Longest streak
-    const longestStreak = [...agents].sort((a, b) => b.streak - a.streak)[0]
+    // Most XP earned (outcome-based)
+    const mostXp = [...agents].sort((a, b) => (b.xp ?? 0) - (a.xp ?? 0))[0]
     recs.push({
-      label: "Longest streak",
-      agentName: longestStreak.name,
+      label: "Most XP earned",
+      agentName: mostXp.name,
       icon: Flame,
-      detail: `${longestStreak.streak} day streak`,
+      detail: `${(mostXp.xp ?? 0).toLocaleString()} XP`,
     })
 
     // Highest level (proxy for "highest rated")
@@ -265,8 +265,7 @@ export default function ComparePage() {
                   <div className="space-y-1.5">
                     <Row label="Level" value={`${agent.level} — ${levelTitle(agent.level)}`} />
                     <Row label="XP" value={agent.xp.toLocaleString()} />
-                    <Row label="Streak" value={`${agent.streak} day${agent.streak !== 1 ? "s" : ""}`} />
-                    <Row label="Tasks completed" value={agent.tasksCompleted.toLocaleString()} />
+                    <Row label="Tasks shipped" value={agent.tasksCompleted.toLocaleString()} />
                     <Row label="Cost this month" value={`$${agent.costThisMonth.toFixed(2)}`} />
                   </div>
                 </div>

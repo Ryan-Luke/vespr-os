@@ -3,7 +3,7 @@ import { agents as agentsTable, teams as teamsTable, tasks as tasksTable, activi
 import { desc } from "drizzle-orm"
 import {
   ArrowUpRight, ArrowDownRight, CheckCircle2, Clock,
-  AlertCircle, MessageSquare, BookOpen, FileText, Flag, Activity, Flame,
+  AlertCircle, MessageSquare, BookOpen, FileText, Flag, Activity,
 } from "lucide-react"
 import { AgentActivityChart, CostByTeamChart, TaskStatusChart } from "@/components/dashboard-charts"
 import { MorningCheckin } from "@/components/morning-checkin"

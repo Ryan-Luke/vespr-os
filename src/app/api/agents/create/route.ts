@@ -4,6 +4,7 @@ import { eq } from "drizzle-orm"
 import { DEFAULT_TRAITS } from "@/lib/personality-presets"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
+import { ARCHETYPES, inferArchetype, type ArchetypeId } from "@/lib/archetypes"
 
 // ── Personality-aware intro message ───────────────────────
 function buildIntroMessage(agent: {
@@ -39,6 +40,11 @@ export async function POST(req: Request) {
     ? PERSONALITY_PRESETS.find((p) => p.id === body.personalityPresetId)
     : null
 
+  // Infer archetype from role (allow explicit override from body.archetype)
+  const archetypeId: ArchetypeId = (body.archetype as ArchetypeId) || inferArchetype(body.role || "")
+  const archetypeDef = ARCHETYPES[archetypeId] || ARCHETYPES.operator
+  const starterForm = archetypeDef.forms[0]
+
   const [newAgent] = await db.insert(agents).values({
     name: body.name,
     role: body.role,
@@ -57,6 +63,12 @@ export async function POST(req: Request) {
     config: {},
     tasksCompleted: 0,
     costThisMonth: 0,
+    // Identity system per engagement spec
+    nickname: body.name,
+    archetype: archetypeId,
+    tier: starterForm.tier,
+    currentForm: starterForm.name,
+    identityStats: archetypeDef.defaultStats,
   }).returning()
 
   // Post welcome message from team lead + agent intro in the team channel
