@@ -64,8 +64,9 @@ const AVAILABLE_TOOLS: ToolDef[] = [
   { provider: "xero", name: "Xero", category: "finance", description: "Cloud accounting", icon: "📒", connectionType: "oauth" },
   { provider: "plaid", name: "Plaid", category: "finance", description: "Bank account connections", icon: "🏦", connectionType: "apikey" },
   // Operations (Mixed)
+  { provider: "whop", name: "Whop", category: "payments", description: "Digital product sales & subscriptions", icon: "💳", connectionType: "apikey" },
   { provider: "shopify", name: "Shopify", category: "operations", description: "E-commerce platform", icon: "🛍️", connectionType: "oauth" },
-  { provider: "shipstation", name: "ShipStation", category: "operations", description: "Shipping and fulfillment", icon: "📦", connectionType: "apikey" },
+  { provider: "make", name: "Make.com", category: "operations", description: "Visual workflow automation", icon: "🔧", connectionType: "webhook" },
   { provider: "zapier", name: "Zapier", category: "operations", description: "Workflow automation", icon: "⚡", connectionType: "webhook" },
   { provider: "n8n", name: "n8n", category: "operations", description: "Self-hosted automation", icon: "🔄", connectionType: "webhook" },
   { provider: "notion", name: "Notion", category: "operations", description: "Docs and project management", icon: "📝", connectionType: "oauth" },

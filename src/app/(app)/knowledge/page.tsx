@@ -3,7 +3,8 @@
 import { useState, useRef, useEffect, useCallback } from "react"
 import { Textarea } from "@/components/ui/textarea"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { agents } from "@/lib/mock-data"
+
+interface AgentRef { id: string; name: string; pixelAvatarIndex: number }
 import {
   Brain, Search, Plus, Network, List, Clock,
   Link2, FileText, X, ChevronRight, Save, Edit3,
@@ -458,6 +459,7 @@ function ImportPanel({ onSave, onCancel, saving }: { onSave: (entry: { title: st
 
 export default function KnowledgePage() {
   const [entries, setEntries] = useState<KnowledgeEntry[]>([])
+  const [agents, setAgents] = useState<AgentRef[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
   const [activeCategory, setActiveCategory] = useState("all")
@@ -497,6 +499,9 @@ export default function KnowledgePage() {
 
   useEffect(() => {
     fetchEntries()
+    fetch("/api/agents").then((r) => r.json()).then((data) => {
+      if (Array.isArray(data)) setAgents(data.map((a: any) => ({ id: a.id, name: a.name, pixelAvatarIndex: a.pixelAvatarIndex })))
+    }).catch(() => {})
     fetch("/api/company-memory").then((r) => r.json()).then((data) => {
       if (Array.isArray(data)) setCompanyMemories(data)
     }).catch(() => {})
