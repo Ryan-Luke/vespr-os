@@ -190,11 +190,30 @@ async function seed() {
       stats[key] = Math.min(100, Math.max(0, base + Math.floor((Math.random() - 0.5) * 10)))
     }
 
+    // Seed realistic outcome stats based on archetype + tasks completed
+    // This gives every agent a partial progress bar toward their next evolution
+    const outcomes: Record<string, number> = {
+      tasks_shipped: ag.tasksCompleted ?? 0,
+    }
+    if (archetypeId === "scout") {
+      // Scouts generate qualified leads — progress toward next form
+      outcomes.qualified_leads = Math.floor((ag.tasksCompleted ?? 0) * 0.6)
+      outcomes.revenue_sourced = Math.floor((ag.tasksCompleted ?? 0) * 250)
+    } else if (archetypeId === "closer") {
+      outcomes.deals_closed = Math.floor((ag.tasksCompleted ?? 0) * 0.15)
+      outcomes.revenue_sourced = Math.floor((ag.tasksCompleted ?? 0) * 1200)
+    } else if (archetypeId === "communicator") {
+      outcomes.meetings_booked = Math.floor((ag.tasksCompleted ?? 0) * 0.4)
+    } else if (archetypeId === "researcher" || archetypeId === "writer" || archetypeId === "analyst") {
+      outcomes.documents_delivered = Math.floor((ag.tasksCompleted ?? 0) * 0.3)
+    }
+
     await db.update(schema.agents).set({
       archetype: archetypeId,
       tier: currentForm.tier,
       identityStats: stats,
-      nickname: ag.name, // default nickname = name; user can rename via ritual
+      outcomeStats: outcomes,
+      nickname: ag.name,
     }).where(eq(schema.agents.id, ag.id))
   }
 

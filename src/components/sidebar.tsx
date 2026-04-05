@@ -48,6 +48,7 @@ const navGroups = [
     items: [
       { href: "/business", label: "My Business", icon: Building2 },
       { href: "/teams", label: "Teams", icon: Users },
+      { href: "/roster", label: "Roster", icon: Trophy },
       { href: "/tasks", label: "Tasks", icon: ClipboardList },
       { href: "/knowledge", label: "Knowledge", icon: Brain },
       { href: "/automations", label: "Automations", icon: Zap },

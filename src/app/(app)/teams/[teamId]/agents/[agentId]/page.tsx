@@ -47,6 +47,7 @@ interface DBAgent {
   tasksCompleted: number; costThisMonth: number
   nickname: string | null; archetype: string | null; tier: string
   identityStats: { outreach?: number; research?: number; negotiation?: number; execution?: number; creativity?: number }
+  outcomeStats?: { qualified_leads?: number; deals_closed?: number; meetings_booked?: number; tasks_shipped?: number; sops_authored?: number; documents_delivered?: number; revenue_sourced?: number }
 }
 
 interface SOP {
@@ -870,6 +871,32 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-3">Identity</p>
               <IdentityCard agent={agent as any} />
             </div>
+
+            {/* Outcome counters */}
+            {agent.outcomeStats && Object.keys(agent.outcomeStats).length > 0 && (
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider mb-2">Outcomes delivered</p>
+                <div className="grid gap-px bg-border rounded-md overflow-hidden grid-cols-3 md:grid-cols-4">
+                  {[
+                    { key: "qualified_leads", label: "Qualified leads", icon: "🔍" },
+                    { key: "deals_closed", label: "Deals closed", icon: "💰" },
+                    { key: "meetings_booked", label: "Meetings booked", icon: "📅" },
+                    { key: "tasks_shipped", label: "Tasks shipped", icon: "🚀" },
+                    { key: "documents_delivered", label: "Docs delivered", icon: "📄" },
+                    { key: "sops_authored", label: "SOPs authored", icon: "📋" },
+                    { key: "revenue_sourced", label: "Revenue sourced", icon: "💵", format: (n: number) => `$${n.toLocaleString()}` },
+                  ].filter((s) => (agent.outcomeStats as any)?.[s.key] > 0).map((s) => {
+                    const val = (agent.outcomeStats as any)[s.key] as number
+                    return (
+                      <div key={s.key} className="bg-card p-2.5">
+                        <p className="text-[10px] text-muted-foreground flex items-center gap-1">{s.icon} {s.label}</p>
+                        <p className="text-sm font-semibold tabular-nums mt-0.5">{s.format ? s.format(val) : val.toLocaleString()}</p>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             {/* Emergent Traits — derived from performance */}
             {traits.length > 0 && (

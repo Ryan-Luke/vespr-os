@@ -1,9 +1,9 @@
 "use client"
 
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { ARCHETYPES, TIER_STYLES, type ArchetypeId, type Tier, getCurrentForm } from "@/lib/archetypes"
+import { ARCHETYPES, TIER_STYLES, type ArchetypeId, type Tier, getEvolutionProgress } from "@/lib/archetypes"
 import { cn } from "@/lib/utils"
-import { Zap } from "lucide-react"
+import { Zap, TrendingUp } from "lucide-react"
 
 interface IdentityCardAgent {
   id: string
@@ -20,9 +20,22 @@ interface IdentityCardAgent {
     execution?: number
     creativity?: number
   }
+  outcomeStats?: {
+    qualified_leads?: number
+    deals_closed?: number
+    meetings_booked?: number
+    tasks_shipped?: number
+    sops_authored?: number
+    documents_delivered?: number
+    revenue_sourced?: number
+  }
   level: number
   xp: number
   tasksCompleted: number
+}
+
+function formatMetric(metric: string): string {
+  return metric.replace(/_/g, " ")
 }
 
 const STAT_LABELS: Record<string, string> = {
@@ -42,6 +55,14 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
   // Find current form based on archetype + tier
   const currentForm = archetype.forms.find((f) => f.tier === tier) || archetype.forms[0]
   const formName = currentForm?.name || archetype.label
+
+  // Evolution progress toward next form
+  const outcomeStats = (agent.outcomeStats || {}) as Record<string, number>
+  // Also count tasks_shipped from tasksCompleted field
+  if (!outcomeStats.tasks_shipped && agent.tasksCompleted) {
+    outcomeStats.tasks_shipped = agent.tasksCompleted
+  }
+  const evolution = getEvolutionProgress(archetypeId, outcomeStats)
 
   const displayName = agent.nickname || agent.name
   const stats = agent.identityStats || {}
@@ -120,6 +141,42 @@ export function IdentityCard({ agent, compact = false }: { agent: IdentityCardAg
               </span>
             ))}
           </div>
+        </div>
+      )}
+
+      {/* Evolution Progress */}
+      {evolution?.nextForm && evolution.progress.length > 0 && (
+        <div className="mt-4 pt-3 border-t border-border/50">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1">
+              <TrendingUp className="h-2.5 w-2.5" />
+              Next form: {evolution.nextForm.name}
+            </p>
+            <span className={cn("text-[10px] uppercase tracking-wider font-bold", TIER_STYLES[evolution.nextForm.tier].text)}>
+              {TIER_STYLES[evolution.nextForm.tier].label}
+            </span>
+          </div>
+          <div className="space-y-1.5">
+            {evolution.progress.map((p) => (
+              <div key={p.metric}>
+                <div className="flex items-center justify-between text-[10px] mb-0.5">
+                  <span className="text-muted-foreground">{formatMetric(p.metric)}</span>
+                  <span className="tabular-nums text-foreground/70">{p.current}/{p.target}</span>
+                </div>
+                <div className="h-1 rounded-full bg-border overflow-hidden">
+                  <div
+                    className={cn("h-full rounded-full transition-all", TIER_STYLES[evolution.nextForm!.tier].text.replace("text-", "bg-"))}
+                    style={{ width: `${p.pct}%` }}
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+          {evolution.progress.every((p) => p.pct >= 90) && (
+            <p className={cn("text-[10px] mt-2 font-medium", TIER_STYLES[evolution.nextForm.tier].text)}>
+              ⚡ Evolution imminent
+            </p>
+          )}
         </div>
       )}
 

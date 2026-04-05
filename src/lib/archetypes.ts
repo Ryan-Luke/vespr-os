@@ -172,6 +172,38 @@ export const TIER_STYLES: Record<Tier, { label: string; bg: string; border: stri
   legendary:  { label: "Legendary", bg: "bg-amber-500/10",   border: "border-amber-500/60",    text: "text-amber-400",    glow: "shadow-[0_0_32px_rgba(245,158,11,0.25)]" },
 }
 
+/** Get progress toward the next evolution form. Returns null if at max form. */
+export function getEvolutionProgress(
+  archetypeId: ArchetypeId,
+  outcomeStats: Record<string, number>
+): { currentForm: EvolutionForm; nextForm: EvolutionForm | null; progress: { metric: string; current: number; target: number; pct: number }[] } | null {
+  const archetype = ARCHETYPES[archetypeId]
+  if (!archetype) return null
+
+  // Find current form (highest where all thresholds met)
+  let currentIdx = 0
+  for (let i = archetype.forms.length - 1; i >= 0; i--) {
+    const f = archetype.forms[i]
+    if (f.thresholds.length === 0) { currentIdx = i; break }
+    const allMet = f.thresholds.every((t) => (outcomeStats[t.metric] ?? 0) >= t.value)
+    if (allMet) { currentIdx = i; break }
+  }
+
+  const currentForm = archetype.forms[currentIdx]
+  const nextForm = archetype.forms[currentIdx + 1] || null
+
+  if (!nextForm) return { currentForm, nextForm: null, progress: [] }
+
+  // Compute progress toward next form's thresholds
+  const progress = nextForm.thresholds.map((t) => {
+    const current = outcomeStats[t.metric] ?? 0
+    const pct = Math.min(100, Math.round((current / t.value) * 100))
+    return { metric: t.metric, current, target: t.value, pct }
+  })
+
+  return { currentForm, nextForm, progress }
+}
+
 /** Determine the current form of an agent based on their outcome stats */
 export function getCurrentForm(
   archetypeId: ArchetypeId,
