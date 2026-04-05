@@ -50,8 +50,8 @@ const TOTAL_STEPS = 9
 const STEP_ORDER: Step[] = [
   "user_name",
   "business_name",
-  "business_description",
   "business_type",
+  "business_description",
   "competitors",
   "business_goal",
   "target_scale",
@@ -117,8 +117,8 @@ export default function OnboardingPage() {
     switch (s) {
       case "user_name": return "First — what's your name? I want to make sure the team calls you the right thing."
       case "business_name": return `Nice to meet you, ${userName || "there"}. What's the name of your business? You can skip this and name it later if you're still figuring it out.`
-      case "business_description": return "Got it. In one or two sentences — what does your business do?"
       case "business_type": return "What type of business is this? Pick the one that fits best."
+      case "business_description": return "Got it. In one or two sentences — what does your business do?"
       case "competitors": return "Anyone you're watching as competition? Drop their website or Instagram here so the team can study them. You can skip this."
       case "business_goal": return "What's the main goal for this business? What are you actually trying to achieve?"
       case "target_scale": return "Where do you want to scale this to? (Revenue target, customer count, market position — whatever matters to you.)"
@@ -141,11 +141,11 @@ export default function OnboardingPage() {
           break
         case "business_name":
           setBusinessName(value.trim())
-          setStep("business_description")
+          setStep("business_type")
           break
         case "business_description":
           setBusinessDescription(value.trim())
-          setStep("business_type")
+          setStep("competitors")
           break
         case "business_goal":
           setBusinessGoal(value.trim())
@@ -169,7 +169,7 @@ export default function OnboardingPage() {
   function skipCurrent() {
     setEntries((prev) => [...prev, { role: "user", content: "Skip" }])
     setTimeout(() => {
-      if (step === "business_name") setStep("business_description")
+      if (step === "business_name") setStep("business_type")
       else if (step === "competitors") setStep("business_goal")
       else if (step === "anthropic") launchBusiness("")
     }, 300)
@@ -180,7 +180,7 @@ export default function OnboardingPage() {
     if (!t) return
     setBusinessType(typeId)
     setEntries((prev) => [...prev, { role: "user", content: `${t.icon} ${t.label}` }])
-    setTimeout(() => setStep("competitors"), 400)
+    setTimeout(() => setStep("business_description"), 400)
   }
 
   function addCompetitor() {
