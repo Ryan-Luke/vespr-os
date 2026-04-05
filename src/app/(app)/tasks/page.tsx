@@ -823,9 +823,11 @@ export default function TasksPage() {
   }, [loading, tasks])
 
   const fetchData = useCallback(async () => {
+    const wsId = typeof window !== "undefined" ? localStorage.getItem("verspr-active-workspace") : null
+    const chatUrl = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
     const [tasksRes, chatData] = await Promise.all([
       fetch("/api/tasks").then((r) => r.json()),
-      fetch("/api/chat-data").then((r) => r.json()),
+      fetch(chatUrl).then((r) => r.json()),
     ])
     setTasks(tasksRes)
     setDbAgents(chatData.agents)
