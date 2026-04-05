@@ -26,7 +26,15 @@ export const workspaces = pgTable("workspaces", {
     teamSize?: string
     revenue?: string
     tools?: string[]
+    goal?: string          // what they want to achieve
+    targetScale?: string   // where they want to scale to
+    timeline?: string      // by when
+    competitors?: Array<{ label: string; url: string }>
   }>().default({}),
+  // Owner identity — the founder using this workspace
+  ownerName: text("owner_name"),
+  // Anthropic API key — required for AI to operate on user's account (per PVD)
+  anthropicApiKey: text("anthropic_api_key"),
   isActive: boolean("is_active").notNull().default(true),
   // Public trainer profile (opt-in) — per engagement spec Phase 3
   isPublic: boolean("is_public").notNull().default(false),

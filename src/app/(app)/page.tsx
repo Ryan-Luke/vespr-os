@@ -687,7 +687,22 @@ export default function ChatPage() {
           } catch {}
         }
 
-        if (data.channels.length > 0) setActiveChannel(data.channels[0].id)
+        if (data.channels.length > 0) {
+          // Check for fresh onboarding entry channel (set by onboarding flow)
+          const entryCookieMatch = typeof document !== "undefined" && document.cookie.match(/vespr-entry-channel=([^;]+)/)
+          if (entryCookieMatch) {
+            const entryId = entryCookieMatch[1]
+            const entryChannel = data.channels.find((c: any) => c.id === entryId)
+            if (entryChannel) {
+              setActiveChannel(entryId)
+              // Clear the cookie so it only fires once
+              document.cookie = "vespr-entry-channel=; path=/; max-age=0"
+              setDataLoaded(true)
+              return
+            }
+          }
+          setActiveChannel(data.channels[0].id)
+        }
         setDataLoaded(true)
       })
     }

@@ -24,13 +24,24 @@ interface BusinessTemplate {
   }[]
 }
 
+// R&D team is the entry point for every business (per PVD). Always first in the template.
+const RND_TEAM = {
+  name: "Research & Development",
+  icon: "🧪",
+  description: "Product strategy, offer creation, and market research — the entry point for the business",
+  agents: [
+    { name: "Rory", role: "Head of R&D", personalityPresetId: "paul-graham", skills: ["Market Research", "Product Strategy", "ICP Definition", "Offer Design", "Competitive Analysis"], isTeamLead: true, currentTask: "Preparing initial product discovery session" },
+  ],
+}
+
 const TEMPLATES: BusinessTemplate[] = [
   {
     id: "ecommerce",
     name: "E-Commerce",
-    description: "Online store with marketing, sales, ops, fulfillment, and finance leads",
+    description: "Online store with R&D, marketing, sales, ops, fulfillment, and finance leads",
     icon: "🛒",
     teams: [
+      RND_TEAM,
       { name: "Marketing", icon: "📣", description: "Drive traffic, content, and brand awareness", agents: [
         { name: "Maya", role: "Head of Marketing", personalityPresetId: "leslie-knope", skills: ["Content Strategy", "SEO", "Paid Ads", "Social Media", "Brand"], isTeamLead: true, currentTask: "Developing go-to-market strategy" },
       ]},
@@ -51,9 +62,10 @@ const TEMPLATES: BusinessTemplate[] = [
   {
     id: "agency",
     name: "Agency / Services",
-    description: "Client services with account management, creative, delivery, and growth leads",
+    description: "Client services with R&D, account management, creative, delivery, and growth leads",
     icon: "🏢",
     teams: [
+      RND_TEAM,
       { name: "Account Management", icon: "🤝", description: "Client relationships and communication", agents: [
         { name: "Elena", role: "Account Director", personalityPresetId: "obi-wan", skills: ["Client Relations", "Project Scoping", "Negotiation", "Retention"], isTeamLead: true, currentTask: "Preparing client onboarding process" },
       ]},
@@ -71,9 +83,10 @@ const TEMPLATES: BusinessTemplate[] = [
   {
     id: "saas",
     name: "SaaS / Tech",
-    description: "Software company with product, engineering, growth, and customer success leads",
+    description: "Software company with R&D, product, engineering, growth, and customer success leads",
     icon: "💻",
     teams: [
+      RND_TEAM,
       { name: "Product", icon: "🎯", description: "Product strategy, roadmap, and user research", agents: [
         { name: "Sage", role: "Head of Product", personalityPresetId: "steve-jobs", skills: ["User Research", "Roadmapping", "Prioritization", "Product Strategy"], isTeamLead: true, currentTask: "Defining product vision and roadmap" },
       ]},
@@ -90,10 +103,11 @@ const TEMPLATES: BusinessTemplate[] = [
   },
   {
     id: "content",
-    name: "Content Creator",
-    description: "Personal brand with content, distribution, monetization, and community leads",
+    name: "Content Creator / Info Product",
+    description: "Personal brand with R&D, content, distribution, monetization, and community leads",
     icon: "🎬",
     teams: [
+      RND_TEAM,
       { name: "Content", icon: "✍️", description: "Writing, video, and multimedia production", agents: [
         { name: "Luna", role: "Head of Content", personalityPresetId: "taylor-swift", skills: ["Content Strategy", "Writing", "Video", "Editorial Calendar"], isTeamLead: true, currentTask: "Planning content strategy and themes" },
       ]},
@@ -111,9 +125,10 @@ const TEMPLATES: BusinessTemplate[] = [
   {
     id: "consulting",
     name: "Consulting / Coaching",
-    description: "Knowledge business with client delivery, marketing, and operations leads",
+    description: "Knowledge business with R&D, client delivery, marketing, and operations leads",
     icon: "🎓",
     teams: [
+      RND_TEAM,
       { name: "Client Delivery", icon: "🎯", description: "Client work, coaching sessions, and deliverables", agents: [
         { name: "Sage", role: "Head of Client Delivery", personalityPresetId: "ray-dalio", skills: ["Strategy", "Analysis", "Frameworks", "Coaching", "Presentations"], isTeamLead: true, currentTask: "Building client delivery framework" },
       ]},
@@ -122,6 +137,48 @@ const TEMPLATES: BusinessTemplate[] = [
       ]},
       { name: "Operations", icon: "⚙️", description: "Admin, billing, and process management", agents: [
         { name: "Iris", role: "Head of Operations", personalityPresetId: "hermione", skills: ["Invoicing", "Contracts", "CRM Management", "Scheduling"], isTeamLead: true, currentTask: "Setting up operational systems" },
+      ]},
+    ],
+  },
+  {
+    id: "service",
+    name: "Service-Based",
+    description: "Done-for-you services (agencies, freelancing, local services) with R&D, sales, delivery, and ops leads",
+    icon: "🛠️",
+    teams: [
+      RND_TEAM,
+      { name: "Sales", icon: "💰", description: "Lead generation, discovery calls, and closing", agents: [
+        { name: "Jordan", role: "Head of Sales", personalityPresetId: "alex-hormozi", skills: ["Lead Generation", "Discovery Calls", "Proposals", "Closing"], isTeamLead: true, currentTask: "Building sales pipeline" },
+      ]},
+      { name: "Delivery", icon: "🚀", description: "Client work execution and project management", agents: [
+        { name: "Dev", role: "Head of Delivery", personalityPresetId: "captain-america", skills: ["Project Management", "Client Management", "Quality Control", "Deliverables"], isTeamLead: true, currentTask: "Setting up delivery framework" },
+      ]},
+      { name: "Operations", icon: "⚙️", description: "Admin, invoicing, and systems", agents: [
+        { name: "Nyx", role: "Head of Operations", personalityPresetId: "tony-stark", skills: ["Process Design", "Invoicing", "Contracts", "Automation"], isTeamLead: true, currentTask: "Building operational systems" },
+      ]},
+      { name: "Finance", icon: "📊", description: "Bookkeeping, billing, and cash flow", agents: [
+        { name: "Finley", role: "Head of Finance", personalityPresetId: "ron-swanson", skills: ["Bookkeeping", "Invoicing", "Cash Flow", "Budgeting"], isTeamLead: true, currentTask: "Setting up financial tracking" },
+      ]},
+    ],
+  },
+  {
+    id: "brick_and_mortar",
+    name: "Brick & Mortar",
+    description: "Physical location business with R&D, marketing, operations, staff, and finance leads",
+    icon: "🏪",
+    teams: [
+      RND_TEAM,
+      { name: "Marketing", icon: "📣", description: "Local marketing, foot traffic, and brand", agents: [
+        { name: "Maya", role: "Head of Marketing", personalityPresetId: "leslie-knope", skills: ["Local SEO", "Social Media", "Community Events", "Promotions"], isTeamLead: true, currentTask: "Building local marketing plan" },
+      ]},
+      { name: "Operations", icon: "⚙️", description: "Daily operations, inventory, and vendor management", agents: [
+        { name: "Nyx", role: "Head of Operations", personalityPresetId: "tony-stark", skills: ["Inventory", "Scheduling", "Vendor Management", "Process Design"], isTeamLead: true, currentTask: "Mapping daily operations" },
+      ]},
+      { name: "Staff", icon: "👥", description: "Hiring, training, and team management", agents: [
+        { name: "Aria", role: "Head of Staff", personalityPresetId: "leslie-knope", skills: ["Hiring", "Training", "Scheduling", "Performance Management"], isTeamLead: true, currentTask: "Setting up team systems" },
+      ]},
+      { name: "Finance", icon: "📊", description: "Bookkeeping, POS, and cash flow", agents: [
+        { name: "Finley", role: "Head of Finance", personalityPresetId: "ron-swanson", skills: ["Bookkeeping", "POS Systems", "Cash Flow", "Tax Prep"], isTeamLead: true, currentTask: "Setting up financial tracking" },
       ]},
     ],
   },
@@ -136,7 +193,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const { templateId, businessName, lane, businessIdea, existingTools, existingPainPoints, teamSize } = await req.json() as {
+  const body = await req.json() as {
     templateId: string
     businessName?: string
     lane?: "new" | "existing"
@@ -144,29 +201,56 @@ export async function POST(req: Request) {
     existingTools?: string
     existingPainPoints?: string
     teamSize?: string
+    // New fields per PVD onboarding flow
+    ownerName?: string
+    businessDescription?: string
+    businessGoal?: string
+    mission?: string
+    targetScale?: string
+    timeline?: string
+    competitors?: Array<{ label: string; url: string }>
+    anthropicApiKey?: string
   }
+  const { templateId, businessName, lane, businessIdea, existingTools, existingPainPoints, teamSize, ownerName, businessDescription, businessGoal, mission, targetScale, timeline, competitors, anthropicApiKey } = body
 
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
 
-  // Create a new workspace for this business (or re-use if name matches)
+  // Create a new workspace for this business
   const wsName = businessName?.trim() || template.name
-  const slug = wsName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+  const slug = wsName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 6)
+
+  const businessTypeMap: Record<string, string> = {
+    ecommerce: "ecommerce",
+    saas: "saas",
+    agency: "agency",
+    consulting: "consulting",
+    content: "info_product",
+    service: "agency",
+    brick_and_mortar: "brick_and_mortar",
+  }
+
   const [newWorkspace] = await db.insert(workspaces).values({
     name: wsName,
     slug,
     icon: template.icon,
-    description: businessIdea || template.description,
-    businessType: templateId === "ecommerce" ? "ecommerce" : templateId === "saas" ? "saas" : templateId === "agency" ? "agency" : templateId === "consulting" ? "consulting" : templateId === "content" ? "info_product" : "other",
+    description: businessDescription || businessIdea || template.description,
+    businessType: businessTypeMap[templateId] || "other",
     industry: null,
     website: null,
+    ownerName: ownerName || null,
+    anthropicApiKey: anthropicApiKey || null,
     businessProfile: {
-      mission: businessIdea || undefined,
+      mission: mission || businessIdea || undefined,
       icp: undefined,
       verticals: [],
       teamSize: teamSize || undefined,
       revenue: undefined,
       tools: existingTools ? existingTools.split(",").map((t) => t.trim()).filter(Boolean) : [],
+      goal: businessGoal || undefined,
+      targetScale: targetScale || undefined,
+      timeline: timeline || undefined,
+      competitors: competitors || [],
     },
   }).returning()
 
@@ -242,93 +326,69 @@ export async function POST(req: Request) {
     }
   }
 
-  // Welcome messages — adapted to lane
+  // ── First-Run Flow per PVD ─────────────────────────────────
+  // Sequence: R&D lead greets user in R&D channel → coordinates in #team-leaders
+  // → each dept lead reaches out in their own channel → Nova wraps with goals
   const teamLeads = insertedAgents.filter((a) => a.isTeamLead)
-  const isNew = lane === "new"
   const bName = businessName || "your business"
+  const addressName = ownerName || "boss"
+
+  // Find R&D lead and R&D channel
+  const rndLead = teamLeads.find((a) => {
+    const team = insertedTeams.find((t) => t.id === a.teamId)
+    return team?.name.toLowerCase().includes("research") || team?.name.toLowerCase().includes("r&d")
+  })
+  const rndChannel = rndLead
+    ? insertedChannels.find((c) => c.teamId === rndLead.teamId)
+    : null
+
+  // Context summary for agents to reference
+  const ctx: string[] = []
+  if (businessDescription) ctx.push(`What they do: ${businessDescription}`)
+  if (businessGoal) ctx.push(`Goal: ${businessGoal}`)
+  if (targetScale) ctx.push(`Target: ${targetScale}`)
+  if (timeline) ctx.push(`Timeline: ${timeline}`)
+  if (competitors && competitors.length > 0) ctx.push(`Competitors they're watching: ${competitors.map((c) => c.label).join(", ")}`)
+  const ctxLine = ctx.length > 0 ? `\n\nHere's what I know so far:\n${ctx.map((c) => `• ${c}`).join("\n")}` : ""
 
   const welcomeMessages: any[] = []
 
-  if (isNew) {
-    // Lane 1: New builder — guided, R&D-first
+  // 1. R&D lead reaches out DIRECTLY in R&D channel — the entry point
+  if (rndLead && rndChannel) {
     welcomeMessages.push({
-      channelId: teamLeadersChannel.id,
-      senderAgentId: chiefOfStaff.id,
-      senderName: chiefOfStaff.name,
-      senderAvatar: chiefOfStaff.avatar,
-      content: `Welcome to ${bName} 🎉 I'm Nova, your Chief of Staff.\n\nSince you're building something new, here's how this works: your **R&D / Product team activates first**. They'll help you validate your idea, understand the market, and define what you're building.\n\nOnce we have clarity there, I'll activate Marketing, Sales, Ops, and Finance as they become relevant. One step at a time.\n\nTeam leads — introduce yourselves.`,
+      channelId: rndChannel.id,
+      senderAgentId: rndLead.id,
+      senderName: rndLead.name,
+      senderAvatar: rndLead.avatar,
+      content: `Hey ${addressName} 👋 I'm ${rndLead.name}, your Head of R&D. Welcome to ${bName} — excited to build this with you.${ctxLine}\n\nI'm going to walk you through defining your first product. We'll answer four questions together:\n\n1. **Who are we selling to?** Your ideal customer\n2. **What problem do we solve?**\n3. **What's the offer?**\n4. **What's the price point?**\n\nOnce we have clarity on this, I'll loop in Marketing, Ops, and Finance to build out the rest of the plan. Reply when you're ready and we'll dig in.`,
       messageType: "text",
     })
+  }
 
-    // Find R&D/Product lead and have them go first with a more educational intro
-    const productLead = teamLeads.find((a) => {
-      const team = insertedTeams.find((t) => t.id === a.teamId)
-      return team?.name.toLowerCase().includes("product") || team?.name.toLowerCase().includes("r&d") || team?.name.toLowerCase().includes("creative")
-    })
+  // 2. Nova announces in #team-leaders that R&D is engaging user first
+  welcomeMessages.push({
+    channelId: teamLeadersChannel.id,
+    senderAgentId: chiefOfStaff.id,
+    senderName: chiefOfStaff.name,
+    senderAvatar: chiefOfStaff.avatar,
+    content: `Team — ${addressName} just launched **${bName}**. ${rndLead ? `@${rndLead.name} is running the initial product discovery in #${rndChannel?.name}.` : "We're getting set up."} Everyone else, stand by — I'll coordinate handoffs as R&D wraps up the offer definition. Let's make this count.`,
+    messageType: "text",
+  })
 
-    if (productLead) {
-      const team = insertedTeams.find((t) => t.id === productLead.teamId)
-      welcomeMessages.push({
-        channelId: teamLeadersChannel.id,
-        senderAgentId: productLead.id,
-        senderName: productLead.name,
-        senderAvatar: productLead.avatar,
-        content: `Hey boss 👋 I'm ${productLead.name}, leading ${team?.name}. I'm your first point of contact.\n\n${businessIdea ? `I see you mentioned: "${businessIdea}" — great starting point. Let's dig into this together.` : "Let's start by talking through your idea — even a rough concept works."}\n\nHead to **#${team?.name.toLowerCase().replace(/\s+/g, "-")}** and let's get started. I'll walk you through everything.`,
-        messageType: "text",
-      })
-    }
-
-    // Other leads introduce briefly
-    for (const lead of teamLeads) {
-      if (lead.id === productLead?.id) continue
-      const team = insertedTeams.find((t) => t.id === lead.teamId)
-      welcomeMessages.push({
-        channelId: teamLeadersChannel.id,
-        senderAgentId: lead.id,
-        senderName: lead.name,
-        senderAvatar: lead.avatar,
-        content: `I'm ${lead.name}, heading up ${team?.name}. I'll be here when you need me — ${team?.name} activates once we have the foundation in place. No rush 👋`,
-        messageType: "text",
-      })
-    }
+  // 3. Each other dept lead posts a brief intro in their OWN channel
+  //    Per PVD: each lead reaches out directly to user in their channel
+  for (const lead of teamLeads) {
+    if (lead.id === rndLead?.id) continue
+    const team = insertedTeams.find((t) => t.id === lead.teamId)
+    const deptChannel = insertedChannels.find((c) => c.teamId === team?.id)
+    if (!deptChannel || !team) continue
 
     welcomeMessages.push({
-      channelId: teamLeadersChannel.id,
-      senderAgentId: chiefOfStaff.id,
-      senderName: chiefOfStaff.name,
-      senderAvatar: chiefOfStaff.avatar,
-      content: `Perfect. Start with ${productLead?.name || "your Product lead"} — they'll guide you through idea validation.\n\nI'll be here in #team-leaders coordinating everything behind the scenes 💪`,
-      messageType: "text",
-    })
-  } else {
-    // Lane 2: Existing business — all active, migration-focused
-    welcomeMessages.push({
-      channelId: teamLeadersChannel.id,
-      senderAgentId: chiefOfStaff.id,
-      senderName: chiefOfStaff.name,
-      senderAvatar: chiefOfStaff.avatar,
-      content: `Welcome to ${bName} 🎉 I'm Nova, your Chief of Staff.\n\nSince you already have a running business, **all departments are active and ready**. Each lead will run an intake to understand your current operations, tools, and processes.\n\n${existingTools ? `I see you're using: ${existingTools.slice(0, 200)}${existingTools.length > 200 ? "..." : ""}. We'll map these into our workflows.` : ""}\n${existingPainPoints ? `Priority pain points: ${existingPainPoints.slice(0, 200)}${existingPainPoints.length > 200 ? "..." : ""}. We'll address these first.` : ""}\n\nTeam leads — introduce yourselves and start intake.`,
-      messageType: "text",
-    })
-
-    for (const lead of teamLeads) {
-      const team = insertedTeams.find((t) => t.id === lead.teamId)
-      welcomeMessages.push({
-        channelId: teamLeadersChannel.id,
-        senderAgentId: lead.id,
-        senderName: lead.name,
-        senderAvatar: lead.avatar,
-        content: `Hey boss 👋 I'm ${lead.name}, heading up ${team?.name}. Ready to learn how you're currently running ${team?.name.toLowerCase()} so I can replicate and improve your processes. Head to **#${team?.name.toLowerCase().replace(/\s+/g, "-")}** when you're ready — I'll run a quick intake.`,
-        messageType: "text",
-      })
-    }
-
-    welcomeMessages.push({
-      channelId: teamLeadersChannel.id,
-      senderAgentId: chiefOfStaff.id,
-      senderName: chiefOfStaff.name,
-      senderAvatar: chiefOfStaff.avatar,
-      content: `All leads are ready. Start with whichever department needs the most help — or just hit the **Dashboard** to see the big picture.\n\n${teamSize ? `With your current team of ${teamSize}, we'll figure out what to augment first.` : ""} I'll coordinate everything from here 💪`,
+      channelId: deptChannel.id,
+      senderAgentId: lead.id,
+      senderName: lead.name,
+      senderAvatar: lead.avatar,
+      content: `Hey ${addressName} 👋 I'm ${lead.name}, your ${lead.role}. Welcome to ${bName}.\n\n${rndLead ? `I'm standing by — ${rndLead.name} is walking you through the product discovery first. Once we have the offer locked in, I'll reach out here with a plan for ${team.name.toLowerCase()}.` : `I'll reach out here once we're ready to activate ${team.name.toLowerCase()}.`}`,
       messageType: "text",
     })
   }
@@ -392,5 +452,9 @@ export async function POST(req: Request) {
     teams: insertedTeams.length,
     agents: insertedAgents.length + 1, // +1 for CoS
     channels: insertedChannels.length,
+    // Entry-point channel for first-run — user lands here per PVD
+    entryChannelId: rndChannel?.id ?? null,
+    entryChannelName: rndChannel?.name ?? null,
+    rndLeadName: rndLead?.name ?? null,
   })
 }
