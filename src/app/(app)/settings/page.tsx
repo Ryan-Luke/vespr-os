@@ -1,9 +1,10 @@
 import { Switch } from "@/components/ui/switch"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Key, Building2, Bell, CreditCard, Shield, Download } from "lucide-react"
+import { Key, Building2, Bell, CreditCard, Shield, Download, ArrowRight } from "lucide-react"
 import { DataExport } from "@/components/data-export"
 import ApiKeyManager from "@/components/api-key-manager"
 import { ThemeSettings } from "@/components/theme-settings"
+import Link from "next/link"
 
 export default function SettingsPage() {
   return (
@@ -22,24 +23,20 @@ export default function SettingsPage() {
         <TabsContent value="general" className="space-y-4 mt-4">
           <ThemeSettings />
 
-          <div className="bg-card border border-border rounded-md p-4 space-y-4">
-            <p className="section-label">Business Profile</p>
-            <div className="grid gap-3 md:grid-cols-2">
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium">Business Name</label>
-                <input defaultValue="My Company" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+          <Link href="/business" className="block bg-card border border-border rounded-md p-4 hover:border-muted-foreground/30 transition-colors group">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="h-9 w-9 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                  <Building2 className="h-4 w-4 text-primary" />
+                </div>
+                <div>
+                  <p className="text-[13px] font-medium">Business Profile</p>
+                  <p className="text-xs text-muted-foreground">Edit your mission, ICP, verticals, and tool stack</p>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <label className="text-[13px] font-medium">Industry</label>
-                <input defaultValue="Technology" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
-              </div>
+              <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors" />
             </div>
-            <div className="space-y-1.5">
-              <label className="text-[13px] font-medium">Description</label>
-              <input defaultValue="SaaS company focused on small business solutions" className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
-            </div>
-            <button className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Save</button>
-          </div>
+          </Link>
 
           <div className="bg-card border border-border rounded-md p-4 space-y-4">
             <p className="section-label">Agent Controls</p>
