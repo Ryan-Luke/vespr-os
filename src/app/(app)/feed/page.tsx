@@ -93,18 +93,52 @@ export default function TrophyFeedPage() {
 
   const groups = groupByTimePeriod(events)
   const totalWins = events.length
+  const totalRevenue = events.reduce((sum, e) => sum + (e.amount ?? 0), 0)
+  const dealsCount = events.filter((e) => e.type === "deal_closed").length
+  const evolutionCount = events.filter((e) => e.type === "evolution").length
+  const milestoneCount = events.filter((e) => e.type === "milestone").length
 
   return (
     <div className="h-full overflow-y-auto">
       <div className="max-w-2xl mx-auto p-6 space-y-6">
         {/* Header */}
-        <div className="space-y-1">
+        <div className="space-y-2">
           <div className="flex items-center gap-2">
             <Trophy className="h-4 w-4 text-amber-400" />
             <h1 className="text-lg font-semibold tracking-tight">What your team shipped</h1>
           </div>
           <p className="text-xs text-muted-foreground">{totalWins} wins while you were building</p>
         </div>
+
+        {/* Stats header */}
+        {events.length > 0 && (
+          <div className="grid gap-px bg-border rounded-lg overflow-hidden grid-cols-2 md:grid-cols-4">
+            {totalRevenue > 0 && (
+              <div className="bg-card p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</p>
+                <p className="text-base font-bold tabular-nums text-emerald-400 mt-0.5">${totalRevenue.toLocaleString()}</p>
+              </div>
+            )}
+            {dealsCount > 0 && (
+              <div className="bg-card p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Trophy className="h-3 w-3" />Deals</p>
+                <p className="text-base font-bold tabular-nums mt-0.5">{dealsCount}</p>
+              </div>
+            )}
+            {evolutionCount > 0 && (
+              <div className="bg-card p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Sparkles className="h-3 w-3" />Evolutions</p>
+                <p className="text-base font-bold tabular-nums text-purple-400 mt-0.5">{evolutionCount}</p>
+              </div>
+            )}
+            {milestoneCount > 0 && (
+              <div className="bg-card p-3">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Star className="h-3 w-3" />Milestones</p>
+                <p className="text-base font-bold tabular-nums text-amber-400 mt-0.5">{milestoneCount}</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {events.length === 0 ? (
           <div className="text-center py-16 text-muted-foreground">
