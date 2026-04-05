@@ -948,6 +948,22 @@ export default function ChatPage() {
     setInputValue("")
     setMentionQuery(null)
 
+    // First-run handoff trigger (per PVD Stage 4)
+    // If this is the first user message in a fresh workspace, trigger the handoff sequence
+    try {
+      const wsId = localStorage.getItem("vespr-active-workspace")
+      const handoffKey = `vespr-handoff-${wsId}`
+      if (wsId && !localStorage.getItem(handoffKey)) {
+        // Mark as triggered immediately to prevent double-fire
+        localStorage.setItem(handoffKey, "1")
+        fetch("/api/onboarding/handoff", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ workspaceId: wsId }),
+        }).catch(() => {})
+      }
+    } catch {}
+
     // Inline task creation via /task command
     if (text.startsWith("/task ")) {
       const taskTitle = text.slice(6).trim()
