@@ -1291,21 +1291,34 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
               )
             })()}
 
-            {/* History */}
+            {/* Decisions with reasoning visibility */}
             <div className="space-y-3">
-              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Recent Activity</p>
+              <div>
+                <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Recent Decisions</p>
+                <p className="text-xs text-muted-foreground/60 mt-0.5">Every decision logged with reasoning — full audit trail per PVD trust pillar</p>
+              </div>
               {decisions.length === 0 ? (
-                <div className="text-center py-6 text-xs text-muted-foreground">No activity logged yet.</div>
+                <div className="text-center py-6 text-xs text-muted-foreground">No decisions logged yet.</div>
               ) : (
-                <div className="bg-card border border-border rounded-md divide-y divide-border">
+                <div className="space-y-2">
                   {decisions.map((d) => (
-                    <div key={d.id} className="flex items-start gap-2.5 px-4 py-2.5">
-                      <Zap className="h-3 w-3 text-muted-foreground mt-0.5 shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium">{d.title}</p>
-                        <p className="text-xs text-muted-foreground">{d.description}</p>
+                    <div key={d.id} className="bg-card border border-border rounded-md p-3">
+                      <div className="flex items-start gap-2.5">
+                        <Brain className="h-3.5 w-3.5 text-violet-400 mt-0.5 shrink-0" />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="text-[13px] font-medium">{d.title}</p>
+                            <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{timeAgo(d.createdAt)}</span>
+                          </div>
+                          <p className="text-xs text-muted-foreground mt-0.5">{d.description}</p>
+                          {d.reasoning && (
+                            <div className="mt-2 pt-2 border-t border-border/50">
+                              <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Reasoning</p>
+                              <p className="text-[12px] text-foreground/80 italic leading-relaxed">&ldquo;{d.reasoning}&rdquo;</p>
+                            </div>
+                          )}
+                        </div>
                       </div>
-                      <span className="text-[11px] text-muted-foreground tabular-nums shrink-0">{timeAgo(d.createdAt)}</span>
                     </div>
                   ))}
                 </div>
