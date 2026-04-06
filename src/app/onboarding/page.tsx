@@ -127,8 +127,11 @@ export default function OnboardingPage() {
         // response text is empty (tool call consumed the response).
         const msg = data.response || "Your team is being activated right now. First up, you'll meet your Head of R&D. They'll help you build out and validate your offer."
         setChatMessages([...newMessages, { role: "assistant", content: msg }])
-        // Clear tutorial flag so the product tour triggers on redirect
-        try { localStorage.removeItem("bos-tutorial-completed") } catch {}
+        // Clear stale state so the main page loads fresh data
+        try {
+          localStorage.removeItem("bos-tutorial-completed")  // Tour triggers fresh
+          localStorage.removeItem("vespr-active-workspace")  // Prevents fetching with old workspace ID
+        } catch {}
         setOnboardingComplete(true)
       } else if (data.response) {
         setChatMessages([...newMessages, { role: "assistant", content: data.response }])
