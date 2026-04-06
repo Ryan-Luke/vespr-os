@@ -910,7 +910,16 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: lead.id, messages: [{ id: userMsg.id, role: "user", parts: [{ type: "text", text }] }] }),
+        // Send the full channel message history so the agent has context
+        // of the entire conversation, not just the last message.
+        body: JSON.stringify({
+          agentId: lead.id,
+          messages: [...channelMessages, userMsg].map((m: any) => ({
+            id: m.id,
+            role: m.senderAgentId ? "assistant" : "user",
+            parts: [{ type: "text", text: m.content }],
+          })),
+        }),
       })
       const reader = res.body?.getReader()
       const decoder = new TextDecoder()
