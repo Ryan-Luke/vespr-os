@@ -97,9 +97,17 @@ export async function POST(req: Request) {
               const cleanType = data.businessType.replace(/^[^\w]+/, "").trim().toLowerCase()
               const templateId = templateMap[cleanType] ?? "agency"
 
+              // Vercel Deployment Protection may block self-fetches. The
+              // bypass header lets automated requests through without
+              // hitting the auth wall. This was the root cause of
+              // complete_onboarding silently failing.
+              const headers: Record<string, string> = { "Content-Type": "application/json" }
+              if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
+                headers["x-vercel-protection-bypass"] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+              }
               const res = await fetch(`${selfBaseUrl}/api/onboarding`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers,
                 body: JSON.stringify({
                   templateId,
                   businessName: data.businessName ?? `${data.userName}'s Business`,
