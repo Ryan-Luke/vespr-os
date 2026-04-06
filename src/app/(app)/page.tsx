@@ -835,9 +835,16 @@ export default function ChatPage() {
     fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then(setChannelMessages)
 
     const poll = setInterval(() => {
-      fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then((msgs) => {
+      fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then((msgs: any[]) => {
         setChannelMessages((prev) => {
+          // Only update if there are actually new messages.
+          // Compare by last message ID to avoid flickering from
+          // full array replacement on every poll.
+          if (msgs.length === 0 && prev.length === 0) return prev
           if (msgs.length !== prev.length) return msgs
+          const lastNew = msgs[msgs.length - 1]?.id
+          const lastOld = prev[prev.length - 1]?.id
+          if (lastNew !== lastOld) return msgs
           return prev
         })
       }).catch(() => {})
