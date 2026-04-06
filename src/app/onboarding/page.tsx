@@ -139,13 +139,6 @@ export default function OnboardingPage() {
   const lastAssistant = [...chatMessages].reverse().find(m => m.role === "assistant")
   const lastText = lastAssistant?.content.toLowerCase() ?? ""
   const showBusinessTypeCards = lastText.includes("type of business")
-  const showSkipButton = (
-    lastText.includes("business name") ||
-    lastText.includes("what does") && lastText.includes("do") ||
-    lastText.includes("business do") ||
-    lastText.includes("competitor") ||
-    lastText.includes("competition")
-  ) && !sending
   const showCompetitorInput = (lastText.includes("competitor") || lastText.includes("competition")) && !sending
 
   return (
@@ -226,16 +219,10 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Competitor input helpers */}
+          {/* Competitor input with skip option */}
           {showCompetitorInput && (
-            <div className="space-y-2 pt-1">
-              <p className="text-[11px] text-muted-foreground/60 ml-9">Drop an Instagram handle, website, or brand name. Or skip if you're not sure.</p>
-            </div>
-          )}
-
-          {/* Skip button for optional questions */}
-          {showSkipButton && !showBusinessTypeCards && (
-            <div className="ml-9 pt-1">
+            <div className="ml-9 space-y-2 pt-1">
+              <p className="text-[11px] text-muted-foreground/60">Drop an Instagram handle, website, or brand name.</p>
               <button
                 onClick={() => handleChatSubmit("Skip")}
                 className="h-8 px-4 rounded-lg border border-border bg-card text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
