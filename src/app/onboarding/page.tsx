@@ -58,28 +58,29 @@ export default function OnboardingPage() {
     return () => { cancelled = true }
   }, [router])
 
-  // Phase 2: useChat transport with the validated key
-  const transport = useMemo(() => {
-    if (!validatedKey) return null
-    return new DefaultChatTransport({
-      api: "/api/onboarding/chat",
-      body: { validatedApiKey: validatedKey },
-    })
-  }, [validatedKey])
+  // Chat transport always exists. The validated key is passed in the body
+  // so the server can use it. Before validation, the server falls back to
+  // the platform key. This avoids the race condition where transport was
+  // null when useChat tried to initialize.
+  const transport = useMemo(() => new DefaultChatTransport({
+    api: "/api/onboarding/chat",
+    body: { validatedApiKey: validatedKey },
+  }), [validatedKey])
 
-  const chat = useChat({ transport: transport! })
-  const { messages, sendMessage, status } = transport ? chat : { messages: [], sendMessage: (() => {}) as any, status: "ready" as const }
+  const { messages, sendMessage, status } = useChat({ transport })
   const isLoading = status === "streaming" || status === "submitted"
 
-  // When phase switches to chat, send the opening context to Nova
+  // When phase switches to chat, trigger Nova's first question
   const chatStarted = useRef(false)
   useEffect(() => {
-    if (phase !== "chat" || chatStarted.current || !validatedKey) return
+    if (phase !== "chat" || chatStarted.current) return
     chatStarted.current = true
-    setTimeout(() => {
-      sendMessage({ text: "I just connected my API key. Let's set up my business." })
-    }, 300)
-  }, [phase, validatedKey, sendMessage])
+    // Small delay to let the transport reinitialize with the validated key
+    const timer = setTimeout(() => {
+      sendMessage({ text: "ready" })
+    }, 500)
+    return () => clearTimeout(timer)
+  }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-scroll
   useEffect(() => {
