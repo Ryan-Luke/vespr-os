@@ -127,6 +127,8 @@ export default function OnboardingPage() {
         // response text is empty (tool call consumed the response).
         const msg = data.response || "Your team is being activated right now. First up, you'll meet your Head of R&D. They'll help you build out and validate your offer."
         setChatMessages([...newMessages, { role: "assistant", content: msg }])
+        // Clear tutorial flag so the product tour triggers on redirect
+        try { localStorage.removeItem("bos-tutorial-completed") } catch {}
         setOnboardingComplete(true)
       } else if (data.response) {
         setChatMessages([...newMessages, { role: "assistant", content: data.response }])
