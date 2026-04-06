@@ -16,6 +16,7 @@ import { db } from "@/lib/db"
 import {
   agents, messages, channels, knowledgeEntries, trophyEvents,
   teamGoals, teams, agentSops, agentMemories, companyMemories,
+  agentTasks, handoffEvents,
 } from "@/lib/db/schema"
 import { eq, desc, ilike, or, and } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
@@ -335,14 +336,28 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             await postAgentMessage(agentId, tlChannel.id, handoffMsg)
           }
 
-          // Trigger the target lead to start working (async, fire and forget)
+          // Log the handoff event for audit trail
+          if (targetLead) {
+            await db.insert(handoffEvents).values({
+              workspaceId,
+              fromAgentId: agentId,
+              fromAgentName: agent?.name ?? "Unknown",
+              toAgentId: targetLead.id,
+              toAgentName: targetLead.name,
+              toDepartment: targetDepartment,
+              summary,
+              nextSteps,
+              context: {}, // will be enriched below if we have handoff chain context
+            }).catch(() => {})
+          }
+
+          // Trigger the target lead with structured context from the chain.
+          // Each handoff passes the full accumulated context so downstream
+          // agents know everything upstream agents collected.
           if (targetLead && targetTeam) {
-            // Find the target department's channel
             const [deptChannel] = await db.select().from(channels)
               .where(ilike(channels.name, `%${targetDepartment.toLowerCase().replace(/\s+/g, "-")}%`)).limit(1)
             if (deptChannel) {
-              // Build a department-specific prompt so the receiving agent
-              // knows exactly what to do, not just "greet and start working."
               const deptPrompt = buildHandoffPrompt({
                 fromAgentName: agent?.name ?? "R&D",
                 targetDepartment,
@@ -350,15 +365,40 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
                 nextSteps,
               })
 
-              // Call runAgentTask directly instead of fetching our own API.
-              // This avoids the need for NEXT_PUBLIC_APP_URL and removes
-              // a network hop. Fire-and-forget via .catch so the handoff
-              // tool returns immediately while the target agent works.
+              // Build structured context for the receiving agent.
+              // Pull company memories as collected info so the next agent
+              // has everything without re-asking.
+              const recentMemories = await db.select().from(companyMemories)
+                .orderBy(desc(companyMemories.importance))
+                .limit(15)
+              const collectedInfo: Record<string, string> = {}
+              for (const mem of recentMemories) {
+                collectedInfo[mem.title] = mem.content
+              }
+
+              // Pull recent documents created
+              const recentDocs = await db.select({ id: knowledgeEntries.id, title: knowledgeEntries.title })
+                .from(knowledgeEntries)
+                .where(eq(knowledgeEntries.createdByAgentId, agentId))
+                .limit(5)
+
+              const handoffContext = {
+                collectedInfo,
+                documentsCreated: recentDocs.map((d) => ({ id: d.id, title: d.title })),
+                handoffChain: [{
+                  fromAgent: agent?.name ?? "Unknown",
+                  toAgent: targetLead.name,
+                  summary,
+                  timestamp: new Date().toISOString(),
+                }],
+              }
+
               runAgentTask({
                 agentId: targetLead.id,
                 channelId: deptChannel.id,
                 workspaceId,
                 prompt: deptPrompt,
+                context: handoffContext,
               }).catch(() => {})
             }
           }
@@ -475,32 +515,71 @@ export interface AgentTaskInput {
   channelId: string
   workspaceId: string
   prompt: string
+  context?: Record<string, unknown> // structured context from the handoff chain
 }
 
 export interface AgentTaskResult {
   ok: boolean
+  taskId?: string
   agentName?: string
   toolCalls?: number
   error?: string
 }
 
 /**
- * Run a task for an agent. The agent gets a prompt (instructions), its full
- * system context (personality, SOPs, memories), and a toolkit for posting
- * messages, creating documents, posting wins, and handing off to other
- * departments. The LLM decides what to do. All output is persisted.
+ * Run a task for an agent with persistent state tracking. The task is
+ * created in the agent_tasks table before execution starts, updated as
+ * it runs, and marked completed or failed when done. If Vercel times out,
+ * the task stays in "running" state and can be detected and retried.
  *
- * This is the core of autonomous agent behavior. Called by:
- *   - Onboarding completion (trigger R&D to start fact-finding)
+ * Called by:
  *   - Handoff protocol (one agent triggers the next)
  *   - Cron jobs (scheduled content creation)
- *   - Manual trigger from the UI
+ *   - Manual trigger via POST /api/agent-tasks/run
  */
 export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResult> {
+  const [agent] = await db.select().from(agents).where(eq(agents.id, input.agentId)).limit(1)
+  if (!agent) return { ok: false, error: "Agent not found" }
+
+  // Persist the task before starting so it's tracked even if we time out
+  const [task] = await db.insert(agentTasks).values({
+    workspaceId: input.workspaceId,
+    agentId: input.agentId,
+    channelId: input.channelId,
+    status: "running",
+    prompt: input.prompt,
+    context: input.context ?? {},
+    startedAt: new Date(),
+  }).returning()
+
   try {
-    const systemPrompt = await buildAgentSystemPrompt(input.agentId)
-    const [agent] = await db.select().from(agents).where(eq(agents.id, input.agentId)).limit(1)
-    if (!agent) return { ok: false, error: "Agent not found" }
+    // Build the system prompt with all three memory layers:
+    // 1. Working memory: the context object from the handoff chain
+    // 2. Episodic memory: agent's own memories from past tasks
+    // 3. Semantic memory: company knowledge + playbooks
+    let systemPrompt = await buildAgentSystemPrompt(input.agentId)
+
+    // Inject handoff context so the agent knows what upstream agents collected
+    if (input.context && Object.keys(input.context).length > 0) {
+      const contextLines: string[] = []
+      if (input.context.collectedInfo) {
+        contextLines.push("Information collected by previous agents:")
+        for (const [k, v] of Object.entries(input.context.collectedInfo as Record<string, string>)) {
+          contextLines.push(`  ${k}: ${v}`)
+        }
+      }
+      if (input.context.documentsCreated) {
+        const docs = input.context.documentsCreated as { id: string; title: string }[]
+        contextLines.push(`Documents created so far: ${docs.map((d) => d.title).join(", ")}`)
+      }
+      if (input.context.handoffChain) {
+        const chain = input.context.handoffChain as { fromAgent: string; toAgent: string }[]
+        contextLines.push(`Handoff chain: ${chain.map((h) => `${h.fromAgent} -> ${h.toAgent}`).join(" -> ")}`)
+      }
+      if (contextLines.length > 0) {
+        systemPrompt += `\n\nCONTEXT FROM PREVIOUS DEPARTMENTS:\n${contextLines.join("\n")}`
+      }
+    }
 
     const autonomousTools = buildAutonomousTools(input.agentId, input.workspaceId)
     const integrationTools = await buildIntegrationTools({
@@ -519,13 +598,29 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       maxOutputTokens: 2000,
     })
 
-    // Count tool calls across all steps
     const toolCalls = result.steps.reduce(
       (sum, step) => sum + (step.toolCalls?.length ?? 0), 0,
     )
 
-    return { ok: true, agentName: agent.name, toolCalls }
+    // Mark task completed
+    await db.update(agentTasks).set({
+      status: "completed",
+      toolCallsMade: toolCalls,
+      result: { text: result.text?.slice(0, 500), toolCalls },
+      completedAt: new Date(),
+      updatedAt: new Date(),
+    }).where(eq(agentTasks.id, task.id))
+
+    return { ok: true, taskId: task.id, agentName: agent.name, toolCalls }
   } catch (err) {
-    return { ok: false, error: err instanceof Error ? err.message : "Agent task failed" }
+    const errorMsg = err instanceof Error ? err.message : "Agent task failed"
+    // Mark task failed
+    await db.update(agentTasks).set({
+      status: "failed",
+      error: errorMsg,
+      updatedAt: new Date(),
+    }).where(eq(agentTasks.id, task.id)).catch(() => {})
+
+    return { ok: false, taskId: task.id, error: errorMsg }
   }
 }

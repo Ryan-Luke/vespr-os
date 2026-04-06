@@ -804,7 +804,7 @@ export default function ChatPage() {
       }).catch(() => {})
     }
     fetchUnread()
-    const poll = setInterval(fetchUnread, 15000)
+    const poll = setInterval(fetchUnread, 5000)
     return () => clearInterval(poll)
   }, [])
 

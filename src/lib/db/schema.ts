@@ -498,6 +498,61 @@ export const workflowPhaseRuns = pgTable("workflow_phase_runs", {
   workspacePhaseUnique: unique("workflow_phase_runs_workspace_phase_unique").on(t.workspaceId, t.phaseKey),
 }))
 
+// ── Agent Tasks (persistent, resumable) ───────────────────
+// Tracks autonomous agent work with checkpoint/resume for serverless
+// durability. If Vercel times out mid-task, the task can be resumed
+// from its checkpoint. Pattern from LangGraph's state persistence.
+export const agentTasks = pgTable("agent_tasks", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  agentId: uuid("agent_id").references(() => agents.id).notNull(),
+  channelId: uuid("channel_id").references(() => channels.id),
+  status: text("status").notNull().default("queued"), // queued, running, completed, failed, interrupted
+  prompt: text("prompt").notNull(),
+  // Structured context passed through the handoff chain. Each agent
+  // adds to it. Downstream agents get everything upstream collected.
+  context: jsonb("context").$type<{
+    collectedInfo?: Record<string, string>
+    documentsCreated?: { id: string; title: string }[]
+    decisionseMade?: string[]
+    handoffChain?: { fromAgent: string; toAgent: string; summary: string; timestamp: string }[]
+    [key: string]: unknown
+  }>().notNull().default({}),
+  // Serialized state for resume after timeout or interruption.
+  checkpoint: jsonb("checkpoint").$type<{
+    messagesProcessed?: number
+    toolCallsMade?: string[]
+    lastStepOutput?: string
+    [key: string]: unknown
+  }>(),
+  result: jsonb("result").$type<Record<string, unknown>>(),
+  toolCallsMade: integer("tool_calls_made").notNull().default(0),
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  startedAt: timestamp("started_at"),
+  completedAt: timestamp("completed_at"),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// ── Handoff Events (audit trail for the department chain) ──
+// Every handoff between departments is logged so any agent can trace
+// the full provenance of a task. Pattern from OpenAI Agents SDK.
+export const handoffEvents = pgTable("handoff_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  fromAgentId: uuid("from_agent_id").references(() => agents.id),
+  fromAgentName: text("from_agent_name").notNull(),
+  toAgentId: uuid("to_agent_id").references(() => agents.id),
+  toAgentName: text("to_agent_name").notNull(),
+  toDepartment: text("to_department").notNull(),
+  summary: text("summary").notNull(),
+  nextSteps: text("next_steps").notNull(),
+  // Full structured context at the moment of handoff
+  context: jsonb("context").$type<Record<string, unknown>>().default({}),
+  taskId: uuid("task_id"), // the agent_tasks row that was triggered
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
 // ── Activity Log ──────────────────────────────────────────
 export const activityLog = pgTable("activity_log", {
   id: uuid("id").primaryKey().defaultRandom(),
