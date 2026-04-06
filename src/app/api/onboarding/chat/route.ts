@@ -97,17 +97,12 @@ export async function POST(req: Request) {
               const cleanType = data.businessType.replace(/^[^\w]+/, "").trim().toLowerCase()
               const templateId = templateMap[cleanType] ?? "agency"
 
-              // Vercel Deployment Protection may block self-fetches. The
-              // bypass header lets automated requests through without
-              // hitting the auth wall. This was the root cause of
-              // complete_onboarding silently failing.
-              const headers: Record<string, string> = { "Content-Type": "application/json" }
-              if (process.env.VERCEL_AUTOMATION_BYPASS_SECRET) {
-                headers["x-vercel-protection-bypass"] = process.env.VERCEL_AUTOMATION_BYPASS_SECRET
-              }
-              const res = await fetch(`${selfBaseUrl}/api/onboarding`, {
+              // Call the onboarding POST handler directly. No self-fetch.
+              // Self-fetch was broken by Vercel Deployment Protection.
+              const { POST: onboardingPost } = await import("@/app/api/onboarding/route")
+              const fakeRequest = new Request("http://localhost/api/onboarding", {
                 method: "POST",
-                headers,
+                headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                   templateId,
                   businessName: data.businessName ?? `${data.userName}'s Business`,
@@ -122,13 +117,12 @@ export async function POST(req: Request) {
                   anthropicApiKey: validatedApiKey ?? "",
                 }),
               })
-
-              if (!res.ok) {
-                const err = await res.json().catch(() => ({}))
-                return { success: false, error: (err as { error?: string }).error ?? "Onboarding failed" }
-              }
-
+              const res = await onboardingPost(fakeRequest)
               const onboardResult = await res.json()
+
+              if (!onboardResult.success && !onboardResult.workspaceId) {
+                return { success: false, error: onboardResult.error ?? "Onboarding failed" }
+              }
               return { success: true, workspaceId: onboardResult.workspaceId }
             } catch (err) {
               return { success: false, error: err instanceof Error ? err.message : "Onboarding failed" }
