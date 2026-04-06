@@ -218,7 +218,7 @@ function ConnectPanel({
       {tool.connectionType === "oauth" && (
         <>
           <p className="text-xs text-muted-foreground">
-            Authorize VESPR OS to access your {tool.name} account.
+            Authorize Business OS to access your {tool.name} account.
           </p>
           <button
             onClick={handleOAuthConnect}
@@ -276,7 +276,7 @@ function ConnectPanel({
       {tool.connectionType === "webhook" && (
         <>
           <p className="text-xs text-muted-foreground">
-            Use this webhook URL in your {tool.name} workflows to send data to VESPR OS.
+            Use this webhook URL in your {tool.name} workflows to send data to Business OS.
           </p>
           <div className="flex gap-2">
             <input

@@ -126,7 +126,7 @@ export async function GET(req: Request) {
             textTransform: "uppercase",
           }}
         >
-          <span>VESPR OS</span>
+          <span>Business OS</span>
           {event.agentName && <span>by {event.agentName}</span>}
           <span>{new Date(event.createdAt).toLocaleDateString("en-US", { month: "short", day: "numeric" })}</span>
         </div>

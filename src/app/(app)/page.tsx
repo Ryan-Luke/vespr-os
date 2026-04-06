@@ -1560,7 +1560,7 @@ export default function ChatPage() {
           <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center mx-auto">
             <Bot className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h2 className="text-xl font-semibold">Welcome to VESPR OS</h2>
+          <h2 className="text-xl font-semibold">Welcome to Business OS</h2>
           <p className="text-sm text-muted-foreground">Set up your AI workforce to get started.</p>
           <Link href="/onboarding">
             <Button className="mt-2">Get Started</Button>

@@ -49,6 +49,12 @@ export async function POST(req: Request) {
     validatedApiKey?: string
   }
 
+  // Extract the origin from the incoming request so the complete_onboarding
+  // tool can self-fetch without depending on environment variables.
+  const host = req.headers.get("host") ?? "localhost:3000"
+  const protocol = host.includes("localhost") ? "http" : "https"
+  const selfBaseUrl = `${protocol}://${host}`
+
   // Use the user's validated key so they pay for their own onboarding.
   // Falls back to platform key if somehow missing.
   const model = validatedApiKey
@@ -163,12 +169,9 @@ export async function POST(req: Request) {
             }
             const templateId = templateMap[data.businessType.toLowerCase()] ?? "agency"
 
-            const baseUrl =
-              process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` :
-              process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
-              "http://localhost:3000"
-
-            const res = await fetch(`${baseUrl}/api/onboarding`, {
+            // Use the host from the incoming request so this works in
+            // production, preview, and local dev without env vars.
+            const res = await fetch(`${selfBaseUrl}/api/onboarding`, {
               method: "POST",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

@@ -12,13 +12,13 @@ export const dynamic = "force-dynamic"
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [workspace] = await db.select().from(workspaces).where(eq(workspaces.slug, slug)).limit(1)
-  if (!workspace || !workspace.isPublic) return { title: "Trainer Profile — VESPR OS" }
+  if (!workspace || !workspace.isPublic) return { title: "Trainer Profile — Business OS" }
 
   return {
-    title: `${workspace.name} — VESPR OS Trainer Profile`,
-    description: workspace.publicTagline || workspace.description || `${workspace.name}'s AI team roster on VESPR OS`,
+    title: `${workspace.name} — Business OS Trainer Profile`,
+    description: workspace.publicTagline || workspace.description || `${workspace.name}'s AI team roster on Business OS`,
     openGraph: {
-      title: `${workspace.name} on VESPR OS`,
+      title: `${workspace.name} on Business OS`,
       description: workspace.publicTagline || workspace.description || undefined,
       type: "profile",
     },
@@ -193,7 +193,7 @@ export default async function PublicTrainerPage({ params }: { params: Promise<{ 
         <footer className="pt-12 pb-6 text-center space-y-2 border-t border-border">
           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Powered by</p>
           <a href="/" className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
-            VESPR OS
+            Business OS
           </a>
           <p className="text-[10px] text-muted-foreground/60">The operating system for building businesses with AI agents.</p>
         </footer>

@@ -70,7 +70,7 @@ export default function LoginPage() {
             </div>
           )}
           <p className="text-[14px] font-semibold tracking-tight">
-            {isSignup ? "Create your owner account" : "VESPR OS"}
+            {isSignup ? "Create your owner account" : "Sign in"}
           </p>
           <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
             {isSignup
