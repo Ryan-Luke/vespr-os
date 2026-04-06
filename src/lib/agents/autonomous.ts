@@ -149,6 +149,45 @@ export async function postAgentMessage(
 
 function buildAutonomousTools(agentId: string, workspaceId: string) {
   return {
+    read_channel_history: tool({
+      description:
+        "Read recent messages from a channel to understand what's been discussed. Use this before posting to a channel you haven't been following, or when you need to reference a conversation that happened in another department's channel. Returns the last N messages with sender names and timestamps.",
+      inputSchema: jsonSchema<{ channelName: string; limit?: number }>({
+        type: "object",
+        properties: {
+          channelName: {
+            type: "string",
+            description: "The channel name (lowercase, hyphenated)",
+          },
+          limit: { type: "number", minimum: 1, maximum: 50 },
+        },
+        required: ["channelName"],
+        additionalProperties: false,
+      }),
+      execute: async ({ channelName, limit }) => {
+        try {
+          const [channel] = await db.select().from(channels)
+            .where(eq(channels.name, channelName)).limit(1)
+          if (!channel) return { ok: false, error: `Channel "${channelName}" not found` }
+          const msgs = await db.select().from(messages)
+            .where(eq(messages.channelId, channel.id))
+            .orderBy(desc(messages.createdAt))
+            .limit(limit ?? 20)
+          return {
+            ok: true,
+            channel: channelName,
+            messages: msgs.reverse().map((m) => ({
+              sender: m.senderName,
+              content: m.content.slice(0, 500),
+              createdAt: m.createdAt.toISOString(),
+            })),
+          }
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Failed to read" }
+        }
+      },
+    }),
+
     post_to_channel: tool({
       description:
         "Post a message to a channel as yourself. Use this to greet users, share updates, ask questions, or announce results. Pick the right channel: your department channel for work, team-leaders for cross-department updates, wins for celebrating milestones.",
