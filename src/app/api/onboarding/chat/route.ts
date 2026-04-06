@@ -163,10 +163,10 @@ export async function POST(req: Request) {
             }
             const templateId = templateMap[data.businessType.toLowerCase()] ?? "agency"
 
-            // Build the onboarding URL. In production, use VERCEL_URL.
-            const baseUrl = process.env.VERCEL_URL
-              ? `https://${process.env.VERCEL_URL}`
-              : "http://localhost:3000"
+            const baseUrl =
+              process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` :
+              process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` :
+              "http://localhost:3000"
 
             const res = await fetch(`${baseUrl}/api/onboarding`, {
               method: "POST",
