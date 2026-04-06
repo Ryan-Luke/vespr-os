@@ -656,9 +656,25 @@ export default function ChatPage() {
     function loadData() {
       const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
       const url = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
-      fetch(url).then((r) => r.json()).then(async (data) => {
-        setDbAgents(data.agents)
-        setDbChannels(data.channels)
+      fetch(url).then((r) => {
+        if (!r.ok) throw new Error(`chat-data failed: ${r.status}`)
+        return r.json()
+      }).then(async (data) => {
+        if (!data.agents || !data.channels) {
+          // Bad response (possibly Vercel auth HTML). Retry without workspace filter.
+          const retry = await fetch("/api/chat-data")
+          if (retry.ok) {
+            const retryData = await retry.json()
+            if (retryData.agents && retryData.channels) {
+              setDbAgents(retryData.agents)
+              setDbChannels(retryData.channels)
+              setDataLoaded(true)
+              return
+            }
+          }
+        }
+        setDbAgents(data.agents ?? [])
+        setDbChannels(data.channels ?? [])
 
         // Check for ?message=<id> in URL — jump to that message's channel
         const params = new URLSearchParams(window.location.search)
