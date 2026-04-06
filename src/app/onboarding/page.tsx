@@ -11,8 +11,8 @@ const BUSINESS_TYPES = [
   { id: "service", label: "Service-Based", icon: "🛠️", description: "Done-for-you services, freelancing, local" },
   { id: "agency", label: "Agency", icon: "🏢", description: "Marketing, creative, or professional services" },
   { id: "saas", label: "SaaS / Tech", icon: "💻", description: "Software as a service" },
-  { id: "consulting", label: "Consulting / Coaching", icon: "🎓", description: "Advisory, coaching, or knowledge work" },
-  { id: "content", label: "Creator / Info Product", icon: "🎬", description: "Courses, content, personal brand" },
+  { id: "consulting", label: "Coaching / Consulting", icon: "🎓", description: "Coaching programs, advisory, or consulting" },
+  { id: "content", label: "Info Product / Course", icon: "📚", description: "Online courses, digital products, memberships" },
   { id: "brick_and_mortar", label: "Brick & Mortar", icon: "🏪", description: "Physical location business" },
 ]
 import { cn } from "@/lib/utils"
