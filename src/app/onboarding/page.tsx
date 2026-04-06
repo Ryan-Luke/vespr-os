@@ -70,17 +70,23 @@ export default function OnboardingPage() {
   const { messages, sendMessage, status } = useChat({ transport })
   const isLoading = status === "streaming" || status === "submitted"
 
+  // Ref always points to the latest sendMessage so effects don't
+  // capture a stale closure from before the transport was updated.
+  const sendMessageRef = useRef(sendMessage)
+  sendMessageRef.current = sendMessage
+
   // When phase switches to chat, trigger Nova's first question
   const chatStarted = useRef(false)
   useEffect(() => {
     if (phase !== "chat" || chatStarted.current) return
     chatStarted.current = true
-    // Small delay to let the transport reinitialize with the validated key
+    // Delay gives React time to re-render with the new transport.
+    // The ref ensures we call the LATEST sendMessage, not a stale one.
     const timer = setTimeout(() => {
-      sendMessage({ text: "ready" })
-    }, 500)
+      sendMessageRef.current({ text: "ready" })
+    }, 800)
     return () => clearTimeout(timer)
-  }, [phase]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [phase])
 
   // Auto-scroll
   useEffect(() => {
