@@ -237,10 +237,10 @@ export default function OnboardingPage() {
           {showSkipButton && !showBusinessTypeCards && (
             <div className="ml-9 pt-1">
               <button
-                onClick={() => handleChatSubmit("I'm not sure yet")}
+                onClick={() => handleChatSubmit("Skip")}
                 className="h-8 px-4 rounded-lg border border-border bg-card text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
               >
-                I'm not sure yet
+                Skip
               </button>
             </div>
           )}
