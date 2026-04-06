@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
-import { ArrowRight, Loader2, Rocket } from "lucide-react"
+import { ArrowRight, Loader2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PixelAvatar } from "@/components/pixel-avatar"
 
@@ -98,12 +98,6 @@ export default function OnboardingPage() {
       sendMessage({ text: "hi" })
     }, 400)
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
-
-  // Derive whether the API key step is past from the conversation itself.
-  // The first user message is the hidden "hi". The second is the API key.
-  // Once there are 2+ user messages, we're past the key step.
-  const userMessages = messages.filter((m) => m.role === "user")
-  const pastApiKeyStep = userMessages.length >= 2
 
   function handleSubmit() {
     const text = input.trim()
@@ -221,11 +215,10 @@ export default function OnboardingPage() {
             <div className="flex gap-2">
               <input
                 ref={inputRef}
-                type={!pastApiKeyStep ? "password" : "text"}
+                type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
-                placeholder={!pastApiKeyStep ? "Paste your Anthropic API key (sk-ant-...)" : ""}
                 disabled={isLoading}
                 className="flex-1 h-11 rounded-xl border border-border bg-card px-4 text-[13.5px] outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
               />
@@ -234,7 +227,7 @@ export default function OnboardingPage() {
                 disabled={!input.trim() || isLoading}
                 className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-40"
               >
-                {!pastApiKeyStep ? <Rocket className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+                <ArrowRight className="h-4 w-4" />
               </button>
             </div>
           </div>
