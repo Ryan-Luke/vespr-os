@@ -5,6 +5,16 @@ import { useRouter } from "next/navigation"
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { ArrowRight, Loader2, AlertCircle } from "lucide-react"
+
+const BUSINESS_TYPES = [
+  { id: "ecommerce", label: "E-Commerce", icon: "🛒", description: "Online store selling products" },
+  { id: "service", label: "Service-Based", icon: "🛠️", description: "Done-for-you services, freelancing, local" },
+  { id: "agency", label: "Agency", icon: "🏢", description: "Marketing, creative, or professional services" },
+  { id: "saas", label: "SaaS / Tech", icon: "💻", description: "Software as a service" },
+  { id: "consulting", label: "Consulting / Coaching", icon: "🎓", description: "Advisory, coaching, or knowledge work" },
+  { id: "content", label: "Creator / Info Product", icon: "🎬", description: "Courses, content, personal brand" },
+  { id: "brick_and_mortar", label: "Brick & Mortar", icon: "🏪", description: "Physical location business" },
+]
 import { cn } from "@/lib/utils"
 import { PixelAvatar } from "@/components/pixel-avatar"
 
@@ -232,6 +242,43 @@ export default function OnboardingPage() {
               </div>
             )
           })}
+
+          {/* Business type selector: shows when Nova asks about business type */}
+          {(() => {
+            if (isLoading || phase !== "chat") return null
+            const lastAssistant = [...messages].reverse().find((m) => m.role === "assistant")
+            if (!lastAssistant) return null
+            const lastText = (lastAssistant.parts ?? [])
+              .filter((p) => p.type === "text")
+              .map((p) => (p as any).text)
+              .join("")
+              .toLowerCase()
+            const asksBusinessType = (
+              lastText.includes("type of business") ||
+              lastText.includes("business type") ||
+              (lastText.includes("e-commerce") && lastText.includes("agency") && lastText.includes("saas"))
+            )
+            if (!asksBusinessType) return null
+            return (
+              <div className="grid gap-2 md:grid-cols-2 pt-2">
+                {BUSINESS_TYPES.map((t) => (
+                  <button
+                    key={t.id}
+                    onClick={() => {
+                      sendMessage({ text: `${t.icon} ${t.label}` })
+                    }}
+                    className="flex items-start gap-3 text-left rounded-xl border border-border bg-card p-3 hover:border-primary/50 hover:bg-accent/30 transition-all"
+                  >
+                    <span className="text-xl shrink-0">{t.icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-[13px] font-semibold">{t.label}</p>
+                      <p className="text-[11px] text-muted-foreground mt-0.5">{t.description}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            )
+          })()}
 
           {/* Typing indicator */}
           {isLoading && (
