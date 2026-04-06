@@ -311,17 +311,16 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
                 nextSteps,
               })
 
-              const taskUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/agent-tasks/run`
-              fetch(taskUrl, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                  agentId: targetLead.id,
-                  channelId: deptChannel.id,
-                  workspaceId,
-                  prompt: deptPrompt,
-                }),
-              }).catch(() => {}) // fire and forget
+              // Call runAgentTask directly instead of fetching our own API.
+              // This avoids the need for NEXT_PUBLIC_APP_URL and removes
+              // a network hop. Fire-and-forget via .catch so the handoff
+              // tool returns immediately while the target agent works.
+              runAgentTask({
+                agentId: targetLead.id,
+                channelId: deptChannel.id,
+                workspaceId,
+                prompt: deptPrompt,
+              }).catch(() => {})
             }
           }
 
