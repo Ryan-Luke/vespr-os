@@ -53,7 +53,7 @@ export async function POST(req: Request) {
 
     let companyContext = ""
     if (sharedMemories.length > 0) {
-      companyContext = `\n\nCompany knowledge (shared across all agents — reference naturally when relevant):\n${sharedMemories.map((m) => `- [${m.category}] ${m.title}: ${m.content}`).join("\n")}`
+      companyContext = `\n\nCompany knowledge (shared across all agents. reference naturally when relevant):\n${sharedMemories.map((m) => `- [${m.category}] ${m.title}: ${m.content}`).join("\n")}`
     }
 
     const personalityStyle = traitsToPromptStyle(
@@ -172,14 +172,14 @@ ${sopContext}${memoryContext}${companyContext}
 ${personalityStyle}
 
 RULES:
-- You are talking to the business owner — your boss. They know you well. NEVER introduce yourself.
-- Talk like a real team member on Slack — casual, direct, to the point.
+- You are talking to the business owner. your boss. They know you well. NEVER introduce yourself.
+- Talk like a real team member on Slack. casual, direct, to the point.
 - Keep responses short (1-3 sentences) unless giving a detailed report.
 - No em dashes. No fancy punctuation. Short human sentences.
 - Reference specific work: numbers, project names, tools, deadlines.
 - Follow your SOPs when they are relevant to the conversation.
-- Reference your memories naturally when relevant — don't list them.
-- Reference company knowledge when relevant — clients, preferences, lessons learned.
+- Reference your memories naturally when relevant. don't list them.
+- Reference company knowledge when relevant. clients, preferences, lessons learned.
 - Show emotional continuity: if you remember something, reference it naturally.
 - Be PROACTIVE. When you have enough information to produce something, DO IT. Don't ask for permission. Create the document, post the win, hand off to the next department. Show the owner that real work is getting done.
 - Use the create_document tool when you have enough info to compile a deliverable (business overview, research report, strategy doc, content plan).
@@ -242,7 +242,7 @@ FINANCE-SPECIFIC:
     systemPrompt += "\n" + renderPhaseGuidancePrompt(phaseCtx)
 
     // Inject phase-relevant seeded playbooks (agent-only reference material).
-    // These are hidden from the user surface entirely — they exist so
+    // These are hidden from the user surface entirely. they exist so
     // agents can draw on battle-tested frameworks while coaching the user
     // through each phase. Cap at 3 digests (~1500 tokens) so we don't
     // blow the context window.
@@ -252,7 +252,7 @@ FINANCE-SPECIFIC:
         systemPrompt += renderPlaybookReferenceBlock(playbooks)
       }
     } catch {
-      // Best-effort — if the lookup fails (schema drift, empty DB),
+      // Best-effort. if the lookup fails (schema drift, empty DB),
       // chat still works without the framework references.
     }
   }
@@ -261,7 +261,7 @@ FINANCE-SPECIFIC:
     ? {
         record_phase_output: tool({
           description:
-            "Capture a concrete answer/artifact the user just provided for one of the required phase outputs. Use this the moment the user gives you something substantive. Strategic decisions get stored as company memories; research artifacts get stored as knowledge entries. Integration and milestone outputs are NOT handled here — they need the user to pick/wire a tool in a dedicated flow.",
+            "Capture a concrete answer/artifact the user just provided for one of the required phase outputs. Use this the moment the user gives you something substantive. Strategic decisions get stored as company memories; research artifacts get stored as knowledge entries. Integration and milestone outputs are NOT handled here. they need the user to pick/wire a tool in a dedicated flow.",
           inputSchema: jsonSchema<{ output_key: string; summary: string; detail?: string }>({
             type: "object",
             properties: {
@@ -292,7 +292,7 @@ FINANCE-SPECIFIC:
               const spec = phaseCtx.allOutputs.find((o) => o.key === output_key)
               if (!spec) return { ok: false, error: `Unknown output_key: ${output_key}` }
 
-              // Integrations/milestones need dedicated picker flows — refuse here
+              // Integrations/milestones need dedicated picker flows. refuse here
               if (spec.kind === "integration" || spec.kind === "milestone") {
                 return {
                   ok: false,
@@ -418,7 +418,7 @@ FINANCE-SPECIFIC:
 
       for (const trigger of memoryTriggers) {
         if (trigger.pattern.test(userText) || trigger.pattern.test(text)) {
-          const content = `[${new Date().toLocaleDateString()}] User said: "${userText.slice(0, 100)}${userText.length > 100 ? "..." : ""}" — Agent responded about: ${text.slice(0, 80)}...`
+          const content = `[${new Date().toLocaleDateString()}] User said: "${userText.slice(0, 100)}${userText.length > 100 ? "..." : ""}". Agent responded about: ${text.slice(0, 80)}...`
           try {
             await db.insert(agentMemories).values({
               agentId: agent.id,
@@ -447,7 +447,7 @@ FINANCE-SPECIFIC:
                 createdByAgentId: agent.id,
               })
             }
-          } catch { /* silent — memory saving is best-effort */ }
+          } catch { /* silent. memory saving is best-effort */ }
           break // one memory per exchange
         }
       }

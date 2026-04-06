@@ -8,7 +8,7 @@
 // framed as "pick a tool + wire the integration", NOT "fill out a table inside
 // BOS". See feedback_integrate_dont_rebuild memory.
 //
-// Phase definitions live here as constants — they are not user-editable.
+// Phase definitions live here as constants. they are not user-editable.
 // Per-workspace progress lives in the `workflow_phase_runs` table.
 
 import { db } from "@/lib/db"
@@ -92,9 +92,9 @@ export const PHASES: PhaseDefinition[] = [
     key: "product",
     order: 1,
     label: "Product Definition",
-    tagline: "Who, what, why — get the premise right.",
+    tagline: "Who, what, why. get the premise right.",
     description:
-      "Nail down who we serve, what problem we solve, what we sell, and at what price. This is strategy, not tools — outputs land as company memories the whole team inherits.",
+      "Nail down who we serve, what problem we solve, what we sell, and at what price. This is strategy, not tools. outputs land as company memories the whole team inherits.",
     leadRoleKeywords: ["R&D", "Research & Development", "Product", "Chief of Staff"],
     requiredOutputs: [
       { key: "target_customer", label: "Target customer", description: "Who exactly we're selling to.", kind: "decision" },
@@ -110,7 +110,7 @@ export const PHASES: PhaseDefinition[] = [
     label: "Market Research",
     tagline: "Prove the demand is real before we build.",
     description:
-      "Analyst-led phase. Gather evidence the market wants this, map top competitors, and benchmark pricing. Findings land as structured knowledge entries — not chat ephemera.",
+      "Analyst-led phase. Gather evidence the market wants this, map top competitors, and benchmark pricing. Findings land as structured knowledge entries. not chat ephemera.",
     leadRoleKeywords: ["Analyst", "Researcher", "Lead Researcher", "Research"],
     requiredOutputs: [
       { key: "demand_evidence", label: "Demand evidence", description: "Concrete proof people want this (search volume, forum posts, sales data, interviews).", kind: "artifact" },
@@ -153,10 +153,10 @@ export const PHASES: PhaseDefinition[] = [
     label: "Marketing",
     tagline: "Get the offer in front of the right people.",
     description:
-      "Marketing Lead runs this phase. Define ICP, pick channels, pick an email/CRM tool, wire integrations, ship first campaign. No marketing software gets rebuilt — we plug in what exists.",
+      "Marketing Lead runs this phase. Define ICP, pick channels, pick an email/CRM tool, wire integrations, ship first campaign. No marketing software gets rebuilt. we plug in what exists.",
     leadRoleKeywords: ["Marketing", "Content Strategist", "Growth"],
     requiredOutputs: [
-      { key: "icp_defined", label: "ICP defined", description: "Ideal client profile — use the BOS ICP builder.", kind: "decision" },
+      { key: "icp_defined", label: "ICP defined", description: "Ideal client profile. use the BOS ICP builder.", kind: "decision" },
       { key: "channels_chosen", label: "Channels chosen", description: "Which 1-3 channels we'll focus on first.", kind: "decision" },
       {
         key: "email_platform_integration",
@@ -194,7 +194,7 @@ export const PHASES: PhaseDefinition[] = [
     label: "Monetization",
     tagline: "Take money cleanly.",
     description:
-      "Finance Lead runs this. Wire a payment processor, wire invoicing, land the first dollar. BOS never holds its own billing tables — Stripe/GHL/QBO do that.",
+      "Finance Lead runs this. Wire a payment processor, wire invoicing, land the first dollar. BOS never holds its own billing tables. Stripe/GHL/QBO do that.",
     leadRoleKeywords: ["Finance", "Bookkeeper", "Head of Finance"],
     requiredOutputs: [
       {
@@ -258,12 +258,12 @@ export const PHASES: PhaseDefinition[] = [
     key: "operations",
     order: 7,
     label: "Operations",
-    tagline: "Run the machine — ongoing rhythms, metrics, handoffs.",
+    tagline: "Run the machine. ongoing rhythms, metrics, handoffs.",
     description:
-      "Operations Lead (and Nova) run this perpetually. Define the weekly/daily rhythm, wire dashboards, make sure team-leaders channel is actively coordinating. This phase never ends — it's steady-state.",
+      "Operations Lead (and Nova) run this perpetually. Define the weekly/daily rhythm, wire dashboards, make sure team-leaders channel is actively coordinating. This phase never ends. it's steady-state.",
     leadRoleKeywords: ["Operations", "Automation Architect", "Head of Ops", "Chief of Staff"],
     requiredOutputs: [
-      { key: "ongoing_rhythms", label: "Ongoing rhythms defined", description: "Daily standup, weekly review, monthly retro — what, when, who.", kind: "decision" },
+      { key: "ongoing_rhythms", label: "Ongoing rhythms defined", description: "Daily standup, weekly review, monthly retro. what, when, who.", kind: "decision" },
       {
         key: "dashboards_wired",
         label: "Metrics dashboard wired",
@@ -303,7 +303,7 @@ export const FIRST_PHASE_KEY: PhaseKey = PHASES[0].key
 // Resolution order:
 //   1. Find a team lead (isTeamLead=true) whose role matches any keyword
 //   2. Fall back to any agent whose role matches
-//   3. Return only Nova if nothing matches (graceful degrade — phase still runs)
+//   3. Return only Nova if nothing matches (graceful degrade. phase still runs)
 
 export interface ResolvedPhaseLeads {
   chiefOfStaff: { id: string; name: string; role: string } | null
@@ -313,7 +313,7 @@ export interface ResolvedPhaseLeads {
 export async function getPhaseLeads(phaseKey: PhaseKey): Promise<ResolvedPhaseLeads> {
   const phase = getPhase(phaseKey)
 
-  // Find Chief of Staff (Nova or equivalent) — always global co-lead
+  // Find Chief of Staff (Nova or equivalent). always global co-lead
   const [nova] = await db
     .select({ id: agents.id, name: agents.name, role: agents.role })
     .from(agents)
@@ -329,7 +329,7 @@ export async function getPhaseLeads(phaseKey: PhaseKey): Promise<ResolvedPhaseLe
       .select({ id: agents.id, name: agents.name, role: agents.role, isTeamLead: agents.isTeamLead })
       .from(agents)
       .where(ilike(agents.role, `%${keyword}%`))
-      .orderBy(agents.isTeamLead) // team leads first when desc — but drizzle needs explicit; we'll post-sort
+      .orderBy(agents.isTeamLead) // team leads first when desc. but drizzle needs explicit; we'll post-sort
       .limit(5)
     if (match) {
       // Prefer team leads if any in the batch
@@ -485,7 +485,7 @@ export async function advancePhase(workspaceId: string): Promise<WorkflowState> 
   const currentRun = state.phases.find((p) => p.phaseKey === current.key)!
 
   if (!currentRun.gateDecision || currentRun.gateDecision.decision !== "approved") {
-    throw new Error("Current phase has no approved gate — record a gate before advancing")
+    throw new Error("Current phase has no approved gate. record a gate before advancing")
   }
 
   const now = new Date()
@@ -500,7 +500,7 @@ export async function advancePhase(workspaceId: string): Promise<WorkflowState> 
   const nextKey = current.nextPhase
   if (!nextKey) {
     // Operations is terminal (steady-state). Clear currentPhaseKey? Or keep?
-    // Keep — operations is perpetual. Just mark completed_at on the run.
+    // Keep. operations is perpetual. Just mark completed_at on the run.
     await db
       .update(workspaces)
       .set({ currentPhaseKey: null, phaseStartedAt: null })
@@ -508,7 +508,7 @@ export async function advancePhase(workspaceId: string): Promise<WorkflowState> 
     return getWorkflowState(workspaceId)
   }
 
-  // Start next phase (upsert — it may already exist from prior skip context)
+  // Start next phase (upsert. it may already exist from prior skip context)
   const [existing] = await db
     .select()
     .from(workflowPhaseRuns)
@@ -651,7 +651,7 @@ export interface PhaseGuidanceContext {
  *   1. The workspace has an active phase
  *   2. The given agent is either the Chief of Staff (Nova) OR the department
  *      lead for the active phase (resolved dynamically via role keywords)
- * Returns null otherwise — meaning chat proceeds in normal (non-phase) mode.
+ * Returns null otherwise. meaning chat proceeds in normal (non-phase) mode.
  */
 export async function getPhaseGuidanceForAgent(
   workspaceId: string,
@@ -702,13 +702,13 @@ export function renderPhaseGuidancePrompt(ctx: PhaseGuidanceContext): string {
     : "  (nothing captured yet)"
 
   const neededBlock = ctx.stillNeeded.length > 0
-    ? ctx.stillNeeded.map((o) => `  • ${o.label} — ${o.description} [output_key: ${o.key}]`).join("\n")
-    : "  (all required outputs captured — time to ask the user for buy-in to move forward)"
+    ? ctx.stillNeeded.map((o) => `  • ${o.label}. ${o.description} [output_key: ${o.key}]`).join("\n")
+    : "  (all required outputs captured. time to ask the user for buy-in to move forward)"
 
   return `
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-ACTIVE BUSINESS-BUILDING PHASE — YOU ARE LEADING THIS
+ACTIVE BUSINESS-BUILDING PHASE. YOU ARE LEADING THIS
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 You are currently leading Phase: **${ctx.phaseLabel}**
@@ -793,7 +793,7 @@ Do NOT ask for permission. Just do it. The user hired a team, not a committee.
 //
 // Digest extraction: from each matched playbook we extract a compact
 // summary (title + intro paragraph + H2 heading list). We don't dump
-// full content — that would blow the context window. The digest gives
+// full content. that would blow the context window. The digest gives
 // the agent a map of the framework's scope; if the agent needs detail,
 // a future chunk can add a "fetch_playbook_detail" tool.
 
@@ -856,7 +856,7 @@ export function renderPlaybookDigest(d: PlaybookDigest): string {
 
 /**
  * Fetch up to `limit` playbook digests relevant to the given phase.
- * Returns compact digests (not full content) — suitable for direct
+ * Returns compact digests (not full content). suitable for direct
  * injection into an agent system prompt.
  */
 export async function getPlaybooksForPhase(
@@ -894,10 +894,10 @@ export function renderPlaybookReferenceBlock(digests: PlaybookDigest[]): string 
   return `
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-PROVEN FRAMEWORKS FOR THIS PHASE — INTERNAL REFERENCE
+PROVEN FRAMEWORKS FOR THIS PHASE. INTERNAL REFERENCE
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
-These are battle-tested business-building frameworks relevant to the current phase. Use them to guide your questions and recommendations, but NEVER mention they're "frameworks" or cite them explicitly — talk like a team member drawing on experience, not a consultant reading from a playbook. The user should feel like you know this stuff, not like you're looking it up.
+These are battle-tested business-building frameworks relevant to the current phase. Use them to guide your questions and recommendations, but NEVER mention they're "frameworks" or cite them explicitly. talk like a team member drawing on experience, not a consultant reading from a playbook. The user should feel like you know this stuff, not like you're looking it up.
 
 ${body}
 
@@ -905,6 +905,6 @@ ${body}
 `
 }
 
-// Suppress unused-import warning for `teams` — reserved for future lead
+// Suppress unused-import warning for `teams`. reserved for future lead
 // resolution that walks team → leadAgentId. Keeping import deliberate.
 void teams
