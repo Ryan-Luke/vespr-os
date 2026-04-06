@@ -163,11 +163,15 @@ export async function POST(req: Request) {
               "agency": "agency", "agency / services": "agency",
               "saas": "saas", "saas / tech": "saas",
               "consulting": "consulting", "consulting / coaching": "consulting", "coaching": "consulting",
-              "content creator": "content", "content": "content", "creator": "content", "content creator / info product": "content",
+              "content creator": "content", "content": "content", "creator": "content",
+              "content creator / info product": "content", "info product / course": "content", "info product": "content",
               "service-based": "service", "service": "service",
               "brick and mortar": "brick_and_mortar", "brick & mortar": "brick_and_mortar",
+              "other": "agency", // Other uses the general-purpose agency template
             }
-            const templateId = templateMap[data.businessType.toLowerCase()] ?? "agency"
+            // Strip emoji prefix from business type (e.g. "🏢 Agency" -> "agency")
+            const cleanType = data.businessType.replace(/^[^\w]+/, "").trim().toLowerCase()
+            const templateId = templateMap[cleanType] ?? "agency"
 
             // Use the host from the incoming request so this works in
             // production, preview, and local dev without env vars.
