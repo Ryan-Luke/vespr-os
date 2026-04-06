@@ -131,23 +131,17 @@ export async function POST(req: Request) {
       maxOutputTokens: 800,
     })
 
-    // Check if complete_onboarding was called by looking at step tool results
-    let onboardingComplete = false
-    let workspaceId: string | null = null
-    for (const step of result.steps ?? []) {
-      for (const tr of step.toolResults ?? []) {
-        const res = tr as any
-        if (res?.success) {
-          onboardingComplete = true
-          workspaceId = res?.workspaceId ?? null
-        }
-      }
-    }
+    // Check if a workspace was created by querying the DB directly.
+    // More reliable than parsing tool result objects across SDK versions.
+    const { db: checkDb } = await import("@/lib/db")
+    const { workspaces } = await import("@/lib/db/schema")
+    const existingWs = await checkDb.select({ id: workspaces.id }).from(workspaces).limit(1)
+    const onboardingComplete = existingWs.length > 0
 
     return Response.json({
       response: result.text ?? "",
       onboardingComplete,
-      workspaceId,
+      workspaceId: existingWs[0]?.id ?? null,
     })
   } catch (err) {
     return Response.json({
