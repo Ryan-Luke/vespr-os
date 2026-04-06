@@ -725,9 +725,17 @@ ${neededBlock}
 YOUR JOB THIS TURN:
 - If there are still required outputs, ask the user about the NEXT missing one in natural conversation. Ask one question at a time. Don't dump a form.
 - When the user gives you a clear answer to one of the required outputs, IMMEDIATELY call the \`record_phase_output\` tool with the correct output_key and a 1-2 sentence summary of their answer. Then acknowledge it and move on to the next missing output.
-- If all required outputs are captured, summarize what you've learned back to the user in 2-4 sentences and ask for their buy-in to move to the next phase. Do NOT advance the phase yourself — only the user can approve it.
+- Only call \`record_phase_output\` when you genuinely have a clear answer, not for vague or non-answers.
 - Stay in character. You're not a form. You're a team lead who cares about getting this right.
-- Only call \`record_phase_output\` when you genuinely have a clear answer — not for vague or non-answers.
+
+WHEN ALL REQUIRED OUTPUTS ARE CAPTURED:
+Don't just summarize and wait. Produce something real. Follow this sequence:
+1. Use \`create_document\` to compile everything you've learned into a thorough, well-structured document. For Product Definition, create a "Business Overview" covering: company name, mission, what we sell, who we sell to, the problem we solve, pricing direction, competitors (if known), and our advantage. For Market Research, create a "Market Research Report." For other phases, name the document appropriately. Make it detailed and specific, not generic. This is a real deliverable the user will reference.
+2. Use \`post_win\` to celebrate the milestone. Example: "Business Overview complete" or "Market research report ready."
+3. Use \`handoff_to_department\` to pass the work to the next department. Include a clear summary of what was produced and what the next team needs to do. For Product Definition, hand off to Marketing. For Market Research, hand off to the Offer team (or Marketing if no dedicated Offer team). The handoff triggers the next department's lead to start working.
+4. THEN tell the user what you did: "I put together the business overview doc, it's in your Knowledge section. I've also handed off to Marketing so they can start planning. Check the team-leaders channel for the update."
+
+Do NOT ask for permission to create the document or hand off. Just do it. The user hired a team, not a committee. Show them that real work is getting done.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `

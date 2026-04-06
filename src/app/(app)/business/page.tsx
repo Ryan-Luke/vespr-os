@@ -1,8 +1,18 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Building2, Target, Users, DollarSign, Globe, Wrench, Save, Loader2, Edit3, X } from "lucide-react"
+import { Building2, Target, Users, DollarSign, Globe, Wrench, Save, Loader2, Edit3, X, FileText, ArrowRight } from "lucide-react"
 import { useWorkspace } from "@/lib/workspace-context"
+import Link from "next/link"
+
+interface BusinessDocument {
+  id: string
+  title: string
+  category: string
+  createdByName: string
+  createdAt: string
+  tags: string[]
+}
 
 interface Workspace {
   id: string
@@ -41,6 +51,8 @@ export default function BusinessPage() {
   const [form, setForm] = useState<Workspace | null>(null)
   const [verticalInput, setVerticalInput] = useState("")
   const [toolInput, setToolInput] = useState("")
+  const [businessDocs, setBusinessDocs] = useState<BusinessDocument[]>([])
+  const [docsLoading, setDocsLoading] = useState(true)
 
   useEffect(() => {
     if (activeWorkspace) {
@@ -129,6 +141,17 @@ export default function BusinessPage() {
       },
     })
   }
+
+  // Fetch agent-generated business documents
+  useEffect(() => {
+    fetch("/api/knowledge?category=business&agentOnly=true")
+      .then((r) => r.json())
+      .then((docs: BusinessDocument[]) => {
+        setBusinessDocs(Array.isArray(docs) ? docs : [])
+        setDocsLoading(false)
+      })
+      .catch(() => setDocsLoading(false))
+  }, [])
 
   if (loading) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
   if (!workspace || !form) return <div className="p-6 text-muted-foreground">No workspace found.</div>
@@ -345,6 +368,63 @@ export default function BusinessPage() {
             <p className="text-[11px] text-muted-foreground">
               This profile is used by your AI agents to understand your business context. Keep it up to date so agents make better decisions on your behalf.
             </p>
+          </div>
+        )}
+
+        {/* Business Documents — agent-generated deliverables */}
+        {!editing && (
+          <div className="pt-2">
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <FileText className="h-4 w-4 text-muted-foreground/50" />
+                <h2 className="text-sm font-semibold text-muted-foreground">Business Documents</h2>
+              </div>
+              {businessDocs.length > 0 && (
+                <span className="text-[10px] text-muted-foreground/50">
+                  {businessDocs.length} document{businessDocs.length !== 1 ? "s" : ""}
+                </span>
+              )}
+            </div>
+
+            {docsLoading && (
+              <div className="flex items-center gap-2 py-8 justify-center text-muted-foreground/50">
+                <Loader2 className="h-4 w-4 animate-spin" />
+                <span className="text-xs">Loading documents...</span>
+              </div>
+            )}
+
+            {!docsLoading && businessDocs.length === 0 && (
+              <div className="rounded-md border border-dashed border-border p-6 text-center">
+                <FileText className="h-8 w-8 text-muted-foreground/20 mx-auto mb-2" />
+                <p className="text-xs text-muted-foreground/50">No documents yet.</p>
+                <p className="text-[11px] text-muted-foreground/40 mt-1">
+                  Your R&D team will create business documents as they work. Check back after chatting with your R&D lead.
+                </p>
+              </div>
+            )}
+
+            {!docsLoading && businessDocs.length > 0 && (
+              <div className="space-y-2">
+                {businessDocs.map((doc) => (
+                  <Link
+                    key={doc.id}
+                    href={`/business/docs/${doc.id}`}
+                    className="flex items-center gap-3 rounded-md border border-border bg-card p-4 hover:border-muted-foreground/20 transition-colors group"
+                  >
+                    <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
+                      <FileText className="h-5 w-5 text-primary/60" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium group-hover:text-foreground/90 transition-colors">{doc.title}</p>
+                      <p className="text-[11px] text-muted-foreground/50 mt-0.5">
+                        Created by {doc.createdByName} · {new Date(doc.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground/30 group-hover:text-muted-foreground/60 transition-colors shrink-0" />
+                  </Link>
+                ))}
+              </div>
+            )}
           </div>
         )}
       </div>
