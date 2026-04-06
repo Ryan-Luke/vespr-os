@@ -505,12 +505,11 @@ export async function POST(req: Request) {
   // Definition). Downstream phase progress is tracked in workflow_phase_runs.
   await ensureWorkflowInitialized(newWorkspace.id)
 
-  // Seed agent-only business playbooks into knowledge_entries. These are
-  // hidden from the user-facing Knowledge page (tagged `internal`) but
-  // available to agents via the phase-relevance lookup in the chat route.
-  // Idempotent: skips if already present. Best-effort: failure here doesn't
-  // block onboarding completion.
-  try { await seedPlaybooks() } catch { /* silent */ }
+  // Seed playbooks in the background. Don't await. This reads 38 files
+  // and inserts them into the DB which can take 10+ seconds. The workspace
+  // is fully functional without them. They'll be there by the time the
+  // user finishes their first R&D conversation.
+  seedPlaybooks().catch(() => {})
 
   return Response.json({
     success: true,

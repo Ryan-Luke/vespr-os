@@ -114,14 +114,22 @@ export default function OnboardingPage() {
         }),
       })
       const data = await res.json()
-      if (data.response) {
-        setChatMessages([...newMessages, { role: "assistant", content: data.response }])
-      }
       if (data.onboardingComplete) {
+        // Tool fired successfully. Show completion message even if
+        // response text is empty (tool call consumed the response).
+        const msg = data.response || "Your team is being activated right now. First up, you'll meet your Head of R&D. They'll help you build out and validate your offer."
+        setChatMessages([...newMessages, { role: "assistant", content: msg }])
         setOnboardingComplete(true)
+      } else if (data.response) {
+        setChatMessages([...newMessages, { role: "assistant", content: data.response }])
+      } else if (data.error) {
+        setChatMessages([...newMessages, { role: "assistant", content: `Something went wrong: ${data.error}. Try sending your message again.` }])
+      } else {
+        // Empty response with no completion. Might be a timeout.
+        setChatMessages([...newMessages, { role: "assistant", content: "Hmm, let me try that again. Can you repeat what you just said?" }])
       }
-    } catch {
-      setChatMessages([...newMessages, { role: "assistant", content: "Something went wrong. Try again." }])
+    } catch (err) {
+      setChatMessages([...newMessages, { role: "assistant", content: "Something went wrong. Try sending your message again." }])
     } finally {
       setSending(false)
     }
