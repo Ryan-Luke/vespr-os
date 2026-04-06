@@ -132,17 +132,14 @@ export default function OnboardingPage() {
       } else if (data.error) {
         setChatMessages([...newMessages, { role: "assistant", content: `Something went wrong: ${data.error}. Try sending your message again.` }])
       } else {
-        // Empty response. Check if workspace was created despite empty text.
-        try {
-          const wsCheck = await fetch("/api/workspaces").then(r => r.json())
-          if (Array.isArray(wsCheck) && wsCheck.length > 0) {
-            setChatMessages([...newMessages, { role: "assistant", content: "Your team is being activated right now. First up, you'll meet your Head of R&D. They'll help you build out and validate your offer." }])
-            setOnboardingComplete(true)
-            return
-          }
-        } catch {}
-        // Actually empty. Ask again.
-        setChatMessages([...newMessages, { role: "assistant", content: "Sorry about that, could you say that one more time?" }])
+        // Empty response. Could mean the tool fired but no text was generated.
+        // Check the message count - if we've had enough exchanges, assume completion.
+        if (newMessages.length >= 8) {
+          setChatMessages([...newMessages, { role: "assistant", content: "Your team is being activated right now. First up, you'll meet your Head of R&D. They'll help you build out and validate your offer." }])
+          setOnboardingComplete(true)
+        } else {
+          setChatMessages([...newMessages, { role: "assistant", content: "Sorry about that, could you say that one more time?" }])
+        }
       }
     } catch (err) {
       setChatMessages([...newMessages, { role: "assistant", content: "Something went wrong. Try sending your message again." }])

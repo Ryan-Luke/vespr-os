@@ -87,7 +87,7 @@ export async function POST(req: Request) {
                 "e-commerce": "ecommerce", "ecommerce": "ecommerce",
                 "agency": "agency", "agency / services": "agency",
                 "saas": "saas", "saas / tech": "saas",
-                "consulting": "consulting", "consulting / coaching": "consulting", "coaching": "consulting",
+                "consulting": "consulting", "consulting / coaching": "consulting", "coaching / consulting": "consulting", "coaching": "consulting",
                 "content creator": "content", "content": "content",
                 "info product / course": "content", "info product": "content",
                 "service-based": "service", "service": "service",
