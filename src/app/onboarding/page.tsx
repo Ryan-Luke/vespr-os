@@ -160,7 +160,7 @@ export default function OnboardingPage() {
 
   function getQuestion(s: Step): string {
     switch (s) {
-      case "anthropic": return "First thing I need is your Anthropic API key — it's what powers Claude, the brain behind our team.\n\nNo key yet? Here's how to grab one in about 2 minutes:\n\n1. Head to console.anthropic.com/settings/keys and sign up (or log in)\n2. Under 'Plans & Billing', add a small amount of credit — $5 is plenty to start\n3. Back on the Keys page, click 'Create Key', name it anything, and copy it\n4. Paste it here — it should start with 'sk-ant-'\n\nYour key stays private and is only used to run your agents."
+      case "anthropic": return "First thing I need is your Anthropic API key. It powers Claude, the brain behind our team.\n\nNo key yet? Here's how to grab one in about 2 minutes:\n\n1. Head to console.anthropic.com/settings/keys and sign up or log in\n2. Under Plans and Billing, add a small amount of credit. $5 is plenty to start\n3. Back on the Keys page, click Create Key, name it anything, and copy it\n4. Paste it here. It should start with sk-ant-\n\nYour key stays private and is only used to run your agents."
       case "user_name": return "Perfect — I'm wired in. So, what's your name? I want to make sure the team calls you the right thing."
       case "business_name": return `What's the name of your business? You can skip this if you're still figuring it out.`
       case "business_type": return "What type of business is this?"
@@ -175,10 +175,15 @@ export default function OnboardingPage() {
 
   async function submitText(value: string) {
     if (!value.trim()) return
-    setEntries((prev) => [...prev, { role: "user", content: value }])
+    // Mask API keys in the chat display so they don't overflow the bubble
+    // and the user's key isn't fully visible in the conversation history.
+    const displayValue = step === "anthropic" && value.trim().startsWith("sk-ant-")
+      ? `${value.trim().slice(0, 10)}...${value.trim().slice(-4)}`
+      : value
+    setEntries((prev) => [...prev, { role: "user", content: displayValue }])
     setTextInput("")
 
-    // Step 1: Anthropic auth — validate immediately, no riff (Nova isn't reasoning yet)
+    // Step 1: Anthropic auth. Validate immediately, no riff (Nova isn't reasoning yet)
     if (step === "anthropic") {
       setEntries((prev) => [...prev, { role: "assistant", content: "Verifying your key..." }])
       try {
@@ -474,7 +479,7 @@ export default function OnboardingPage() {
                   </div>
                 )}
                 <div className={cn(
-                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap",
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap break-words",
                   entry.role === "assistant"
                     ? "bg-card border border-border"
                     : "bg-primary text-primary-foreground"
