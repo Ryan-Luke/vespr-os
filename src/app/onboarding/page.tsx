@@ -57,11 +57,18 @@ export default function OnboardingPage() {
     if (!sending) setTimeout(() => inputRef.current?.focus(), 100)
   }, [sending, chatMessages.length, phase])
 
-  // Redirect after completion
+  // Build-out animation then redirect to the main app
+  const [buildStage, setBuildStage] = useState(0)
   useEffect(() => {
-    if (onboardingComplete) {
-      setTimeout(() => router.push("/"), 3000)
-    }
+    if (!onboardingComplete) return
+    const stages = [
+      () => setBuildStage(1), // Activating team
+      () => setBuildStage(2), // Setting up departments
+      () => setBuildStage(3), // Preparing R&D
+      () => router.push("/"), // Redirect
+    ]
+    const timers = stages.map((fn, i) => setTimeout(fn, (i + 1) * 1200))
+    return () => timers.forEach(clearTimeout)
   }, [onboardingComplete, router])
 
   // Phase 1: validate API key
@@ -255,16 +262,32 @@ export default function OnboardingPage() {
             </div>
           )}
 
-          {/* Completion */}
+          {/* Build-out animation */}
           {onboardingComplete && (
-            <div className="flex items-end gap-2 justify-start pt-4">
-              <div className="shrink-0 w-7"><PixelAvatar characterIndex={3} size={28} className="rounded-md" /></div>
-              <div className="max-w-[78%] rounded-2xl px-4 py-3 bg-card border border-border">
-                <div className="flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
-                  <p className="text-[13px] text-muted-foreground">Setting up your workspace...</p>
-                </div>
-              </div>
+            <div className="pt-4 space-y-3">
+              {[
+                { stage: 1, text: "Activating your AI team..." },
+                { stage: 2, text: "Setting up departments and channels..." },
+                { stage: 3, text: "Your Head of R&D is ready to meet you. Launching now..." },
+              ].map((step) => (
+                buildStage >= step.stage && (
+                  <div key={step.stage} className="flex items-end gap-2 justify-start animate-in fade-in slide-in-from-bottom-2 duration-500">
+                    <div className="shrink-0 w-7">
+                      {step.stage === 1 && <PixelAvatar characterIndex={3} size={28} className="rounded-md" />}
+                    </div>
+                    <div className="max-w-[78%] rounded-2xl px-4 py-2.5 bg-card border border-border">
+                      <div className="flex items-center gap-2">
+                        {buildStage === step.stage ? (
+                          <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                        ) : (
+                          <span className="h-3.5 w-3.5 text-emerald-500 flex items-center justify-center text-xs">✓</span>
+                        )}
+                        <p className="text-[13px] text-muted-foreground">{step.text}</p>
+                      </div>
+                    </div>
+                  </div>
+                )
+              ))}
             </div>
           )}
         </div>
