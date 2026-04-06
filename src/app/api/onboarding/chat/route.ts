@@ -213,8 +213,10 @@ export async function POST(req: Request) {
         },
       }),
     },
-    stopWhen: ({ steps }) => steps.length >= 4,
-    maxOutputTokens: 400,
+    // Nova needs room for: extract_info tool call + text response + possible
+    // complete_onboarding call. 10 steps gives plenty of headroom.
+    stopWhen: ({ steps }) => steps.length >= 10,
+    maxOutputTokens: 600,
   })
 
   return result.toUIMessageStreamResponse()
