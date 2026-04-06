@@ -16,7 +16,7 @@ import { db } from "@/lib/db"
 import {
   agents, messages, channels, knowledgeEntries, trophyEvents,
   teamGoals, teams, agentSops, agentMemories, companyMemories,
-  agentTasks, handoffEvents,
+  agentTasks, handoffEvents, agentSchedules,
 } from "@/lib/db/schema"
 import { eq, desc, ilike, or, and } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
@@ -410,6 +410,55 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Handoff failed" }
+        }
+      },
+    }),
+
+    create_schedule: tool({
+      description:
+        "Create a recurring scheduled task for yourself. Use this when the user wants you to do something on a regular cadence. Examples: 'create a social media post every day at 9am', 'send a weekly revenue report every Monday', 'check inbox every 4 hours'. Supported schedules: 'every Xm' (minutes), 'every Xh' (hours), 'daily at HH:MM' (24h UTC), 'weekly on DAY at HH:MM'.",
+      inputSchema: jsonSchema<{
+        name: string
+        description?: string
+        schedule: string
+        taskPrompt: string
+      }>({
+        type: "object",
+        properties: {
+          name: { type: "string", minLength: 1, maxLength: 100, description: "Short name like 'Daily Instagram post' or 'Weekly revenue report'" },
+          description: { type: "string", maxLength: 500 },
+          schedule: {
+            type: "string",
+            description: "The schedule expression. Examples: 'every 30m', 'every 4h', 'daily at 09:00', 'weekly on monday at 09:00'. Times are UTC.",
+          },
+          taskPrompt: {
+            type: "string",
+            description: "The full instructions you'll follow each time this runs. Be specific about what to produce, where to post it, and what quality bar to hit.",
+            maxLength: 4000,
+          },
+        },
+        required: ["name", "schedule", "taskPrompt"],
+        additionalProperties: false,
+      }),
+      execute: async ({ name, description, schedule, taskPrompt }) => {
+        try {
+          const [sched] = await db.insert(agentSchedules).values({
+            agentId,
+            name,
+            description: description ?? null,
+            cronExpression: schedule,
+            taskPrompt,
+            enabled: true,
+          }).returning()
+          return {
+            ok: true,
+            scheduleId: sched.id,
+            name,
+            schedule,
+            message: `Schedule "${name}" created. It will run on the "${schedule}" cadence. The user can see and manage it in the Automations page.`,
+          }
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Failed to create schedule" }
         }
       },
     }),
