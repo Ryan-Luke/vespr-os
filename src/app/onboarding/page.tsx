@@ -156,6 +156,15 @@ export default function OnboardingPage() {
             // Hide the initial "hi" trigger message
             if (msg.role === "user" && i === 0 && textParts.length === 1 && (textParts[0] as any).text === "hi") return null
 
+            // Mask API keys in user messages so the full key never shows
+            const displayText = textParts.map((p) => {
+              const t = (p as any).text as string
+              if (t && t.startsWith("sk-ant-") && t.length > 20) {
+                return `${t.slice(0, 10)}...${t.slice(-4)}`
+              }
+              return t
+            })
+
             return (
               <div key={msg.id} className={cn("flex items-end gap-2", isAssistant ? "justify-start" : "justify-end")}>
                 {isAssistant && (
@@ -164,12 +173,12 @@ export default function OnboardingPage() {
                   </div>
                 )}
                 <div className={cn(
-                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]",
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap break-all",
                   isAssistant
                     ? "bg-card border border-border"
                     : "bg-primary text-primary-foreground"
                 )}>
-                  {textParts.map((p, j) => <span key={j}>{(p as any).text}</span>)}
+                  {displayText.map((t, j) => <span key={j}>{t}</span>)}
                 </div>
               </div>
             )
