@@ -258,7 +258,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             action: "created_document",
             description: `Created "${title}"`,
           }).catch(() => {})
-          return { ok: true, documentId: entry.id, title }
+          return { ok: true, documentId: entry.id, title, viewUrl: `/business/docs/${entry.id}`, viewInstructions: "Tell the user to go to My Business in the sidebar to view it, or use the direct link." }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Failed to create document" }
         }

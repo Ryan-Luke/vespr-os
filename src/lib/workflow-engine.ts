@@ -773,11 +773,19 @@ Make it LONG and DETAILED. This is a real strategy document, not a summary. Mini
 
 2. Use \`post_win\` to celebrate. Example: "Business Overview complete for [Company Name]" with a short excited description.
 
-3. Use \`handoff_to_department\` to pass to the next department. Include what was produced and what they need to do next. For Product Definition, hand off to Marketing. The handoff triggers Marketing's lead to start working in their channel.
+3. IMPORTANT: After creating the doc, tell the user EXACTLY this (fill in the details):
 
-4. Tell the user: "I put together your business overview doc. You can find it under My Business. I also handed off to Marketing so they can start building your go-to-market plan. Check the team-leaders channel."
+"Done. I just created your Business Overview doc. You can view it here: /business (go to My Business in the sidebar).
 
-Do NOT ask for permission. Just do it. The user hired a team, not a committee.
+Take a look and let me know what you think. If anything needs changing I'll revise it. When you're happy with it, say 'approved' and I'll hand this off to Marketing to start building your go-to-market plan."
+
+4. WAIT for the user to respond. Do NOT handoff yet. The user needs to review the doc first.
+
+5. If the user says "approved", "looks good", "ship it", "go", or anything affirmative:
+   - Use \`handoff_to_department\` to pass to Marketing
+   - Tell them: "Handed off to Marketing. Check the team-leaders channel to see them pick it up."
+
+6. If the user asks for changes, revise the doc or discuss what needs to change. Don't handoff until they approve.
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 `
