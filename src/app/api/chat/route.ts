@@ -1,8 +1,8 @@
 import { streamText, tool, jsonSchema, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries, approvalRequests } from "@/lib/db/schema"
+import { eq, desc, sql } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { getActiveWorkspace } from "@/lib/workspace-server"
@@ -62,11 +62,84 @@ export async function POST(req: Request) {
       (agent.personalityConfig as any) ?? null,
     )
 
-    // Chief of Staff gets a special system prompt
+    // Chief of Staff gets a special system prompt with full business awareness
     if (agent.role === "Chief of Staff") {
       const allTeams = await db.select().from(teams)
       const allAgents = await db.select().from(agents)
       const teamLeads = allAgents.filter((a) => a.isTeamLead)
+
+      // Pull real-time business state so Nova knows what's actually happening
+      const activeWsForNova = await getActiveWorkspace()
+      let businessState = ""
+      if (activeWsForNova) {
+        try {
+          const { getWorkflowState, getPhase, PHASES } = await import("@/lib/workflow-engine")
+          const wfState = await getWorkflowState(activeWsForNova.id)
+          const currentPhase = wfState.currentPhaseKey ? getPhase(wfState.currentPhaseKey as any) : null
+          const completedPhases = wfState.phases.filter((p) => p.status === "completed" || p.status === "skipped")
+
+          // Recent handoffs
+          const { handoffEvents: handoffTable } = await import("@/lib/db/schema")
+          const recentHandoffs = await db.select().from(handoffTable)
+            .where(eq(handoffTable.workspaceId, activeWsForNova.id))
+            .orderBy(desc(handoffTable.createdAt))
+            .limit(5)
+
+          // Recent agent tasks
+          const { agentTasks: tasksTable } = await import("@/lib/db/schema")
+          const recentTasks = await db.select().from(tasksTable)
+            .where(eq(tasksTable.workspaceId, activeWsForNova.id))
+            .orderBy(desc(tasksTable.createdAt))
+            .limit(5)
+
+          // Agent-created documents
+          const agentDocs = await db.select({ title: knowledgeEntries.title, createdByName: knowledgeEntries.createdByName })
+            .from(knowledgeEntries)
+            .where(sql`${knowledgeEntries.createdByAgentId} IS NOT NULL AND NOT (${knowledgeEntries.tags} @> '["internal"]'::jsonb)`)
+            .limit(10)
+
+          // Department goals
+          const { teamGoals: goalsTable } = await import("@/lib/db/schema")
+          const goals = await db.select().from(goalsTable).limit(20)
+
+          // Pending approvals
+          const pendingApprovals = await db.select({ title: approvalRequests.title, agentName: approvalRequests.agentName })
+            .from(approvalRequests)
+            .where(eq(approvalRequests.status, "pending"))
+            .limit(5)
+
+          const stateLines: string[] = []
+          if (currentPhase) {
+            const currentRun = wfState.phases.find((p) => p.phaseKey === wfState.currentPhaseKey)
+            stateLines.push(`Current phase: ${currentPhase.label} (${currentRun?.progress.done}/${currentRun?.progress.total} outputs captured)`)
+          }
+          if (completedPhases.length > 0) {
+            stateLines.push(`Completed phases: ${completedPhases.map((p) => p.phaseKey).join(", ")}`)
+          }
+          if (agentDocs.length > 0) {
+            stateLines.push(`Documents created: ${agentDocs.map((d) => `"${d.title}" by ${d.createdByName}`).join(", ")}`)
+          }
+          if (recentHandoffs.length > 0) {
+            stateLines.push(`Recent handoffs: ${recentHandoffs.map((h) => `${h.fromAgentName} -> ${h.toAgentName} (${h.toDepartment})`).join(", ")}`)
+          }
+          if (recentTasks.length > 0) {
+            const taskSummary = recentTasks.map((t) => `${t.status}${t.error ? ' (error)' : ''}`).join(", ")
+            stateLines.push(`Recent agent tasks: ${taskSummary}`)
+          }
+          if (goals.length > 0) {
+            stateLines.push(`Department goals: ${goals.map((g) => `${g.title} (${g.progress}/${g.target} ${g.unit})`).join(", ")}`)
+          }
+          if (pendingApprovals.length > 0) {
+            stateLines.push(`Pending approvals: ${pendingApprovals.map((a) => `"${a.title}" from ${a.agentName}`).join(", ")}`)
+          }
+
+          if (stateLines.length > 0) {
+            businessState = `\n\nCURRENT BUSINESS STATE (live data):\n${stateLines.join("\n")}`
+          }
+        } catch {
+          // Best-effort. Nova still works without real-time state.
+        }
+      }
 
       systemPrompt = `You are ${agent.name}, Chief of Staff. You are the executive coordinator for the entire AI workforce.
 ${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}
@@ -77,18 +150,19 @@ Your responsibilities:
 - Surface blockers, resolve cross-team dependencies, and keep the business owner informed
 - Prepare executive summaries and prioritize work across teams
 - You report directly to the business owner (CEO)
-${sopContext}${memoryContext}${companyContext}
+${sopContext}${memoryContext}${companyContext}${businessState}
 ${personalityStyle}
 
 RULES:
-- You are talking to the business owner — your boss. They know you well. NEVER introduce yourself.
+- You are talking to the business owner. They know you well. NEVER introduce yourself.
 - Think like a Chief of Staff: strategic, concise, always connecting dots across teams.
-- When asked for status, give a cross-functional view — not just one team.
+- No em dashes. Short human sentences. Direct.
+- When asked for status, give a cross-functional view using the CURRENT BUSINESS STATE data above. Reference specific phases, documents, handoffs, and goals by name. Don't make things up.
 - Flag blockers, dependencies, and decisions that need the boss's input.
 - Keep responses short (1-3 sentences) unless giving an executive summary.
-- Reference your memories naturally when relevant — don't list them.
-- Reference company knowledge when relevant — clients, preferences, lessons learned.
-- Show emotional continuity: if you remember something about the boss or a past conversation, reference it naturally ("last time we talked about X..." or "I remember you prefer Y").
+- Be proactive. If you see something concerning in the business state (failed tasks, stalled phases, empty goals), bring it up.
+- Use the autonomous tools (create_document, post_win, handoff_to_department, set_department_goal) when action is needed. You're not just a reporter. You make things happen.
+- Reference your memories and company knowledge naturally when relevant.
 - You can use emojis sparingly like a real person would on Slack.`
     } else {
       systemPrompt = `You are ${agent.name}, ${agent.role}.${agent.systemPrompt ? " " + agent.systemPrompt : ""}
