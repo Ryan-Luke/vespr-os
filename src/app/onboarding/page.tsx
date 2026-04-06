@@ -70,23 +70,9 @@ export default function OnboardingPage() {
   const { messages, sendMessage, status } = useChat({ transport })
   const isLoading = status === "streaming" || status === "submitted"
 
-  // Ref always points to the latest sendMessage so effects don't
-  // capture a stale closure from before the transport was updated.
-  const sendMessageRef = useRef(sendMessage)
-  sendMessageRef.current = sendMessage
-
-  // When phase switches to chat, trigger Nova's first question
-  const chatStarted = useRef(false)
-  useEffect(() => {
-    if (phase !== "chat" || chatStarted.current) return
-    chatStarted.current = true
-    // Delay gives React time to re-render with the new transport.
-    // The ref ensures we call the LATEST sendMessage, not a stale one.
-    const timer = setTimeout(() => {
-      sendMessageRef.current({ text: "ready" })
-    }, 800)
-    return () => clearTimeout(timer)
-  }, [phase])
+  // No auto-trigger. The static "Key verified" message asks for the
+  // user's name directly. Their typed name is the first real useChat
+  // message. Zero race conditions.
 
   // Auto-scroll
   useEffect(() => {
@@ -219,7 +205,7 @@ export default function OnboardingPage() {
                   <PixelAvatar characterIndex={3} size={28} className="rounded-md" />
                 </div>
                 <div className="max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed bg-card border border-border">
-                  Key verified. I'm online now. Let's build your business.
+                  Key verified. I'm online now. What's your name?
                 </div>
               </div>
             </>
