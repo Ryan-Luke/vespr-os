@@ -225,7 +225,7 @@ export default function OnboardingPage() {
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
-                placeholder={!pastApiKeyStep ? "Paste your Anthropic API key (sk-ant-...)" : "Type your answer..."}
+                placeholder={!pastApiKeyStep ? "Paste your Anthropic API key (sk-ant-...)" : ""}
                 disabled={isLoading}
                 className="flex-1 h-11 rounded-xl border border-border bg-card px-4 text-[13.5px] outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
               />
