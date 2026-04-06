@@ -4,7 +4,7 @@ import {
   activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules,
   automations, knowledgeEntries, workspaces, approvalRequests, agentMemories,
   companyMemories, agentTraits, agentBonds, evolutionEvents, rosterUnlocks,
-  trophyEvents, integrations,
+  trophyEvents, integrations, agentTasks, handoffEvents, workflowPhaseRuns,
 } from "@/lib/db/schema"
 
 /**
@@ -17,6 +17,9 @@ import {
  * ⚠️ Destructive. Used by onboarding POST and /api/reset.
  */
 export async function wipeBusinessData() {
+  await db.delete(handoffEvents)
+  await db.delete(agentTasks)
+  await db.delete(workflowPhaseRuns)
   await db.delete(messages)
   await db.delete(approvalRequests)
   await db.delete(approvalLog)
