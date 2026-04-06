@@ -7,7 +7,8 @@ import {
   MessageSquare,
   Users,
   BarChart3,
-  HelpCircle,
+  ClipboardList,
+  Brain,
   Sparkles,
 } from "lucide-react"
 
@@ -22,38 +23,44 @@ interface TutorialStep {
 
 const steps: TutorialStep[] = [
   {
-    title: "Welcome!",
-    description: "This is your AI command center.",
+    title: "Your team is live",
+    description: "Nova and the department leads are ready. Let me show you around — it takes about 30 seconds.",
     icon: Rocket,
     target: null,
   },
   {
-    title: "Chat",
-    description: "Chat is where you direct your team.",
+    title: "Chat — where work happens",
+    description: "This is your primary surface. Talk to any agent directly, start projects, ask for updates. Think Slack, but the other side of the message is your team actually executing.",
     icon: MessageSquare,
     target: "chat",
   },
   {
-    title: "Teams",
-    description: "Your agents work in departments.",
+    title: "Teams — your org chart",
+    description: "Each department has a lead and specialists. Click any agent to see their personality, skills, and what they're working on. You can rewire the org any time.",
     icon: Users,
     target: "teams",
   },
   {
-    title: "Dashboard",
-    description: "Track everything on your dashboard.",
+    title: "Tasks — what needs you",
+    description: "Work that's waiting on a human — approvals, decisions, inputs only you can give. Everything else your team handles in the background.",
+    icon: ClipboardList,
+    target: "tasks",
+  },
+  {
+    title: "Knowledge — company memory",
+    description: "SOPs, playbooks, and context your team writes as they learn. The longer you run this, the sharper everyone gets.",
+    icon: Brain,
+    target: "knowledge",
+  },
+  {
+    title: "Dashboard — the pulse",
+    description: "Real-time view of what your team is doing, what got done, and anything that needs attention. Full audit trail — you can always see why an agent made a call.",
     icon: BarChart3,
     target: "dashboard",
   },
   {
-    title: "Help",
-    description: "Need help? Just type /help in any channel.",
-    icon: HelpCircle,
-    target: null,
-  },
-  {
-    title: "You're all set!",
-    description: "Your team is ready.",
+    title: "You're set",
+    description: "Head to the R&D channel — Rory is waiting to walk you through your first product. Everything else will unfold from there.",
     icon: Sparkles,
     target: null,
   },

@@ -211,6 +211,8 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                       item.href === "/" ? "chat" :
                       item.href === "/teams" ? "teams" :
                       item.href === "/dashboard" ? "dashboard" :
+                      item.href === "/tasks" ? "tasks" :
+                      item.href === "/knowledge" ? "knowledge" :
                       undefined
                     }
                     className={cn(

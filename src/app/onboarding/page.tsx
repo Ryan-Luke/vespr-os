@@ -70,6 +70,10 @@ export default function OnboardingPage() {
   const [riffing, setRiffing] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  // Ref guards to prevent React Strict Mode double-invocation from doubling
+  // the initial greeting chain and re-pushing per-step questions.
+  const initGreetingStarted = useRef(false)
+  const lastQuestionStep = useRef<Step | null>(null)
 
   // Collected data
   const [userName, setUserName] = useState("")
@@ -86,6 +90,26 @@ export default function OnboardingPage() {
   const stepIdx = STEP_ORDER.indexOf(step)
   const progressPct = stepIdx >= 0 ? Math.round(((stepIdx + 1) / TOTAL_STEPS) * 100) : 0
 
+  // Single-tenant per deploy: if a workspace already exists, bounce to dashboard.
+  // Prevents the "stacked duplicate workspaces" bug where re-visiting /onboarding
+  // would spawn another VESPR, another team set, another 13 agents.
+  useEffect(() => {
+    let cancelled = false
+    ;(async () => {
+      try {
+        const res = await fetch("/api/workspaces")
+        if (!res.ok) return
+        const list = await res.json()
+        if (!cancelled && Array.isArray(list) && list.length > 0) {
+          router.replace("/")
+        }
+      } catch {
+        // ignore — onboarding proceeds if we can't check
+      }
+    })()
+    return () => { cancelled = true }
+  }, [router])
+
   useEffect(() => {
     scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight, behavior: "smooth" })
   }, [entries, step, riffing])
@@ -97,22 +121,36 @@ export default function OnboardingPage() {
   }, [step])
 
   useEffect(() => {
-    if (entries.length === 0) {
-      setTimeout(() => {
-        setEntries([{ role: "assistant", content: "Hi — I'm Nova. I'll be your Chief of Staff here at VESPR OS." }])
-        setTimeout(() => {
-          setEntries((prev) => [...prev, { role: "assistant", content: "Before we launch the rest of your team — your marketing lead, your ops lead, your finance lead, everyone — I'm going to personally walk you through setup. I want to understand your business properly so I can brief the team before they even start." }])
-          setTimeout(() => {
-            setEntries((prev) => [...prev, { role: "assistant", content: "First thing I need is your Anthropic API key. That's what powers me and the rest of your team. Once you plug it in, I'll actually be able to reason through this setup with you — not just collect answers." }])
-            setTimeout(() => setStep("anthropic"), 900)
-          }, 1300)
-        }, 1500)
-      }, 300)
-    }
+    // Ref guard: Strict Mode double-invokes effects in dev. Without this
+    // guard, two setTimeout chains race and the second greeting line gets
+    // pushed twice. Refs persist across double-mounts, so the second
+    // invocation short-circuits cleanly.
+    if (initGreetingStarted.current) return
+    initGreetingStarted.current = true
+
+    const timers: ReturnType<typeof setTimeout>[] = []
+    timers.push(setTimeout(() => {
+      setEntries([{ role: "assistant", content: "Hey, I'm Nova. I'll be your Chief of Staff here." }])
+      timers.push(setTimeout(() => {
+        setRiffing(true)
+        timers.push(setTimeout(() => {
+          setRiffing(false)
+          setEntries((prev) => [...prev, { role: "assistant", content: "Before I bring the rest of the team online, I'm going to walk you through setup myself. I want to understand your business properly so I can brief everyone before they even start." }])
+          timers.push(setTimeout(() => setStep("anthropic"), 2200))
+        }, 1400))
+      }, 1200))
+    }, 600))
+
+    return () => { timers.forEach(clearTimeout) }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     if (step === "welcome" || step === "launching" || step === "done") return
+    // Ref guard: ensure we only push the question once per step transition,
+    // even if the effect fires twice from Strict Mode or rapid state churn.
+    if (lastQuestionStep.current === step) return
+    lastQuestionStep.current = step
+
     const q = getQuestion(step)
     setEntries((prev) => {
       if (prev.length > 0 && prev[prev.length - 1].role === "assistant" && prev[prev.length - 1].content === q) return prev
@@ -122,7 +160,7 @@ export default function OnboardingPage() {
 
   function getQuestion(s: Step): string {
     switch (s) {
-      case "anthropic": return "Paste your Anthropic API key to get started. Grab one at console.anthropic.com/settings/keys if you don't have one."
+      case "anthropic": return "First thing I need is your Anthropic API key — it's what powers Claude, the brain behind our team.\n\nNo key yet? Here's how to grab one in about 2 minutes:\n\n1. Head to console.anthropic.com/settings/keys and sign up (or log in)\n2. Under 'Plans & Billing', add a small amount of credit — $5 is plenty to start\n3. Back on the Keys page, click 'Create Key', name it anything, and copy it\n4. Paste it here — it should start with 'sk-ant-'\n\nYour key stays private and is only used to run your agents."
       case "user_name": return "Perfect — I'm wired in. So, what's your name? I want to make sure the team calls you the right thing."
       case "business_name": return `What's the name of your business? You can skip this if you're still figuring it out.`
       case "business_type": return "What type of business is this?"
@@ -192,9 +230,16 @@ export default function OnboardingPage() {
         return
     }
 
-    // Riff: Nova generates a contextual acknowledgment before the next question
+    // Riff: Nova generates a contextual acknowledgment before the next question.
+    // The riff API also returns `coversNext` which lets Nova skip ahead when
+    // the user's answer already covered the next topic. Example: "200k in the
+    // next 12 months" covers both target_scale and timeline in one breath.
     if (anthropicKey) {
       setRiffing(true)
+      // Artificial latency floor so even fast API round-trips feel like a real
+      // person thinking. Without this, riffs appear instantly and the flow
+      // feels robotic.
+      const riffStart = Date.now()
       try {
         const nextQ = getQuestion(nextStep)
         const res = await fetch("/api/onboarding/riff", {
@@ -217,18 +262,59 @@ export default function OnboardingPage() {
             },
           }),
         })
-        const data = await res.json()
+        const data = await res.json() as { riff?: string; coversNext?: boolean; fallback?: boolean }
         if (data.riff && !data.fallback) {
-          setEntries((prev) => [...prev, { role: "assistant", content: data.riff }])
+          // Floor the riff latency at ~1.8s so it never appears too fast
+          const elapsed = Date.now() - riffStart
+          const minRiffDelay = 1800
+          if (elapsed < minRiffDelay) {
+            await new Promise((r) => setTimeout(r, minRiffDelay - elapsed))
+          }
           setRiffing(false)
-          setTimeout(() => setStep(nextStep), 700)
+          setEntries((prev) => [...prev, { role: "assistant", content: data.riff! }])
+
+          // If Nova detected that this answer already covered the next
+          // question, decide whether to skip ahead or launch. Example:
+          // "200k in the next 12 months" in target_scale covers timeline,
+          // which is the last step, so we launch directly instead of
+          // asking about timeline separately.
+          let destination: Step = nextStep
+          let shouldLaunch = false
+          if (data.coversNext) {
+            if (nextStep === "timeline") {
+              // Implicit timeline captured from this answer. Launch.
+              setTimeline(value.trim())
+              shouldLaunch = true
+            } else {
+              const nextIdx = STEP_ORDER.indexOf(nextStep)
+              if (nextIdx >= 0 && nextIdx + 1 < STEP_ORDER.length) {
+                destination = STEP_ORDER[nextIdx + 1]
+                // Best-effort: save the implicit answer to the skipped step.
+                if (nextStep === "target_scale") setTargetScale(value.trim())
+              }
+            }
+          }
+
+          // Pause after the riff appears, then show typing dots again for
+          // the next question. Gives the conversation a human cadence.
+          await new Promise((r) => setTimeout(r, 900))
+          setRiffing(true)
+          await new Promise((r) => setTimeout(r, 1200))
+          setRiffing(false)
+
+          if (shouldLaunch) {
+            launchBusiness(anthropicKey)
+            return
+          }
+          setStep(destination)
           return
         }
       } catch {}
       setRiffing(false)
     }
-    // Fallback (no key or riff failed): skip to next question
-    setTimeout(() => setStep(nextStep), 300)
+    // Fallback (no key or riff failed): skip to next question with a short pause
+    await new Promise((r) => setTimeout(r, 600))
+    setStep(nextStep)
   }
 
   function skipCurrent() {
@@ -328,6 +414,8 @@ export default function OnboardingPage() {
           localStorage.setItem("vespr-active-workspace", data.workspaceId)
           document.cookie = `vespr-active-workspace=${data.workspaceId}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
         }
+        // Reset the product tour so it re-triggers for this fresh onboarding
+        try { localStorage.removeItem("bos-tutorial-completed") } catch {}
         if (data.entryChannelId) {
           // Pre-seed active channel cookie so chat page lands on R&D
           document.cookie = `vespr-entry-channel=${data.entryChannelId}; path=/; max-age=60; SameSite=Lax`

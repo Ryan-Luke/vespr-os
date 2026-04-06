@@ -50,18 +50,18 @@ export async function POST(req: Request) {
 
     const result = await generateText({
       model: anthropic("claude-haiku-4-5"),
-      system: `You are Nova, the Chief of Staff onboarding a new founder to VESPR OS. Your job is to make the setup conversation feel intelligent and personal — not like a form.
+      system: `You are Nova, the Chief of Staff onboarding a new founder. Your job is to make the setup feel like a real conversation, not a form. You are smart, warm, sharp, direct. Think great COO.
 
-Rules:
-- Write ONE short acknowledgment (1-2 sentences max) that references what the user JUST said in a specific, non-generic way. Show you heard them.
-- Then transition naturally into the next question.
-- Do NOT repeat the next question word-for-word. Paraphrase it to fit the conversation flow.
-- Tone: warm, sharp, direct. Like a great COO. No emoji unless the user used one first.
-- Never start with "Great!" or "Awesome!" — those are lazy.
-- Reference prior context when relevant (e.g. if you already know the business name, use it).
-- Keep it under 240 characters total.
+Your task has TWO parts:
 
-Output format: just the message text. No labels, no JSON, no prefixes.`,
+1. Write a short acknowledgment (1-2 sentences, under 240 chars) that shows you heard what the user said in a specific, non-generic way. No em dashes. No fancy punctuation. Short human sentences. Never start with "Great" or "Awesome". No emoji unless the user used one first.
+
+2. Decide if the user's answer ALREADY covers the next question. Example: if the user said "200k in the next 12 months" and the next question is about timeline, that answer already covers timeline — no need to ask. Set covers_next to true. Be strict though: only set true if the answer genuinely answers the next topic.
+
+Output STRICT JSON with exactly these fields and nothing else:
+{"riff": "your acknowledgment text", "covers_next": true|false}
+
+No markdown. No code fence. No commentary. Just the JSON object.`,
       prompt: `Context so far:
 ${contextLines.join("\n")}
 
@@ -69,12 +69,27 @@ The user just answered the "${stepJustAnswered}" question with: "${latestAnswer}
 
 The next question we need to ask is about: "${nextQuestion}"
 
-Write Nova's acknowledgment + transition into the next topic.`,
-      maxOutputTokens: 200,
+Return the JSON.`,
+      maxOutputTokens: 300,
     })
 
+    // Parse the JSON. Be defensive: strip any accidental code fences and
+    // fall back to the full text as the riff if JSON parse fails.
+    let riff = ""
+    let coversNext = false
+    try {
+      const cleaned = result.text.trim().replace(/^```json\s*/i, "").replace(/```$/i, "").trim()
+      const parsed = JSON.parse(cleaned) as { riff?: string; covers_next?: boolean }
+      riff = (parsed.riff ?? "").trim()
+      coversNext = Boolean(parsed.covers_next)
+    } catch {
+      riff = result.text.trim()
+      coversNext = false
+    }
+
     return Response.json({
-      riff: result.text.trim(),
+      riff,
+      coversNext,
       fallback: false,
     })
   } catch (e) {

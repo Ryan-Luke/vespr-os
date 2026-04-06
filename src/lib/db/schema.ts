@@ -7,7 +7,23 @@ import {
   integer,
   real,
   jsonb,
+  unique,
 } from "drizzle-orm/pg-core"
+
+// ── Users ─────────────────────────────────────────────────
+// Per-user identity inside a single company's Business OS deploy.
+// NOT multi-tenant: all users in this table belong to the same company
+// (the company that deployed this instance). See project_deployment_model memory.
+export const users = pgTable("users", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull().unique(),
+  name: text("name").notNull(),
+  passwordHash: text("password_hash").notNull(),
+  role: text("role").notNull().default("member"), // "owner" | "admin" | "member"
+  avatarEmoji: text("avatar_emoji").default("👤"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  lastLoginAt: timestamp("last_login_at"),
+})
 
 // ── Workspaces ────────────────────────────────────────────
 export const workspaces = pgTable("workspaces", {
@@ -35,6 +51,10 @@ export const workspaces = pgTable("workspaces", {
   ownerName: text("owner_name"),
   // Anthropic API key — required for AI to operate on user's account (per PVD)
   anthropicApiKey: text("anthropic_api_key"),
+  // Current phase in the Workflow Engine state machine (BLA-63). Null until
+  // phases are initialized for this workspace. See `src/lib/workflow-engine.ts`.
+  currentPhaseKey: text("current_phase_key"),
+  phaseStartedAt: timestamp("phase_started_at"),
   isActive: boolean("is_active").notNull().default(true),
   // Public trainer profile (opt-in) — per engagement spec Phase 3
   isPublic: boolean("is_public").notNull().default(false),
@@ -318,12 +338,17 @@ export const approvalRequests = pgTable("approval_requests", {
   description: text("description").notNull(),
   reasoning: text("reasoning"), // why the agent is asking
   options: jsonb("options").$type<{ label: string; value: string }[]>(), // approve/reject/custom options
+  // actionPayload: serialized action spec that the approval executor runs
+  // when this request transitions to "approved". See src/lib/approvals/executor.ts
+  // for the discriminated union of supported action types.
+  actionPayload: jsonb("action_payload").$type<Record<string, unknown>>(),
   urgency: text("urgency").notNull().default("normal"), // "urgent" | "normal" | "low"
   status: text("status").notNull().default("pending"), // "pending" | "approved" | "rejected" | "modified"
-  response: text("response"), // user's response/modification
+  response: text("response"), // user's response/modification OR executor result (JSON stringified)
   channelId: uuid("channel_id").references(() => channels.id),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
+  executedAt: timestamp("executed_at"),
 })
 
 // ── Approval Log & Progressive Autonomy ───────────────────
@@ -371,15 +396,30 @@ export const agentFeedback = pgTable("agent_feedback", {
 })
 
 // ── Integrations ──────────────────────────────────────────
+// Credentials for external SaaS tools the user has connected. Per the
+// integrate-don't-rebuild principle, BOS never stores customer data
+// from these tools as its own records. It stores the credentials so
+// agents can call the tools through a thin adapter layer (BLA-88/89).
+//
+// The `config` field holds the encrypted credentials payload as a
+// base64 string under the `encrypted` key. Plaintext never hits this
+// table. See `src/lib/integrations/crypto.ts` for the cipher.
 export const integrations = pgTable("integrations", {
   id: uuid("id").primaryKey().defaultRandom(),
-  name: text("name").notNull(),
-  provider: text("provider").notNull(), // "gmail", "hubspot", "stripe", etc.
-  category: text("category").notNull(), // "communication", "crm", "finance", "marketing", "operations"
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  providerKey: text("provider_key"), // normalized id: "gohighlevel", "stripe", "mailchimp", etc.
+  name: text("name").notNull(),      // display name: "GoHighLevel", "Stripe", etc.
+  provider: text("provider").notNull(), // legacy field, keeping for compat
+  category: text("category").notNull(), // "crm", "email", "payments", "marketing", "delivery", "dashboards"
   status: text("status").notNull().default("disconnected"), // "connected" | "disconnected" | "error"
+  // Free-form jsonb. For integrations connected via the BLA-88 adapter,
+  // the object carries an `encrypted` base64 string with AES-256-GCM
+  // ciphertext of the credentials. Legacy demo seeds use ad-hoc keys
+  // like `workspace`, `handle`, etc.
   config: jsonb("config").$type<Record<string, unknown>>().default({}),
   connectedAt: timestamp("connected_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
 })
 
 // ── Agent Memory ──────────────────────────────────────────
@@ -418,6 +458,45 @@ export const milestones = pgTable("milestones", {
   icon: text("icon").notNull(), // emoji
   unlockedAt: timestamp("unlocked_at").defaultNow().notNull(),
 })
+
+// ── Workflow Engine ───────────────────────────────────────
+// Phased business-building state machine (BLA-63).
+// Each workspace runs through 7 phases: product → research → offer →
+// marketing → monetization → delivery → operations. Lead agents own
+// each phase, user gates sit between phases.
+// Phase definitions live in `src/lib/workflow-engine.ts` (constants,
+// not user-editable). This table only stores per-workspace progress.
+export const workflowPhaseRuns = pgTable("workflow_phase_runs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  phaseKey: text("phase_key").notNull(), // "product" | "research" | "offer" | "marketing" | "monetization" | "delivery" | "operations"
+  status: text("status").notNull().default("pending"), // "pending" | "active" | "completed" | "skipped"
+  // outputs: { [outputKey]: { status, value?, sourceId?, sourceType?, updatedAt } }
+  // outputKey matches a required key defined by the phase in workflow-engine.ts
+  // sourceType points to where the real artifact lives: "company_memory" | "knowledge_entry" | "text"
+  outputs: jsonb("outputs").$type<Record<string, {
+    status: "empty" | "provided" | "confirmed"
+    value?: string
+    sourceId?: string
+    sourceType?: "company_memory" | "knowledge_entry" | "text"
+    updatedAt?: string
+  }>>().notNull().default({}),
+  // gateDecision: user's buy-in response before advancing out of this phase
+  gateDecision: jsonb("gate_decision").$type<{
+    decision: "approved" | "needs_changes" | "skipped"
+    note?: string
+    decidedAt: string
+  } | null>(),
+  // skipContext: user's brain-dump when they skip the phase — so downstream
+  // agents inherit the info they would have gathered here
+  skipContext: text("skip_context"),
+  enteredAt: timestamp("entered_at"),
+  completedAt: timestamp("completed_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  workspacePhaseUnique: unique("workflow_phase_runs_workspace_phase_unique").on(t.workspaceId, t.phaseKey),
+}))
 
 // ── Activity Log ──────────────────────────────────────────
 export const activityLog = pgTable("activity_log", {

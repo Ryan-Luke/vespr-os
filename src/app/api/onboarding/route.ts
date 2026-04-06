@@ -1,8 +1,10 @@
 import { db } from "@/lib/db"
-import { agents, teams, channels, messages, tasks, agentSops, agentFeedback, activityLog, milestones, approvalLog, autoApprovals, decisionLog, agentSchedules, automations, knowledgeEntries, workspaces } from "@/lib/db/schema"
+import { agents, teams, channels, messages, tasks, agentSops, knowledgeEntries, workspaces } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 import { getStarterContent } from "@/lib/onboarding-starter-content"
+import { ensureWorkflowInitialized } from "@/lib/workflow-engine"
+import { seedPlaybooks } from "@/lib/seed-playbooks"
 
 interface BusinessTemplate {
   id: string
@@ -216,6 +218,18 @@ export async function POST(req: Request) {
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
 
+  // Single-tenant per deploy: refuse to create a second workspace.
+  // Re-running onboarding would stack duplicate workspaces, teams, channels,
+  // and agents on top of the existing ones. If the user wants to start over,
+  // they must hit /reset first (owner-gated, destructive).
+  const existing = await db.select({ id: workspaces.id }).from(workspaces).limit(1)
+  if (existing.length > 0) {
+    return Response.json(
+      { error: "A workspace already exists for this deploy. Use /reset to start over." },
+      { status: 409 }
+    )
+  }
+
   // Create a new workspace for this business
   const wsName = businessName?.trim() || template.name
   const slug = wsName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") + "-" + Math.random().toString(36).slice(2, 6)
@@ -259,26 +273,46 @@ export async function POST(req: Request) {
     template.teams.map((t) => ({ workspaceId: newWorkspace.id, name: t.name, icon: t.icon, description: t.description }))
   ).returning()
 
-  // Create channels: general + team-leaders + one per team
+  // Create channels. System channels (wins, watercooler, team-leaders) exist
+  // for EVERY business type. Per-team channels are created from the template.
+  // Marketing channel is always present even if the template doesn't have a
+  // Marketing team (some templates call it "Growth" instead).
+  const hasMarketingTeam = insertedTeams.some((t) =>
+    /marketing/i.test(t.name) || /growth/i.test(t.name),
+  )
   const channelValues = [
-    { name: "general", type: "system" },
     { name: "team-leaders", type: "system" },
-    ...insertedTeams.map((t) => ({ name: t.name.toLowerCase().replace(/\s+/g, "-"), type: "team", teamId: t.id })),
+    { name: "wins", type: "system" },
+    { name: "watercooler", type: "system" },
+    ...insertedTeams.map((t) => ({ name: t.name.toLowerCase().replace(/\s+/g, "-"), type: "team" as const, teamId: t.id })),
+    // Ensure a marketing channel exists even if the template's team is named
+    // differently (e.g. "Growth"). Check if one was already created from teams.
+    ...(!hasMarketingTeam ? [{ name: "marketing", type: "team" as const }] : []),
   ]
   const insertedChannels = await db.insert(channels).values(channelValues).returning()
   const teamLeadersChannel = insertedChannels.find((c) => c.name === "team-leaders")!
 
-  // Create agents
+  // Create agents. Team leads get unique pixel avatars round-robin across
+  // the available sprites so every department head is visually distinct.
+  // Nova (Chief of Staff, inserted below) reserves index 3, so leads draw
+  // from [0, 1, 2, 4, 5] and wrap if there are more leads than sprites.
+  // Non-lead agents keep their preset-assigned or random index.
+  const LEAD_SPRITE_POOL = [0, 1, 2, 4, 5]
+  let leadSpriteCursor = 0
   const allAgentValues: any[] = []
   for (const teamTemplate of template.teams) {
     const dbTeam = insertedTeams.find((t) => t.name === teamTemplate.name)!
     for (const agentTemplate of teamTemplate.agents) {
       const preset = PERSONALITY_PRESETS.find((p) => p.id === agentTemplate.personalityPresetId)
+      const isLead = agentTemplate.isTeamLead ?? false
+      const pixelAvatarIndex = isLead
+        ? LEAD_SPRITE_POOL[leadSpriteCursor++ % LEAD_SPRITE_POOL.length]
+        : (preset?.pixelAvatarIndex ?? Math.floor(Math.random() * 6))
       allAgentValues.push({
         name: agentTemplate.name,
         role: agentTemplate.role,
         avatar: agentTemplate.name.slice(0, 2).toUpperCase(),
-        pixelAvatarIndex: preset?.pixelAvatarIndex ?? Math.floor(Math.random() * 6),
+        pixelAvatarIndex,
         provider: "anthropic",
         model: "Claude Haiku",
         status: "idle",
@@ -287,7 +321,7 @@ export async function POST(req: Request) {
         skills: agentTemplate.skills,
         personalityPresetId: agentTemplate.personalityPresetId,
         personality: preset?.traits ?? { formality: 40, humor: 30, energy: 50, warmth: 60, directness: 50, confidence: 50, verbosity: 40 },
-        isTeamLead: agentTemplate.isTeamLead ?? false,
+        isTeamLead: isLead,
         autonomyLevel: "supervised",
         tasksCompleted: 0,
         costThisMonth: 0,
@@ -444,6 +478,17 @@ export async function POST(req: Request) {
       }))
     )
   }
+
+  // Workflow Engine (BLA-63): set the new workspace to Phase 1 (Product
+  // Definition). Downstream phase progress is tracked in workflow_phase_runs.
+  await ensureWorkflowInitialized(newWorkspace.id)
+
+  // Seed agent-only business playbooks into knowledge_entries. These are
+  // hidden from the user-facing Knowledge page (tagged `internal`) but
+  // available to agents via the phase-relevance lookup in the chat route.
+  // Idempotent: skips if already present. Best-effort: failure here doesn't
+  // block onboarding completion.
+  try { await seedPlaybooks() } catch { /* silent */ }
 
   return Response.json({
     success: true,

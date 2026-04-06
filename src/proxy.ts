@@ -1,9 +1,18 @@
 import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
+import { verifySessionCookie, SESSION_COOKIE_NAME } from "@/lib/auth/session"
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/t/", "/api/public/"]
+const PUBLIC_PATHS = [
+  "/login",
+  "/signup",
+  "/api/auth/login",
+  "/api/auth/signup",
+  "/api/auth/status",
+  "/t/",
+  "/api/public/",
+]
 
-export function proxy(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl
 
   // Allow public paths
@@ -11,7 +20,7 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Allow static assets and API auth routes
+  // Allow static assets
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/assets") ||
@@ -21,13 +30,14 @@ export function proxy(request: NextRequest) {
     return NextResponse.next()
   }
 
-  // Check session cookie
-  const session = request.cookies.get("bos_session")
-  if (session?.value === "authenticated") {
+  // Verify signed session cookie
+  const cookie = request.cookies.get(SESSION_COOKIE_NAME)?.value
+  const session = await verifySessionCookie(cookie)
+  if (session) {
     return NextResponse.next()
   }
 
-  // Redirect to login
+  // Not logged in — send to login (or signup if no users exist yet, handled by the login page)
   return NextResponse.redirect(new URL("/login", request.url))
 }
 

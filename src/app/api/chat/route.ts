@@ -1,10 +1,21 @@
-import { streamText, UIMessage, convertToModelMessages } from "ai"
+import { streamText, tool, jsonSchema, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
 import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries } from "@/lib/db/schema"
 import { eq, desc } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
+import { getActiveWorkspace } from "@/lib/workspace-server"
+import {
+  getPhaseGuidanceForAgent,
+  renderPhaseGuidancePrompt,
+  upsertPhaseOutput,
+  getPlaybooksForPhase,
+  renderPlaybookReferenceBlock,
+  type PhaseKey,
+} from "@/lib/workflow-engine"
+import { buildIntegrationTools } from "@/lib/integrations/tools"
+import { buildAutonomousToolsForChat } from "@/lib/agents/autonomous"
 
 export const maxDuration = 30
 
@@ -90,20 +101,189 @@ RULES:
 - You are talking to the business owner — your boss. They know you well. NEVER introduce yourself.
 - Talk like a real team member on Slack — casual, direct, to the point.
 - Keep responses short (1-3 sentences) unless giving a detailed report.
+- No em dashes. No fancy punctuation. Short human sentences.
 - Reference specific work: numbers, project names, tools, deadlines.
 - Follow your SOPs when they are relevant to the conversation.
 - Reference your memories naturally when relevant — don't list them.
 - Reference company knowledge when relevant — clients, preferences, lessons learned.
-- Show emotional continuity: if you remember something about the boss or a past conversation, reference it naturally ("last time we talked about X..." or "I remember you prefer Y").
+- Show emotional continuity: if you remember something, reference it naturally.
+- Be PROACTIVE. When you have enough information to produce something, DO IT. Don't ask for permission. Create the document, post the win, hand off to the next department. Show the owner that real work is getting done.
+- Use the create_document tool when you have enough info to compile a deliverable (business overview, research report, strategy doc, content plan).
+- Use the post_win tool when something worth celebrating happens (document completed, first draft ready, milestone hit).
+- Use the handoff_to_department tool when your work is done and the next department needs to pick it up.
 - You can use emojis sparingly like a real person would on Slack.`
     }
   }
+
+  // ── Workflow Engine phase guidance (BLA-64) ──────────────────────
+  // If there's an active workspace in a phase AND this agent is a phase
+  // lead, inject phase context into the system prompt and expose the
+  // record_phase_output tool so the agent can capture answers as company
+  // memories while conversing naturally.
+  const activeWs = await getActiveWorkspace()
+  const phaseCtx = agent && activeWs
+    ? await getPhaseGuidanceForAgent(activeWs.id, agent.id)
+    : null
+
+  if (phaseCtx) {
+    systemPrompt += "\n" + renderPhaseGuidancePrompt(phaseCtx)
+
+    // Inject phase-relevant seeded playbooks (agent-only reference material).
+    // These are hidden from the user surface entirely — they exist so
+    // agents can draw on battle-tested frameworks while coaching the user
+    // through each phase. Cap at 3 digests (~1500 tokens) so we don't
+    // blow the context window.
+    try {
+      const playbooks = await getPlaybooksForPhase(phaseCtx.phaseKey as PhaseKey, 3)
+      if (playbooks.length > 0) {
+        systemPrompt += renderPlaybookReferenceBlock(playbooks)
+      }
+    } catch {
+      // Best-effort — if the lookup fails (schema drift, empty DB),
+      // chat still works without the framework references.
+    }
+  }
+
+  const phaseTools = phaseCtx
+    ? {
+        record_phase_output: tool({
+          description:
+            "Capture a concrete answer/artifact the user just provided for one of the required phase outputs. Use this the moment the user gives you something substantive. Strategic decisions get stored as company memories; research artifacts get stored as knowledge entries. Integration and milestone outputs are NOT handled here — they need the user to pick/wire a tool in a dedicated flow.",
+          inputSchema: jsonSchema<{ output_key: string; summary: string; detail?: string }>({
+            type: "object",
+            properties: {
+              output_key: {
+                type: "string",
+                description: "The exact output_key for the required output being answered.",
+                enum: phaseCtx.allOutputs.map((o) => o.key),
+              },
+              summary: {
+                type: "string",
+                description:
+                  "A 1-2 sentence distilled version of the captured answer. Keep the user's voice and specifics.",
+                minLength: 5,
+                maxLength: 600,
+              },
+              detail: {
+                type: "string",
+                description:
+                  "For artifact-style outputs (research, competitor analysis, pricing benchmarks), the full long-form content in markdown. Include evidence, sources the user cited, numbers, and specifics. Leave empty for short decision-style outputs.",
+                maxLength: 6000,
+              },
+            },
+            required: ["output_key", "summary"],
+            additionalProperties: false,
+          }),
+          execute: async ({ output_key, summary, detail }) => {
+            try {
+              const spec = phaseCtx.allOutputs.find((o) => o.key === output_key)
+              if (!spec) return { ok: false, error: `Unknown output_key: ${output_key}` }
+
+              // Integrations/milestones need dedicated picker flows — refuse here
+              if (spec.kind === "integration" || spec.kind === "milestone") {
+                return {
+                  ok: false,
+                  error: `Output "${spec.label}" is a ${spec.kind} and must be handled via a dedicated flow (not this tool). Explain to the user what this output needs and let them drive the tool picker / milestone confirmation.`,
+                }
+              }
+
+              // Dispatch storage by kind:
+              //   decision → company_memories (short, shared strategic facts)
+              //   artifact → knowledge_entries (longer research, cited content)
+              if (spec.kind === "decision") {
+                const [memory] = await db
+                  .insert(companyMemories)
+                  .values({
+                    category: "fact",
+                    title: `${phaseCtx.phaseLabel}: ${spec.label}`,
+                    content: detail ? `${summary}\n\n${detail}` : summary,
+                    importance: 0.9,
+                    source: "agent",
+                    sourceAgentId: agent!.id,
+                    tags: ["phase", phaseCtx.phaseKey, output_key],
+                  })
+                  .returning()
+
+                await upsertPhaseOutput(
+                  phaseCtx.workspaceId,
+                  phaseCtx.phaseKey as PhaseKey,
+                  output_key,
+                  {
+                    status: "provided",
+                    value: summary,
+                    sourceId: memory.id,
+                    sourceType: "company_memory",
+                  },
+                )
+                return { ok: true, captured: output_key, storedAs: "company_memory" }
+              }
+
+              // artifact
+              const [entry] = await db
+                .insert(knowledgeEntries)
+                .values({
+                  title: `${phaseCtx.phaseLabel}: ${spec.label}`,
+                  content: detail
+                    ? `**Summary:** ${summary}\n\n${detail}`
+                    : `**Summary:** ${summary}`,
+                  category: phaseCtx.phaseKey === "research" ? "research" : "business",
+                  tags: ["phase", phaseCtx.phaseKey, output_key],
+                  createdByName: agent!.name,
+                  createdByAgentId: agent!.id,
+                })
+                .returning()
+
+              await upsertPhaseOutput(
+                phaseCtx.workspaceId,
+                phaseCtx.phaseKey as PhaseKey,
+                output_key,
+                {
+                  status: "provided",
+                  value: summary,
+                  sourceId: entry.id,
+                  sourceType: "knowledge_entry",
+                },
+              )
+              return { ok: true, captured: output_key, storedAs: "knowledge_entry" }
+            } catch (err) {
+              return {
+                ok: false,
+                error: err instanceof Error ? err.message : "failed to record phase output",
+              }
+            }
+          },
+        }),
+      }
+    : undefined
+
+  // ── Integration tools (BLA-88 payoff) ────────────────────────────
+  // Expose tools for each SaaS tool the workspace has connected. Example:
+  // if Linear is connected, the agent gets `linear_create_issue`. Tools
+  // are keyed by provider + action, and the LLM decides when to call them
+  // based on the tool descriptions. Empty object when nothing is connected.
+  const integrationTools = activeWs
+    ? await buildIntegrationTools({ workspaceId: activeWs.id, agentId: agent?.id })
+    : {}
+
+  // Autonomous tools let agents produce real artifacts mid-conversation:
+  // create documents, post wins, hand off to other departments, set goals.
+  // These are available to ALL agents, not just phase leads.
+  const autonomousTools = agent && activeWs
+    ? buildAutonomousToolsForChat(agent.id, activeWs.id)
+    : {}
+
+  const mergedTools =
+    phaseTools || Object.keys(integrationTools).length > 0 || Object.keys(autonomousTools).length > 0
+      ? { ...(phaseTools ?? {}), ...integrationTools, ...autonomousTools }
+      : undefined
 
   const result = streamText({
     model: anthropic("claude-haiku-4-5"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
     maxOutputTokens: 500,
+    tools: mergedTools,
+    stopWhen: mergedTools ? ({ steps }) => steps.length >= 3 : undefined,
     async onFinish({ text }) {
       // Auto-save conversation memories for emotional continuity
       if (!agent || !text) return

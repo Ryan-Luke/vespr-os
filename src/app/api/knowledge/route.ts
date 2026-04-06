@@ -1,12 +1,18 @@
 import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { knowledgeEntries } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, sql } from "drizzle-orm"
+
+// Entries tagged with `internal` are agent-only reference material (seeded
+// business-building playbooks). They must NOT appear in the user-facing
+// Knowledge page — agents can still query them directly for context.
+const USER_VISIBLE = sql`NOT (${knowledgeEntries.tags} @> '["internal"]'::jsonb)`
 
 export async function GET() {
   const entries = await db
     .select()
     .from(knowledgeEntries)
+    .where(USER_VISIBLE)
     .orderBy(knowledgeEntries.updatedAt)
   return NextResponse.json(entries)
 }

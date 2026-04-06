@@ -1,23 +1,43 @@
 import { cookies } from "next/headers"
-
-const AUTH_PASSWORD = process.env.AUTH_PASSWORD || "businessos2026"
-const SESSION_COOKIE = "bos_session"
-const SESSION_TOKEN = "authenticated"
+import { db } from "@/lib/db"
+import { users } from "@/lib/db/schema"
+import { eq } from "drizzle-orm"
+import { verifyPassword } from "@/lib/auth/password"
+import { createSessionCookie, SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/lib/auth/session"
 
 export async function POST(req: Request) {
-  const { password } = await req.json() as { password: string }
+  const body = (await req.json().catch(() => ({}))) as { email?: string; password?: string }
+  const email = body.email?.trim().toLowerCase()
+  const password = body.password
 
-  if (password === AUTH_PASSWORD) {
-    const cookieStore = await cookies()
-    cookieStore.set(SESSION_COOKIE, SESSION_TOKEN, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "lax",
-      path: "/",
-      maxAge: 60 * 60 * 24 * 30, // 30 days
-    })
-    return Response.json({ ok: true })
+  if (!email || !password) {
+    return Response.json({ error: "Email and password are required" }, { status: 400 })
   }
 
-  return Response.json({ error: "Invalid password" }, { status: 401 })
+  const [user] = await db.select().from(users).where(eq(users.email, email)).limit(1)
+  if (!user) {
+    return Response.json({ error: "Invalid email or password" }, { status: 401 })
+  }
+
+  const ok = await verifyPassword(password, user.passwordHash)
+  if (!ok) {
+    return Response.json({ error: "Invalid email or password" }, { status: 401 })
+  }
+
+  await db.update(users).set({ lastLoginAt: new Date() }).where(eq(users.id, user.id))
+
+  const cookie = await createSessionCookie(user.id, user.role)
+  const jar = await cookies()
+  jar.set(SESSION_COOKIE_NAME, cookie, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "lax",
+    path: "/",
+    maxAge: SESSION_MAX_AGE,
+  })
+
+  return Response.json({
+    ok: true,
+    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+  })
 }

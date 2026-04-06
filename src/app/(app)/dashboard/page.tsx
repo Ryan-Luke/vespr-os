@@ -22,6 +22,7 @@ import { ROICalculator } from "@/components/roi-calculator"
 import { WeeklyReportButton } from "@/components/weekly-report"
 import { DailyDigestButton } from "@/components/daily-digest"
 import { UtilizationHeatmap } from "@/components/utilization-heatmap"
+import { WorkflowPhaseWidget } from "@/components/workflow-phase-widget"
 
 export const dynamic = "force-dynamic"
 
@@ -72,6 +73,7 @@ export default async function DashboardPage() {
           </div>
         </div>
         <ActivityTicker />
+        <WorkflowPhaseWidget />
         <MorningCheckin />
         <OvernightSummary />
         <div className="grid gap-3 md:grid-cols-2">
