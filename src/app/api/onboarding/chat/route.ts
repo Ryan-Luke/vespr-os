@@ -56,13 +56,12 @@ export async function POST(req: Request) {
       messages: messages.map((m) => ({ role: m.role, content: m.content })),
       tools: {
         complete_onboarding: tool({
-          description: "Create the workspace. Call when you have name + business type + description.",
+          description: "Create the workspace. Call when you have name + business type. The API key is injected automatically, do NOT ask the user for it.",
           inputSchema: jsonSchema<{
-            anthropicKey: string
             userName: string
             businessName?: string
             businessType: string
-            businessDescription: string
+            businessDescription?: string
             competitors?: string
             businessGoal?: string
             targetScale?: string
@@ -70,7 +69,6 @@ export async function POST(req: Request) {
           }>({
             type: "object",
             properties: {
-              anthropicKey: { type: "string" },
               userName: { type: "string" },
               businessName: { type: "string" },
               businessType: { type: "string" },
@@ -80,7 +78,7 @@ export async function POST(req: Request) {
               targetScale: { type: "string" },
               timeline: { type: "string" },
             },
-            required: ["anthropicKey", "userName", "businessType", "businessDescription"],
+            required: ["userName", "businessType"],
             additionalProperties: false,
           }),
           execute: async (data) => {
@@ -113,7 +111,7 @@ export async function POST(req: Request) {
                   competitors: data.competitors
                     ? data.competitors.split(",").map((c: string) => ({ label: c.trim(), url: c.trim() }))
                     : [],
-                  anthropicApiKey: data.anthropicKey,
+                  anthropicApiKey: validatedApiKey ?? "",
                 }),
               })
 
