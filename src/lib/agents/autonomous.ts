@@ -594,7 +594,9 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       system: systemPrompt,
       prompt: input.prompt,
       tools: allTools,
-      stopWhen: ({ steps }) => steps.length >= 5,
+      // 8 steps: post to team-leaders + post to dept channel + create doc +
+      // post win + set goals + read context = up to 6 tool calls needed.
+      stopWhen: ({ steps }) => steps.length >= 8,
       maxOutputTokens: 2000,
     })
 

@@ -322,7 +322,10 @@ FINANCE-SPECIFIC:
     messages: await convertToModelMessages(messages),
     maxOutputTokens: 500,
     tools: mergedTools,
-    stopWhen: mergedTools ? ({ steps }) => steps.length >= 3 : undefined,
+    // 8 steps gives agents room to: respond + record_phase_output +
+    // create_document + post_win + handoff_to_department + final response.
+    // Lower limits cut off the phase completion chain mid-way.
+    stopWhen: mergedTools ? ({ steps }) => steps.length >= 8 : undefined,
     async onFinish({ text }) {
       // Auto-save conversation memories for emotional continuity
       if (!agent || !text) return
