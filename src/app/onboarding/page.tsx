@@ -14,6 +14,7 @@ const BUSINESS_TYPES = [
   { id: "consulting", label: "Coaching / Consulting", icon: "🎓", description: "Coaching programs, advisory, or consulting" },
   { id: "content", label: "Info Product / Course", icon: "📚", description: "Online courses, digital products, memberships" },
   { id: "brick_and_mortar", label: "Brick & Mortar", icon: "🏪", description: "Physical location business" },
+  { id: "other", label: "Other", icon: "✨", description: "Something else entirely" },
 ]
 import { cn } from "@/lib/utils"
 import { PixelAvatar } from "@/components/pixel-avatar"
