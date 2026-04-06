@@ -19,7 +19,8 @@ Collect in this order:
 3. What the business does (if they say "not sure yet" or skip, accept it and move on)
 4. Business name (skippable, say "totally fine" if they skip)
 5. Competitors (skippable. UI shows input for Instagram handles or websites.)
-6. Goal and where they want to take it (can combine: "Where do you want to take this and by when?")
+6. Revenue or growth goal. Ask something specific like "What revenue are you targeting?" or "What does success look like in the next 12 months? Give me a number." Push for a concrete number, not a vague answer.
+7. Timeline to hit that goal. Ask separately: "By when?"
 
 Accept "skip", "not sure yet", "none", "pass" for any item. Move on immediately. Don't push.
 
