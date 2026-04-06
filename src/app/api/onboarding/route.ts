@@ -186,6 +186,8 @@ const TEMPLATES: BusinessTemplate[] = [
   },
 ]
 
+export const maxDuration = 60
+
 export async function GET() {
   return Response.json({ templates: TEMPLATES.map(({ id, name, description, icon, teams }) => ({
     id, name, description, icon,
