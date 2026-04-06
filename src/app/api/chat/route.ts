@@ -16,6 +16,7 @@ import {
 } from "@/lib/workflow-engine"
 import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildAutonomousToolsForChat } from "@/lib/agents/autonomous"
+import { buildWebTools } from "@/lib/agents/web-tools"
 
 export const maxDuration = 30
 
@@ -385,9 +386,12 @@ FINANCE-SPECIFIC:
     ? buildAutonomousToolsForChat(agent.id, activeWs.id)
     : {}
 
+  // Web tools let agents search the web and fetch URLs for research.
+  const webTools = buildWebTools()
+
   const mergedTools =
     phaseTools || Object.keys(integrationTools).length > 0 || Object.keys(autonomousTools).length > 0
-      ? { ...(phaseTools ?? {}), ...integrationTools, ...autonomousTools }
+      ? { ...(phaseTools ?? {}), ...integrationTools, ...autonomousTools, ...webTools }
       : undefined
 
   const result = streamText({

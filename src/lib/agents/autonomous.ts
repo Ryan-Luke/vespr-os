@@ -22,6 +22,7 @@ import { eq, desc, ilike, or, and } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { buildIntegrationTools } from "@/lib/integrations/tools"
+import { buildWebTools } from "@/lib/agents/web-tools"
 
 // ── Department-specific handoff prompts ───────────────────────────────
 // When one department hands off to another, the receiving agent needs
@@ -635,8 +636,9 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       workspaceId: input.workspaceId,
       agentId: input.agentId,
     })
+    const webTools = buildWebTools()
 
-    const allTools = { ...autonomousTools, ...integrationTools }
+    const allTools = { ...autonomousTools, ...integrationTools, ...webTools }
 
     const result = await generateText({
       model: anthropic("claude-haiku-4-5"),
