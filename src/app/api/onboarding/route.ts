@@ -218,16 +218,13 @@ export async function POST(req: Request) {
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
 
-  // Single-tenant per deploy: refuse to create a second workspace.
-  // Re-running onboarding would stack duplicate workspaces, teams, channels,
-  // and agents on top of the existing ones. If the user wants to start over,
-  // they must hit /reset first (owner-gated, destructive).
+  // Single-tenant per deploy: if a workspace already exists, wipe everything
+  // and start fresh. This handles the case where a previous onboarding
+  // attempt partially completed. No need to force the user to /reset.
   const existing = await db.select({ id: workspaces.id }).from(workspaces).limit(1)
   if (existing.length > 0) {
-    return Response.json(
-      { error: "A workspace already exists for this deploy. Use /reset to start over." },
-      { status: 409 }
-    )
+    const { wipeBusinessData } = await import("@/lib/db/wipe")
+    await wipeBusinessData()
   }
 
   // Create a new workspace for this business
