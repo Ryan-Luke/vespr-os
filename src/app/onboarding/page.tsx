@@ -44,12 +44,8 @@ export default function OnboardingPage() {
   const [sending, setSending] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState(false)
 
-  // Redirect if workspace exists
-  useEffect(() => {
-    fetch("/api/workspaces").then(r => r.json()).then(list => {
-      if (Array.isArray(list) && list.length > 0) router.replace("/")
-    }).catch(() => {})
-  }, [router])
+  // No redirect. If user is at /onboarding, they want to onboard.
+  // The API handles existing workspaces by wiping and recreating.
 
   // Auto-scroll
   useEffect(() => {
@@ -131,9 +127,18 @@ export default function OnboardingPage() {
     }
   }
 
-  // Check if Nova just asked about business type
+  // Detect what Nova is asking about to show the right UI helpers
   const lastAssistant = [...chatMessages].reverse().find(m => m.role === "assistant")
-  const showBusinessTypeCards = lastAssistant?.content.toLowerCase().includes("type of business")
+  const lastText = lastAssistant?.content.toLowerCase() ?? ""
+  const showBusinessTypeCards = lastText.includes("type of business")
+  const showSkipButton = (
+    lastText.includes("business name") ||
+    lastText.includes("what does") && lastText.includes("do") ||
+    lastText.includes("business do") ||
+    lastText.includes("competitor") ||
+    lastText.includes("competition")
+  ) && !sending
+  const showCompetitorInput = (lastText.includes("competitor") || lastText.includes("competition")) && !sending
 
   return (
     <div className="h-dvh flex flex-col bg-background overflow-hidden">
@@ -176,7 +181,7 @@ export default function OnboardingPage() {
               <div className="flex items-end gap-2 justify-start">
                 <div className="shrink-0 w-7"><PixelAvatar characterIndex={3} size={28} className="rounded-md" /></div>
                 <div className="max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed bg-card border border-border">
-                  Key verified. I'm online now. What's your name?
+                  Connected! I'm online now. Here's how this works: we'll go through a quick onboarding together. I'll ask a few questions about you and your business. Then I'll introduce you to your team, starting with your Head of R&D who will help you build and validate your offer. The whole thing takes about 2 minutes. Let's go. What's your name?
                 </div>
               </div>
             </>
@@ -210,6 +215,25 @@ export default function OnboardingPage() {
                   </div>
                 </button>
               ))}
+            </div>
+          )}
+
+          {/* Competitor input helpers */}
+          {showCompetitorInput && (
+            <div className="space-y-2 pt-1">
+              <p className="text-[11px] text-muted-foreground/60 ml-9">Drop an Instagram handle, website, or brand name. Or skip if you're not sure.</p>
+            </div>
+          )}
+
+          {/* Skip button for optional questions */}
+          {showSkipButton && !showBusinessTypeCards && (
+            <div className="ml-9 pt-1">
+              <button
+                onClick={() => handleChatSubmit("I'm not sure yet")}
+                className="h-8 px-4 rounded-lg border border-border bg-card text-[12px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors"
+              >
+                I'm not sure yet
+              </button>
             </div>
           )}
 
