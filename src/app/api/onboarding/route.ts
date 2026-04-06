@@ -406,44 +406,43 @@ export async function POST(req: Request) {
   if (competitors && competitors.length > 0) ctx.push(`Competitors they're watching: ${competitors.map((c) => c.label).join(", ")}`)
   const ctxLine = ctx.length > 0 ? `\n\nHere's what I know so far:\n${ctx.map((c) => `• ${c}`).join("\n")}` : ""
 
+  // Only seed messages in team-leaders and R&D channel. All other
+  // channels start empty. The user sees Nova directing R&D in
+  // team-leaders, then gets a notification from R&D channel. Clean
+  // first experience with a clear breadcrumb to follow.
+
   const welcomeMessages: any[] = []
 
-  // 1. R&D lead reaches out DIRECTLY in R&D channel — the entry point
+  // 1. Nova announces in #team-leaders that R&D is starting
+  welcomeMessages.push({
+    channelId: teamLeadersChannel.id,
+    senderAgentId: chiefOfStaff.id,
+    senderName: chiefOfStaff.name,
+    senderAvatar: chiefOfStaff.avatar,
+    content: `${rndLead ? `@${rndLead.name}` : "R&D"}, ${addressName} just launched **${bName}**. I need you to run product discovery. Head to your channel and walk them through defining the offer. Everyone else, stand by.`,
+    messageType: "text",
+  })
+
+  // 2. R&D lead responds in #team-leaders (so user sees the handoff)
+  if (rndLead) {
+    welcomeMessages.push({
+      channelId: teamLeadersChannel.id,
+      senderAgentId: rndLead.id,
+      senderName: rndLead.name,
+      senderAvatar: rndLead.avatar,
+      content: `On it. Heading to #${rndChannel?.name ?? "r&d"} now to get started with ${addressName}.`,
+      messageType: "text",
+    })
+  }
+
+  // 3. R&D lead reaches out in the R&D channel (creates the notification)
   if (rndLead && rndChannel) {
     welcomeMessages.push({
       channelId: rndChannel.id,
       senderAgentId: rndLead.id,
       senderName: rndLead.name,
       senderAvatar: rndLead.avatar,
-      content: `Hey ${addressName} 👋 I'm ${rndLead.name}, your Head of R&D. Welcome to ${bName} — excited to build this with you.${ctxLine}\n\nI'm going to walk you through defining your first product. We'll answer four questions together:\n\n1. **Who are we selling to?** Your ideal customer\n2. **What problem do we solve?**\n3. **What's the offer?**\n4. **What's the price point?**\n\nOnce we have clarity on this, I'll loop in Marketing, Ops, and Finance to build out the rest of the plan. Reply when you're ready and we'll dig in.`,
-      messageType: "text",
-    })
-  }
-
-  // 2. Nova announces in #team-leaders that R&D is engaging user first
-  welcomeMessages.push({
-    channelId: teamLeadersChannel.id,
-    senderAgentId: chiefOfStaff.id,
-    senderName: chiefOfStaff.name,
-    senderAvatar: chiefOfStaff.avatar,
-    content: `Team — ${addressName} just launched **${bName}**. ${rndLead ? `@${rndLead.name} is running the initial product discovery in #${rndChannel?.name}.` : "We're getting set up."} Everyone else, stand by — I'll coordinate handoffs as R&D wraps up the offer definition. Let's make this count.`,
-    messageType: "text",
-  })
-
-  // 3. Each other dept lead posts a brief intro in their OWN channel
-  //    Per PVD: each lead reaches out directly to user in their channel
-  for (const lead of teamLeads) {
-    if (lead.id === rndLead?.id) continue
-    const team = insertedTeams.find((t) => t.id === lead.teamId)
-    const deptChannel = insertedChannels.find((c) => c.teamId === team?.id)
-    if (!deptChannel || !team) continue
-
-    welcomeMessages.push({
-      channelId: deptChannel.id,
-      senderAgentId: lead.id,
-      senderName: lead.name,
-      senderAvatar: lead.avatar,
-      content: `Hey ${addressName} 👋 I'm ${lead.name}, your ${lead.role}. Welcome to ${bName}.\n\n${rndLead ? `I'm standing by — ${rndLead.name} is walking you through the product discovery first. Once we have the offer locked in, I'll reach out here with a plan for ${team.name.toLowerCase()}.` : `I'll reach out here once we're ready to activate ${team.name.toLowerCase()}.`}`,
+      content: `Hey ${addressName}, ${rndLead.name} here. Your Head of R&D.${ctxLine}\n\nI'm going to help you define and validate your offer. We'll work through four things together:\n\n1. Who are we selling to?\n2. What problem do we solve?\n3. What's the offer?\n4. What's the price point?\n\nOnce we nail this, I'll hand it off to Marketing to build the go-to-market. Ready when you are.`,
       messageType: "text",
     })
   }
