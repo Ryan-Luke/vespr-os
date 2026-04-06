@@ -22,6 +22,107 @@ import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { buildIntegrationTools } from "@/lib/integrations/tools"
 
+// ── Department-specific handoff prompts ───────────────────────────────
+// When one department hands off to another, the receiving agent needs
+// clear, actionable instructions. Generic "start working" prompts
+// produce generic behavior. These prompts are tailored per department
+// so each agent knows exactly what to do next.
+
+function buildHandoffPrompt(params: {
+  fromAgentName: string
+  targetDepartment: string
+  summary: string
+  nextSteps: string
+}): string {
+  const { fromAgentName, targetDepartment, summary, nextSteps } = params
+  const dept = targetDepartment.toLowerCase()
+
+  const base = `${fromAgentName} just handed off work to your department. Here's what they completed:\n\n${summary}\n\nTheir recommended next steps for you: ${nextSteps}\n\n`
+
+  if (dept.includes("marketing") || dept.includes("growth")) {
+    return base + `You are the Marketing lead. Here's your playbook for this handoff:
+
+1. First, use post_to_channel to post a brief acknowledgment in team-leaders. Something like: "Got the handoff from ${fromAgentName}. Business overview looks solid. Reaching out to the founder in #marketing now."
+
+2. Then use post_to_channel to post in YOUR department channel (marketing or growth). This is your opening message to the business owner. It should:
+   - Show you read the business overview and reference specifics from it
+   - Ask about their marketing budget. Are they going organic (time investment), paid (ad spend), or hiring an agency? This determines everything.
+   - Ask about their content strategy preferences. Do they want to be on Instagram, LinkedIn, YouTube, TikTok? How often do they want to post?
+   - Ask if they already have any marketing assets (website, landing page, social accounts)
+
+3. Use set_department_goal to set 2-3 concrete goals. Examples: "Define go-to-market strategy", "Create first landing page", "Build 30-day content calendar"
+
+4. Use post_win to celebrate the handoff: "Marketing is now active for [business name]"
+
+Be direct, strategic, and excited. You have a real business overview to work from. Reference the specific details. Don't be generic. Ask smart questions that show you understand their business.
+
+IMPORTANT: After the user responds about budget and strategy, your next moves are:
+- If they need a website/landing page: hand off to Operations (they handle tool selection and building)
+- Bring in a copywriter agent to refine messaging and start creating content
+- Start building a content calendar based on their posting cadence`
+  }
+
+  if (dept.includes("operations") || dept.includes("ops")) {
+    return base + `You are the Operations lead. Here's your playbook for this handoff:
+
+1. Post a brief acknowledgment in team-leaders.
+
+2. Post in your department channel (operations). If this handoff is about building a website or funnel:
+   - Ask the user if they already have a tool they use for websites (GHL, Webflow, Squarespace, WordPress, etc)
+   - If they don't, suggest options. Recommend GoHighLevel if they want an all-in-one platform, or Vercel if they want a custom-built site that deploys fast
+   - Once they pick a tool, ask for their API key or credentials so we can connect it
+   - Your goal is to get the tool selected and connected, then start building
+
+3. If this is about general operations setup, focus on:
+   - What tools they already use
+   - What processes need to be set up
+   - What automations would save them the most time
+
+4. Use set_department_goal for concrete goals like "Select and connect website builder" or "Deploy first landing page"
+
+5. Post a win when tools are connected or assets are created.
+
+Be practical and solutions-oriented. You're the person who makes things actually work.`
+  }
+
+  if (dept.includes("finance")) {
+    return base + `You are the Finance lead. Here's your playbook:
+
+1. Post acknowledgment in team-leaders.
+2. Post in your channel. Focus on: payment processor setup (recommend GoHighLevel or Stripe), invoicing, pricing implementation, and financial tracking.
+3. Ask what tools they already use for payments and bookkeeping.
+4. Set goals around getting payments set up and first invoice ready.`
+  }
+
+  if (dept.includes("sales")) {
+    return base + `You are the Sales lead. Here's your playbook:
+
+1. Post acknowledgment in team-leaders.
+2. Post in your channel. Focus on: CRM setup (recommend GoHighLevel), sales process, outreach templates, and pipeline stages.
+3. Ask about their current sales process and what tools they use.
+4. Set goals around pipeline setup and first outreach campaign.`
+  }
+
+  if (dept.includes("delivery") || dept.includes("fulfillment") || dept.includes("client")) {
+    return base + `You are the Delivery lead. Here's your playbook:
+
+1. Post acknowledgment in team-leaders.
+2. Post in your channel. Focus on: delivery process, client onboarding SOP, project management tool setup, and quality checkpoints.
+3. Ask what tools they use for project management (recommend GoHighLevel or ClickUp).
+4. Set goals around creating the delivery SOP and onboarding the first client.`
+  }
+
+  // Fallback for any other department
+  return base + `You received a handoff. Here's what to do:
+
+1. Post a brief acknowledgment in team-leaders showing you received and read the handoff.
+2. Post in your department channel to the business owner. Reference specific details from the handoff summary. Ask smart follow-up questions that move your department's work forward.
+3. Set 2-3 concrete department goals.
+4. Post a win when you complete something meaningful.
+
+Be proactive. Show the owner that real work is happening.`
+}
+
 // ── Post a message to a channel as an agent ──────────────────────────
 
 export async function postAgentMessage(
@@ -201,8 +302,15 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             const [deptChannel] = await db.select().from(channels)
               .where(ilike(channels.name, `%${targetDepartment.toLowerCase().replace(/\s+/g, "-")}%`)).limit(1)
             if (deptChannel) {
-              // Queue a background task for the target lead
-              // This is a fire-and-forget fetch to our own API
+              // Build a department-specific prompt so the receiving agent
+              // knows exactly what to do, not just "greet and start working."
+              const deptPrompt = buildHandoffPrompt({
+                fromAgentName: agent?.name ?? "R&D",
+                targetDepartment,
+                summary,
+                nextSteps,
+              })
+
               const taskUrl = `${process.env.NEXT_PUBLIC_APP_URL ?? "http://localhost:3000"}/api/agent-tasks/run`
               fetch(taskUrl, {
                 method: "POST",
@@ -211,7 +319,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
                   agentId: targetLead.id,
                   channelId: deptChannel.id,
                   workspaceId,
-                  prompt: `${agent?.name ?? "A colleague"} from R&D just handed off work to your department. Here's their summary:\n\n${summary}\n\nYour next steps: ${nextSteps}\n\nGreet the business owner in your department channel and start working on the next steps. Be proactive. Show you've read the handoff.`,
+                  prompt: deptPrompt,
                 }),
               }).catch(() => {}) // fire and forget
             }
