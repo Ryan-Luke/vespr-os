@@ -23,6 +23,7 @@ import { WeeklyReportButton } from "@/components/weekly-report"
 import { DailyDigestButton } from "@/components/daily-digest"
 import { UtilizationHeatmap } from "@/components/utilization-heatmap"
 import { WorkflowPhaseWidget } from "@/components/workflow-phase-widget"
+import { GettingStarted } from "@/components/getting-started"
 
 export const dynamic = "force-dynamic"
 
@@ -72,6 +73,7 @@ export default async function DashboardPage() {
             <WeeklyReportButton />
           </div>
         </div>
+        <GettingStarted />
         <ActivityTicker />
         <WorkflowPhaseWidget />
         <MorningCheckin />
