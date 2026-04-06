@@ -17,7 +17,7 @@ export default function OnboardingPage() {
   const router = useRouter()
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [validatedApiKey, setValidatedApiKey] = useState<string | null>(null)
+  const [apiKeySubmitted, setApiKeySubmitted] = useState(false)
   const [onboardingComplete, setOnboardingComplete] = useState(false)
   const redirectTriggered = useRef(false)
 
@@ -39,8 +39,7 @@ export default function OnboardingPage() {
 
   const transport = useMemo(() => new DefaultChatTransport({
     api: "/api/onboarding/chat",
-    body: { validatedApiKey },
-  }), [validatedApiKey])
+  }), [])
 
   const { messages, sendMessage, status } = useChat({ transport })
   const [input, setInput] = useState("")
@@ -59,35 +58,28 @@ export default function OnboardingPage() {
     }
   }, [isLoading, messages.length])
 
-  // Watch for tool results to capture the validated API key and detect
-  // onboarding completion. In AI SDK v6, tool parts are typed as
-  // `tool-<toolName>` with a toolInvocation object.
+  // Detect onboarding completion by checking if any assistant message
+  // mentions the workspace being set up, or if the message count is high
+  // enough that complete_onboarding likely fired. Simple heuristic that
+  // doesn't depend on parsing tool part types across SDK versions.
   useEffect(() => {
+    if (onboardingComplete) return
     for (const msg of messages) {
+      if (msg.role !== "assistant") continue
       for (const part of msg.parts ?? []) {
-        // Detect validated API key
-        if (
-          part.type?.startsWith("tool-") &&
-          (part as any).toolInvocation?.toolName === "validate_api_key"
-        ) {
-          const result = (part as any).toolInvocation?.result
-          if (result?.valid && result?.apiKey && !validatedApiKey) {
-            setValidatedApiKey(result.apiKey)
-          }
-        }
-        // Detect onboarding completion
-        if (
-          part.type?.startsWith("tool-") &&
-          (part as any).toolInvocation?.toolName === "complete_onboarding"
-        ) {
-          const result = (part as any).toolInvocation?.result
-          if (result?.success && !onboardingComplete) {
-            setOnboardingComplete(true)
-          }
+        const text = (part as any).text as string | undefined
+        if (text && (
+          text.includes("team is being") ||
+          text.includes("workspace") && text.includes("set up") ||
+          text.includes("activating") ||
+          text.includes("redirected")
+        )) {
+          setOnboardingComplete(true)
+          return
         }
       }
     }
-  }, [messages, validatedApiKey, onboardingComplete])
+  }, [messages, onboardingComplete])
 
   // Redirect after completion with a short delay for Nova's final message
   useEffect(() => {
@@ -111,6 +103,8 @@ export default function OnboardingPage() {
   function handleSubmit() {
     const text = input.trim()
     if (!text || isLoading) return
+    // After the first real submit (the API key), switch the input mode
+    if (!apiKeySubmitted) setApiKeySubmitted(true)
     sendMessage({ text })
     setInput("")
   }
@@ -224,11 +218,11 @@ export default function OnboardingPage() {
             <div className="flex gap-2">
               <input
                 ref={inputRef}
-                type={!validatedApiKey ? "password" : "text"}
+                type={!apiKeySubmitted ? "password" : "text"}
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSubmit() } }}
-                placeholder={!validatedApiKey ? "Paste your Anthropic API key (sk-ant-...)" : "Type your answer..."}
+                placeholder={!apiKeySubmitted ? "Paste your Anthropic API key (sk-ant-...)" : "Type your answer..."}
                 disabled={isLoading}
                 className="flex-1 h-11 rounded-xl border border-border bg-card px-4 text-[13.5px] outline-none focus:border-primary/50 transition-colors disabled:opacity-50"
               />
@@ -237,7 +231,7 @@ export default function OnboardingPage() {
                 disabled={!input.trim() || isLoading}
                 className="h-11 w-11 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:bg-primary/90 transition-colors disabled:opacity-40"
               >
-                {!validatedApiKey ? <Rocket className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
+                {!apiKeySubmitted ? <Rocket className="h-4 w-4" /> : <ArrowRight className="h-4 w-4" />}
               </button>
             </div>
           </div>

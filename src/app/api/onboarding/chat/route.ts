@@ -39,16 +39,13 @@ RULES:
 - If complete_onboarding fails with "workspace already exists", tell them to go to /reset first and try again.`
 
 export async function POST(req: Request) {
-  const { messages, validatedApiKey } = await req.json() as {
-    messages: UIMessage[]
-    validatedApiKey?: string
-  }
+  const { messages } = await req.json() as { messages: UIMessage[] }
 
-  // Use the user's validated API key if the client has it from a
-  // previous validate_api_key tool result. Otherwise platform default.
-  const model = validatedApiKey
-    ? createAnthropic({ apiKey: validatedApiKey })("claude-haiku-4-5")
-    : defaultAnthropic("claude-haiku-4-5")
+  // Onboarding always uses the platform's default key. The user's key
+  // is validated via the validate_api_key tool and saved to the workspace
+  // on complete_onboarding. A few onboarding messages on the platform key
+  // is negligible cost.
+  const model = defaultAnthropic("claude-haiku-4-5")
 
   const result = streamText({
     model,
