@@ -121,6 +121,7 @@ export default function OnboardingPage() {
         }),
       })
       const data = await res.json()
+      console.log("[onboarding] response:", JSON.stringify({ onboardingComplete: data.onboardingComplete, hasResponse: !!data.response, responseLength: data.response?.length, debug: data._debug }))
       if (data.onboardingComplete) {
         // Tool fired successfully. Show completion message even if
         // response text is empty (tool call consumed the response).
