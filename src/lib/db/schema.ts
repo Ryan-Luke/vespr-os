@@ -25,6 +25,19 @@ export const users = pgTable("users", {
   lastLoginAt: timestamp("last_login_at"),
 })
 
+// ── Invites ───────────────────────────────────────────────
+export const invites = pgTable("invites", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  email: text("email").notNull(),
+  role: text("role").notNull().default("member"),
+  token: text("token").notNull().unique(),
+  invitedBy: uuid("invited_by").references(() => users.id),
+  status: text("status").notNull().default("pending"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  acceptedAt: timestamp("accepted_at"),
+  expiresAt: timestamp("expires_at").notNull(),
+})
+
 // ── Workspaces ────────────────────────────────────────────
 export const workspaces = pgTable("workspaces", {
   id: uuid("id").primaryKey().defaultRandom(),

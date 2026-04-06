@@ -4,6 +4,7 @@ import { Key, Building2, Bell, CreditCard, Shield, Download, ArrowRight } from "
 import { DataExport } from "@/components/data-export"
 import ApiKeyManager from "@/components/api-key-manager"
 import { ThemeSettings } from "@/components/theme-settings"
+import { TeamInvites } from "@/components/team-invites"
 import Link from "next/link"
 
 export default function SettingsPage() {
@@ -14,6 +15,7 @@ export default function SettingsPage() {
       <Tabs defaultValue="general">
         <TabsList>
           <TabsTrigger value="general">General</TabsTrigger>
+          <TabsTrigger value="team">Team</TabsTrigger>
           <TabsTrigger value="api-keys">API Keys</TabsTrigger>
           <TabsTrigger value="notifications">Notifications</TabsTrigger>
           <TabsTrigger value="billing">Billing</TabsTrigger>
@@ -64,6 +66,10 @@ export default function SettingsPage() {
               </div>
             </div>
           </div>
+        </TabsContent>
+
+        <TabsContent value="team" className="space-y-4 mt-4">
+          <TeamInvites />
         </TabsContent>
 
         <TabsContent value="api-keys" className="space-y-4 mt-4">
