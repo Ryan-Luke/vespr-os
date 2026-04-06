@@ -274,20 +274,42 @@ export async function POST(req: Request) {
   ).returning()
 
   // Create channels. System channels (wins, watercooler, team-leaders) exist
-  // for EVERY business type. Per-team channels are created from the template.
-  // Marketing channel is always present even if the template doesn't have a
-  // Marketing team (some templates call it "Growth" instead).
-  const hasMarketingTeam = insertedTeams.some((t) =>
-    /marketing/i.test(t.name) || /growth/i.test(t.name),
-  )
+  // for EVERY business type. Core department channels (marketing, operations,
+  // finance, delivery/fulfillment, sales) are always present even if the
+  // template names the team differently (Growth instead of Marketing, etc).
+  //
+  // Each template's teams generate their own channels. After that, we check
+  // which core channels are missing and add them as standalone channels.
+
+  const teamChannelNames = insertedTeams.map((t) => t.name.toLowerCase().replace(/\s+/g, "-"))
+
+  // Helper: check if a core department channel already exists from the template
+  function hasChannel(keywords: string[]) {
+    return teamChannelNames.some((name) =>
+      keywords.some((kw) => name.includes(kw)),
+    )
+  }
+
+  // Core department channels that should always exist. Each entry has the
+  // channel name to create and the keywords to check in existing team names.
+  const CORE_CHANNELS: { name: string; keywords: string[] }[] = [
+    { name: "marketing", keywords: ["marketing", "growth", "content", "distribution"] },
+    { name: "operations", keywords: ["operations", "ops"] },
+    { name: "finance", keywords: ["finance", "monetization"] },
+    { name: "sales", keywords: ["sales", "account-management"] },
+    { name: "delivery", keywords: ["delivery", "fulfillment", "client-delivery", "customer-success"] },
+  ]
+
+  const missingCoreChannels = CORE_CHANNELS
+    .filter((core) => !hasChannel(core.keywords))
+    .map((core) => ({ name: core.name, type: "team" as const }))
+
   const channelValues = [
-    { name: "team-leaders", type: "system" },
-    { name: "wins", type: "system" },
-    { name: "watercooler", type: "system" },
+    { name: "team-leaders", type: "system" as const },
+    { name: "wins", type: "system" as const },
+    { name: "watercooler", type: "system" as const },
     ...insertedTeams.map((t) => ({ name: t.name.toLowerCase().replace(/\s+/g, "-"), type: "team" as const, teamId: t.id })),
-    // Ensure a marketing channel exists even if the template's team is named
-    // differently (e.g. "Growth"). Check if one was already created from teams.
-    ...(!hasMarketingTeam ? [{ name: "marketing", type: "team" as const }] : []),
+    ...missingCoreChannels,
   ]
   const insertedChannels = await db.insert(channels).values(channelValues).returning()
   const teamLeadersChannel = insertedChannels.find((c) => c.name === "team-leaders")!
