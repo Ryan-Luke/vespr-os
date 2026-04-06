@@ -97,7 +97,7 @@ export default function ResetPage() {
                 Wiping…
               </>
             ) : (
-              "Wipe and restart"
+              "Reset and start fresh"
             )}
           </button>
         </div>
