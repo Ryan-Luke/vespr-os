@@ -133,17 +133,28 @@ export async function POST(req: Request) {
       maxOutputTokens: 800,
     })
 
-    // Check if a workspace was created by querying the DB directly.
-    // More reliable than parsing tool result objects across SDK versions.
-    const { db: checkDb } = await import("@/lib/db")
-    const { workspaces } = await import("@/lib/db/schema")
-    const existingWs = await checkDb.select({ id: workspaces.id }).from(workspaces).limit(1)
-    const onboardingComplete = existingWs.length > 0
+    // Check if complete_onboarding was called THIS turn by looking for
+    // the tool name in the result. Don't check the DB because a leftover
+    // workspace from a previous attempt would trigger false completion.
+    let onboardingComplete = false
+    const toolCalls = result.toolCalls ?? []
+    for (const tc of toolCalls) {
+      if ((tc as any).toolName === "complete_onboarding") {
+        onboardingComplete = true
+      }
+    }
+    // Also check steps for multi-step tool calls
+    for (const step of result.steps ?? []) {
+      for (const tc of step.toolCalls ?? []) {
+        if ((tc as any).toolName === "complete_onboarding") {
+          onboardingComplete = true
+        }
+      }
+    }
 
     return Response.json({
       response: result.text ?? "",
       onboardingComplete,
-      workspaceId: existingWs[0]?.id ?? null,
     })
   } catch (err) {
     return Response.json({
