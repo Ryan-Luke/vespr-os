@@ -16,7 +16,7 @@ import { db } from "@/lib/db"
 import {
   agents, messages, channels, knowledgeEntries, trophyEvents,
   teamGoals, teams, agentSops, agentMemories, companyMemories,
-  agentTasks, handoffEvents, agentSchedules,
+  agentTasks, handoffEvents, agentSchedules, activityLog,
 } from "@/lib/db/schema"
 import { eq, desc, ilike, or, and } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
@@ -251,6 +251,13 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             createdByName: agent?.name ?? "Agent",
             createdByAgentId: agentId,
           }).returning()
+          // Log to activity feed so it shows on the dashboard
+          await db.insert(activityLog).values({
+            agentId,
+            agentName: agent?.name ?? "Agent",
+            action: "created_document",
+            description: `Created "${title}"`,
+          }).catch(() => {})
           return { ok: true, documentId: entry.id, title }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Failed to create document" }
@@ -283,6 +290,13 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             description,
             icon: icon ?? "🏆",
           })
+          // Log to activity feed
+          await db.insert(activityLog).values({
+            agentId,
+            agentName: agent?.name ?? "Agent",
+            action: "milestone",
+            description: `${icon ?? "🏆"} ${title}`,
+          }).catch(() => {})
           // Also post to wins channel
           const [winsChannel] = await db.select().from(channels)
             .where(eq(channels.name, "wins")).limit(1)
@@ -336,6 +350,14 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             const handoffMsg = `**Handoff to ${targetDepartment}**\n\n${summary}\n\n**Next steps for ${targetLead?.name ?? targetDepartment}:** ${nextSteps}`
             await postAgentMessage(agentId, tlChannel.id, handoffMsg)
           }
+
+          // Log to activity feed
+          await db.insert(activityLog).values({
+            agentId,
+            agentName: agent?.name ?? "Agent",
+            action: "handoff",
+            description: `Handed off to ${targetDepartment}`,
+          }).catch(() => {})
 
           // Log the handoff event for audit trail
           if (targetLead) {
@@ -443,6 +465,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
       }),
       execute: async ({ name, description, schedule, taskPrompt }) => {
         try {
+          const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
           const [sched] = await db.insert(agentSchedules).values({
             agentId,
             name,
@@ -451,6 +474,12 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             taskPrompt,
             enabled: true,
           }).returning()
+          await db.insert(activityLog).values({
+            agentId,
+            agentName: agent?.name ?? "Agent",
+            action: "created_schedule",
+            description: `Set up "${name}" (${schedule})`,
+          }).catch(() => {})
           return {
             ok: true,
             scheduleId: sched.id,
@@ -487,6 +516,12 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             target,
             unit,
           }).returning()
+          await db.insert(activityLog).values({
+            agentId,
+            agentName: agent.name,
+            action: "set_goal",
+            description: `Set goal: ${title} (${target} ${unit})`,
+          }).catch(() => {})
           return { ok: true, goalId: goal.id, title }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Failed to set goal" }
