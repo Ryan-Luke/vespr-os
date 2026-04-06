@@ -38,7 +38,7 @@ RULES:
 - Keep messages to 1-3 sentences. No em dashes. No fancy punctuation. Short human sentences.
 - Show you're listening. Reference what they said specifically. "A fitness coaching business doing 50k a month, nice." Not "Great, thanks for sharing."
 - Never start with "Great!" or "Awesome!" or "That's exciting!"
-- Call extract_info EVERY TIME the user gives you new information. This saves it.
+- You do NOT need to call any tool to save information. The conversation history IS your memory. Just keep talking naturally.
 - When you have at minimum the 3 REQUIRED items (name + business type + description), call complete_onboarding. Don't wait for all optional items. If the user seems ready to go, launch it.
 - After complete_onboarding succeeds, tell them their team is being activated and they'll be redirected. Keep it short and confident.
 - If complete_onboarding fails with "workspace already exists", tell them to go to /reset first and try again.`
@@ -98,34 +98,6 @@ export async function POST(req: Request) {
             return { valid: false, error: "Could not reach Anthropic" }
           }
         },
-      }),
-
-      extract_info: tool({
-        description: "Save business information the user just shared. Call this EVERY TIME the user provides any new info (name, business type, description, goal, etc). Only include fields that were actually mentioned in the user's latest message.",
-        inputSchema: jsonSchema<{
-          userName?: string
-          businessName?: string
-          businessType?: string
-          businessDescription?: string
-          competitors?: string
-          businessGoal?: string
-          targetScale?: string
-          timeline?: string
-        }>({
-          type: "object",
-          properties: {
-            userName: { type: "string" },
-            businessName: { type: "string" },
-            businessType: { type: "string" },
-            businessDescription: { type: "string" },
-            competitors: { type: "string" },
-            businessGoal: { type: "string" },
-            targetScale: { type: "string" },
-            timeline: { type: "string" },
-          },
-          additionalProperties: false,
-        }),
-        execute: async (info) => ({ ...info, saved: true }),
       }),
 
       complete_onboarding: tool({
