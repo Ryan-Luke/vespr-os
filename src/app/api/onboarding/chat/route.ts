@@ -155,6 +155,17 @@ export async function POST(req: Request) {
     return Response.json({
       response: result.text ?? "",
       onboardingComplete,
+      // Debug info to diagnose production issues
+      _debug: {
+        toolCallCount: toolCalls.length,
+        stepCount: (result.steps ?? []).length,
+        toolNames: [
+          ...toolCalls.map((tc: any) => tc.toolName),
+          ...(result.steps ?? []).flatMap((s: any) => (s.toolCalls ?? []).map((tc: any) => tc.toolName)),
+        ],
+        hasText: !!(result.text),
+        textLength: (result.text ?? "").length,
+      },
     })
   } catch (err) {
     return Response.json({
