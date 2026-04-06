@@ -164,7 +164,7 @@ export default function OnboardingPage() {
                   </div>
                 )}
                 <div className={cn(
-                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap break-words",
+                  "max-w-[78%] rounded-2xl px-4 py-2.5 text-[13.5px] leading-relaxed whitespace-pre-wrap [overflow-wrap:anywhere]",
                   isAssistant
                     ? "bg-card border border-border"
                     : "bg-primary text-primary-foreground"
