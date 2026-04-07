@@ -914,10 +914,11 @@ export default function ChatPage() {
         // Send recent channel history (last 20 messages) for context.
         body: JSON.stringify({
           agentId: lead.id,
+          channelId: activeChannel,
           messages: [...channelMessages, userMsg].slice(-20).map((m: any) => ({
             id: m.id,
-            role: m.senderAgentId ? "assistant" : "user",
-            parts: [{ type: "text", text: m.content }],
+            role: m.senderAgentId === lead.id ? "assistant" : "user",
+            parts: [{ type: "text", text: m.senderAgentId && m.senderAgentId !== lead.id ? `[${m.senderName}]: ${m.content}` : m.content }],
           })),
         }),
       })
@@ -1355,8 +1356,12 @@ export default function ChatPage() {
           channelId: activeChannel,
           messages: [...channelMessages, userMsg].slice(-20).map((m: any) => ({
             id: m.id,
-            role: m.senderAgentId ? "assistant" : "user",
-            parts: [{ type: "text", text: m.content }],
+            // Only the responding agent's messages are "assistant".
+            // Other agents' messages are "user" with name prefix so
+            // the LLM knows who said what and doesn't confuse itself
+            // with another agent's words.
+            role: m.senderAgentId === respondingAgent.id ? "assistant" :  "user",
+            parts: [{ type: "text", text: m.senderAgentId && m.senderAgentId !== respondingAgent.id ? `[${m.senderName}]: ${m.content}` : m.content }],
           })),
         }),
       })
