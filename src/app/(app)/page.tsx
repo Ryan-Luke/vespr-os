@@ -21,6 +21,7 @@ import { getMood, MOOD_EMOJI } from "@/lib/agent-mood"
 import { ChatSkeleton } from "@/components/loading-skeletons"
 import { VoiceInputButton } from "@/components/voice-input-button"
 import Link from "next/link"
+import { PhaseProgressBar } from "@/components/phase-progress-bar"
 
 // Types from DB
 interface DBAgent {
@@ -1758,6 +1759,11 @@ export default function ChatPage() {
                activeChannelData?.name === "watercooler" ? "Share content, ideas, and culture" :
                `${getChannelAgents().length} members`}
             </span>
+
+            {/* Phase progress indicator for R&D channel */}
+            {activeChannelData?.name?.includes("research") && (
+              <PhaseProgressBar />
+            )}
 
             <div className="ml-auto flex items-center gap-1.5">
               {pinnedCount > 0 && (
