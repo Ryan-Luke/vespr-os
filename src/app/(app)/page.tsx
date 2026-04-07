@@ -1350,7 +1350,15 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ agentId: respondingAgent.id, messages: [{ id: userMsg.id, role: "user", parts: [{ type: "text", text }] }] }),
+        // Send full channel history so the agent has conversation context
+        body: JSON.stringify({
+          agentId: respondingAgent.id,
+          messages: [...channelMessages, userMsg].map((m: any) => ({
+            id: m.id,
+            role: m.senderAgentId ? "assistant" : "user",
+            parts: [{ type: "text", text: m.content }],
+          })),
+        }),
       })
       if (!res.ok) throw new Error("API error")
 
