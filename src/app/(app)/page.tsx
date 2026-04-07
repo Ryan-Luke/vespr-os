@@ -1760,10 +1760,6 @@ export default function ChatPage() {
                `${getChannelAgents().length} members`}
             </span>
 
-            {/* Phase progress indicator for R&D channel */}
-            {activeChannelData?.name?.includes("research") && (
-              <PhaseProgressBar />
-            )}
 
             <div className="ml-auto flex items-center gap-1.5">
               {pinnedCount > 0 && (
@@ -1853,6 +1849,13 @@ export default function ChatPage() {
               </button>
             </div>
           </div>
+
+          {/* Phase progress banner for R&D channel */}
+          {activeChannelData?.name?.includes("research") && (
+            <div className="px-4 py-2 border-b border-border bg-card/50">
+              <PhaseProgressBar />
+            </div>
+          )}
 
           <div className="flex-1 overflow-y-auto min-h-0">
             <div className="py-4 px-4">
