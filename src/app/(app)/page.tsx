@@ -910,11 +910,10 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send the full channel message history so the agent has context
-        // of the entire conversation, not just the last message.
+        // Send recent channel history (last 20 messages) for context.
         body: JSON.stringify({
           agentId: lead.id,
-          messages: [...channelMessages, userMsg].map((m: any) => ({
+          messages: [...channelMessages, userMsg].slice(-20).map((m: any) => ({
             id: m.id,
             role: m.senderAgentId ? "assistant" : "user",
             parts: [{ type: "text", text: m.content }],
@@ -1350,10 +1349,11 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send full channel history so the agent has conversation context
+        // Send recent channel history (last 20 messages) for context.
+        // Full history bloats the context and causes timeouts.
         body: JSON.stringify({
           agentId: respondingAgent.id,
-          messages: [...channelMessages, userMsg].map((m: any) => ({
+          messages: [...channelMessages, userMsg].slice(-20).map((m: any) => ({
             id: m.id,
             role: m.senderAgentId ? "assistant" : "user",
             parts: [{ type: "text", text: m.content }],

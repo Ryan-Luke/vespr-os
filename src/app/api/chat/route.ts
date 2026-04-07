@@ -18,7 +18,7 @@ import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildAutonomousToolsForChat } from "@/lib/agents/autonomous"
 import { buildWebTools } from "@/lib/agents/web-tools"
 
-export const maxDuration = 30
+export const maxDuration = 60
 
 export async function POST(req: Request) {
   const { messages, agentId }: { messages: UIMessage[]; agentId: string } =
