@@ -1350,10 +1350,9 @@ export default function ChatPage() {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        // Send recent channel history (last 20 messages) for context.
-        // Full history bloats the context and causes timeouts.
         body: JSON.stringify({
           agentId: respondingAgent.id,
+          channelId: activeChannel,
           messages: [...channelMessages, userMsg].slice(-20).map((m: any) => ({
             id: m.id,
             role: m.senderAgentId ? "assistant" : "user",

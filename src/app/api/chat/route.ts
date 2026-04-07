@@ -1,7 +1,7 @@
 import { streamText, tool, jsonSchema, UIMessage, convertToModelMessages } from "ai"
 import { anthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries, approvalRequests } from "@/lib/db/schema"
+import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries, approvalRequests, messages as messages_table } from "@/lib/db/schema"
 import { eq, desc, sql } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
@@ -21,7 +21,7 @@ import { buildWebTools } from "@/lib/agents/web-tools"
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const { messages, agentId }: { messages: UIMessage[]; agentId: string } =
+  const { messages, agentId, channelId }: { messages: UIMessage[]; agentId: string; channelId?: string } =
     await req.json()
 
   let systemPrompt = "You are a helpful AI team member. Be concise and casual like on Slack."
@@ -410,6 +410,19 @@ FINANCE-SPECIFIC:
     // Lower limits cut off the phase completion chain mid-way.
     stopWhen: mergedTools ? ({ steps }) => steps.length >= 8 : undefined,
     async onFinish({ text }) {
+      // Save agent response to the channel so DB fetches pick it up
+      if (agent && text && channelId) {
+        try {
+          await db.insert(messages_table).values({
+            channelId,
+            senderAgentId: agent.id,
+            senderName: agent.name,
+            senderAvatar: agent.avatar,
+            content: text,
+            messageType: "text",
+          })
+        } catch {}
+      }
       // Auto-save conversation memories for emotional continuity
       if (!agent || !text) return
       const lastUserMsg = messages[messages.length - 1]
