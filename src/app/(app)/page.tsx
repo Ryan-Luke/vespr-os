@@ -1362,67 +1362,24 @@ export default function ChatPage() {
       })
       if (!res.ok) throw new Error("API error")
 
-      const reader = res.body?.getReader()
-      const decoder = new TextDecoder()
-      let fullText = ""
-
-      // Add placeholder
-      const placeholder: DBMessage = { id: `temp-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+      // Show typing indicator while we wait for the full response
+      const placeholder: DBMessage = { id: `temp-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "...", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
       setChannelMessages((prev) => [...prev, placeholder])
 
+      // Consume the stream to completion. The chat API saves the
+      // response to the DB via onFinish. We just need to wait for
+      // the stream to end, then fetch the latest messages.
+      const reader = res.body?.getReader()
       if (reader) {
-        let buffer = ""
         while (true) {
-          const { done, value } = await reader.read()
+          const { done } = await reader.read()
           if (done) break
-          buffer += decoder.decode(value, { stream: true })
-          const lines = buffer.split("\n")
-          buffer = lines.pop() ?? ""
-          for (const line of lines) {
-            const trimmed = line.trim()
-            if (trimmed.startsWith("data: ")) {
-              try {
-                const parsed = JSON.parse(trimmed.slice(6))
-                if (parsed.type === "text-delta" && parsed.delta) {
-                  fullText += parsed.delta
-                  setChannelMessages((prev) => prev.map((m) => m.id === placeholder.id ? { ...m, content: fullText } : m))
-                }
-              } catch { /* skip */ }
-            }
-          }
         }
       }
 
-      // Save agent response to DB
-      if (fullText) {
-        const savedMsg = await fetch("/api/messages", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ channelId: activeChannel, senderAgentId: respondingAgent.id, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: fullText, messageType: "text" }),
-        }).then((r) => r.json())
-        setChannelMessages((prev) => prev.map((m) => m.id === placeholder.id ? savedMsg : m))
-
-        // 40% chance: a second team member chimes in (makes it feel alive)
-        const otherAgents = channelAgents.filter((a) => a.id !== respondingAgent.id && a.status !== "paused")
-        if (otherAgents.length > 0 && Math.random() > 0.6) {
-          const secondAgent = otherAgents[Math.floor(Math.random() * otherAgents.length)]
-          try {
-            const followUp = await fetch("/api/agent-converse", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ agentId: secondAgent.id, teamId: activeChannelData?.teamId, channelName: activeChannelData?.name, recentMessages: [{ name: "You", content: text }, { name: respondingAgent.name, content: fullText }] }),
-            }).then((r) => r.json())
-            if (followUp.text) {
-              const secondMsg = await fetch("/api/messages", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ channelId: activeChannel, senderAgentId: secondAgent.id, senderName: secondAgent.name, senderAvatar: secondAgent.avatar, content: followUp.text, messageType: "text" }),
-              }).then((r) => r.json())
-              setChannelMessages((prev) => [...prev, secondMsg])
-            }
-          } catch { /* silent — second agent chiming in is optional */ }
-        }
-      }
+      // Fetch fresh messages from DB (the onFinish callback saved them)
+      const freshMsgs = await fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json())
+      setChannelMessages(freshMsgs)
     } catch {
       setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
     } finally {
