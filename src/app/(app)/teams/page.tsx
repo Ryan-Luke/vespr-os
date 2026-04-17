@@ -69,7 +69,7 @@ export default async function TeamsPage() {
 
           const chemistry = teamChemistry[team.id]
           return (
-            <div key={team.id} className="glass-card border border-border rounded-xl">
+            <div key={team.id} className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl border border-border rounded-xl">
               {/* Team header */}
               <div className="px-4 py-3 border-b border-border">
                 <div className="flex items-center justify-between">
@@ -142,7 +142,7 @@ export default async function TeamsPage() {
                 {/* Hire button */}
                 <Link
                   href={`/builder?team=${encodeURIComponent(team.name)}&teamId=${team.id}`}
-                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs btn-glass text-teal-500 hover:text-teal-400 transition-colors"
+                  className="flex items-center justify-center gap-1.5 px-4 py-2 text-xs btn-secondary text-[#635bff] hover:text-[#7c3aed] transition-colors"
                 >
                   <Plus className="h-3 w-3" />
                   Hire for {team.name}

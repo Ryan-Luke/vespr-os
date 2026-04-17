@@ -63,10 +63,10 @@ export default async function DashboardPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-6 space-y-8 max-w-[1400px]">
+      <div className="p-8 space-y-12 max-w-[1400px]">
         {/* ── Header ──────────────────────────────────────── */}
         <div className="flex items-center justify-between">
-          <h1 className="section-label">Dashboard</h1>
+          <h1 className="display-lg">Dashboard</h1>
           <div className="flex items-center gap-2">
             <FocusModeToggle />
             <DailyDigestButton />
@@ -78,7 +78,7 @@ export default async function DashboardPage() {
         <ActivityTicker />
 
         {/* ── KPI STRIP ───────────────────────────────────── */}
-        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+        <div className="stats-grid">
           {([
             { label: "Tasks Completed", value: totalTasks > 0 ? totalTasks.toLocaleString() : "\u2014", change: null },
             { label: "Hours Saved", value: totalTasks > 0 ? Math.round(totalTasks * 0.15).toLocaleString() : "\u2014", change: null },
@@ -86,24 +86,24 @@ export default async function DashboardPage() {
             { label: "Monthly Spend", value: totalCost > 0 ? `$${totalCost.toFixed(0)}` : "\u2014", change: null },
             { label: "Error Rate", value: errorAgents > 0 ? `${errorAgents}` : "\u2014", change: null },
           ] as { label: string; value: string; change: number | null; sub?: string }[]).map((kpi) => (
-            <div key={kpi.label} className="kpi-card p-4">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500 mb-3">{kpi.label}</p>
-              <p className="text-[28px] font-bold tabular-nums leading-none">{kpi.value}</p>
+            <div key={kpi.label} className="stripe-card">
+              <p className="stat-label mb-4">{kpi.label}</p>
+              <p className="stat-number">{kpi.value}</p>
               <div className="flex items-center gap-1.5 mt-2">
                 {kpi.change != null && kpi.change > 0 && <ArrowUpRight className="h-3 w-3 text-emerald-500" />}
                 {kpi.change != null && kpi.change < 0 && <ArrowDownRight className="h-3 w-3 text-red-500" />}
                 {kpi.change != null ? (
                   <span className={cn("text-[11px] font-medium tabular-nums", kpi.change >= 0 ? "text-emerald-500" : "text-red-500")}>{Math.abs(kpi.change)}%</span>
                 ) : (
-                  <span className="text-[11px] text-stone-500 tabular-nums">&mdash;</span>
+                  <span className="text-[11px] text-muted-foreground tabular-nums">&mdash;</span>
                 )}
-                {kpi.sub && <span className="text-[11px] text-stone-500">{kpi.sub}</span>}
+                {kpi.sub && <span className="text-[11px] text-muted-foreground">{kpi.sub}</span>}
               </div>
             </div>
           ))}
         </div>
 
-        <div className="divider-glass" />
+        {/* Subtle section break */}
 
         {/* ── WORKFLOW PHASE ───────────────────────────────── */}
         <WorkflowPhaseWidget />
@@ -116,12 +116,12 @@ export default async function DashboardPage() {
         </div>
         <ApprovalQueue />
 
-        <div className="divider-glass" />
+        <div className="border-t border-[rgba(255,255,255,0.06)]" />
 
         {/* ── WORKFORCE HEALTH ─────────────────────────────── */}
         <div>
           <p className="section-label mb-4 mt-8">Workforce</p>
-          <div className="glass-card p-5">
+          <div className="stripe-card">
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
                 { label: "Working", count: workingAgents, dot: "status-working" },
@@ -133,7 +133,7 @@ export default async function DashboardPage() {
                   <span className={cn("h-2 w-2 rounded-full", s.dot)} />
                   <div>
                     <span className="text-[22px] font-bold tabular-nums leading-none">{s.count}</span>
-                    <p className="text-[11px] text-stone-500 mt-0.5">{s.label}</p>
+                    <p className="text-[11px] text-[rgba(255,255,255,0.45)] mt-0.5">{s.label}</p>
                   </div>
                 </div>
               ))}
@@ -145,8 +145,8 @@ export default async function DashboardPage() {
                   const tw = ta.filter((a) => a.status === "working").length
                   return (
                     <div key={team.id} className="flex items-center justify-between text-xs px-1">
-                      <span className="text-stone-500">{team.icon} {team.name}</span>
-                      <span className="tabular-nums text-stone-400 font-medium">{tw}/{ta.length}</span>
+                      <span className="text-[rgba(255,255,255,0.45)]">{team.icon} {team.name}</span>
+                      <span className="tabular-nums text-[rgba(255,255,255,0.55)] font-medium">{tw}/{ta.length}</span>
                     </div>
                   )
                 })}
@@ -159,21 +159,21 @@ export default async function DashboardPage() {
         <div>
           <p className="section-label mb-4 mt-8">Analytics</p>
           <div data-dashboard-section="charts" className="grid gap-4 lg:grid-cols-3">
-            <div className="glass-card p-5">
+            <div className="stripe-card">
               <p className="section-label mb-4">Activity</p>
               <AgentActivityChart />
             </div>
-            <div className="glass-card p-5">
+            <div className="stripe-card">
               <p className="section-label mb-4">Cost by Team</p>
               <CostByTeamChart data={costByTeamData} />
             </div>
-            <div className="glass-card p-5">
+            <div className="stripe-card">
               <p className="section-label mb-4">Pipeline</p>
               <div className="grid grid-cols-5 gap-2">
                 {taskStatusData.map((s) => (
                   <div key={s.status} className="text-center py-3">
                     <p className="text-[22px] font-bold tabular-nums">{s.count}</p>
-                    <p className="text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{statusLabels[s.status]}</p>
+                    <p className="text-[10px] text-[rgba(255,255,255,0.45)] mt-1 uppercase tracking-wider">{statusLabels[s.status]}</p>
                   </div>
                 ))}
               </div>
@@ -194,18 +194,18 @@ export default async function DashboardPage() {
               const errorCount = ta.filter((a) => a.status === "error").length
               const avgLevel = ta.length > 0 ? Math.round(ta.reduce((sum, a) => sum + (a.level ?? 1), 0) / ta.length) : 0
               const healthScore = Math.min(100, Math.max(0, completionRate - (errorCount * 15) + Math.min(avgLevel, 20)))
-              const healthColor = healthScore >= 70 ? "text-teal-500" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
-              const barColor = healthScore >= 70 ? "bg-teal-500" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
+              const healthColor = healthScore >= 70 ? "text-[#635bff]" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
+              const barColor = healthScore >= 70 ? "bg-[#635bff]" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
               return (
-                <div key={team.id} className="glass-card p-4">
+                <div key={team.id} className="stripe-card-sm">
                   <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-medium">{team.icon} {team.name}</span>
                     <span className={cn("text-lg font-bold tabular-nums", healthColor)}>{healthScore}</span>
                   </div>
-                  <div className="progress-glass h-1 mb-3">
+                  <div className="bg-[#16213e] rounded-full h-1 mb-3">
                     <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${healthScore}%` }} />
                   </div>
-                  <div className="flex justify-between text-[11px] text-stone-500">
+                  <div className="flex justify-between text-[11px] text-[rgba(255,255,255,0.45)]">
                     <span>{completionRate}% done</span>
                     <span>{ta.length} agents</span>
                     {errorCount > 0 && <span className="text-red-400">{errorCount} error</span>}
@@ -227,9 +227,9 @@ export default async function DashboardPage() {
           return (
             <div>
               <p className="section-label mb-4 mt-8">Cost by Agent</p>
-              <div className="glass-card p-5">
+              <div className="stripe-card">
                 <div className="flex items-center justify-end mb-4">
-                  <span className="text-[11px] text-stone-500 tabular-nums">${totalCost.toFixed(0)} total</span>
+                  <span className="text-[11px] text-[rgba(255,255,255,0.45)] tabular-nums">${totalCost.toFixed(0)} total</span>
                 </div>
                 <div className="space-y-2.5">
                   {agentCosts.map((agent) => {
@@ -237,11 +237,11 @@ export default async function DashboardPage() {
                     return (
                       <div key={agent.id} className="flex items-center gap-3">
                         <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={16} className="rounded-sm shrink-0" />
-                        <span className="text-xs w-20 truncate text-stone-300">{agent.name}</span>
-                        <div className="progress-glass flex-1 h-1.5">
-                          <div className="h-full rounded-full bg-teal-500/60 transition-all" style={{ width: `${pct}%` }} />
+                        <span className="text-xs w-20 truncate text-[rgba(255,255,255,0.7)]">{agent.name}</span>
+                        <div className="bg-[#16213e] rounded-full flex-1 h-1.5">
+                          <div className="h-full rounded-full bg-[#635bff]/60 transition-all" style={{ width: `${pct}%` }} />
                         </div>
-                        <span className="text-[11px] text-stone-500 tabular-nums w-14 text-right">${(agent.costThisMonth ?? 0).toFixed(2)}</span>
+                        <span className="text-[11px] text-[rgba(255,255,255,0.45)] tabular-nums w-14 text-right">${(agent.costThisMonth ?? 0).toFixed(2)}</span>
                       </div>
                     )
                   })}
@@ -278,20 +278,20 @@ export default async function DashboardPage() {
                 <Link
                   key={agent.id}
                   href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`}
-                  className="glass-subtle rounded-xl p-4 transition-colors"
+                  className="bg-[#16213e] rounded-xl border border-[rgba(255,255,255,0.08)] p-4 transition-colors hover:border-[rgba(255,255,255,0.14)]"
                 >
                   <div className="flex items-center gap-2.5">
                     <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={24} className="rounded-md" />
                     <span className="text-[13px] font-medium truncate">{agent.name}</span>
                     <span className={cn("h-2 w-2 rounded-full shrink-0 ml-auto", statusDot)} />
                   </div>
-                  <p className="text-[11px] text-stone-500 mt-2 truncate">
+                  <p className="text-[11px] text-[rgba(255,255,255,0.45)] mt-2 truncate">
                     {agent.currentTask || "Idle"}
                   </p>
-                  <p className="text-[10px] text-stone-600 truncate">{agent.role}</p>
+                  <p className="text-[10px] text-[rgba(255,255,255,0.35)] truncate">{agent.role}</p>
                   <div className="flex items-center gap-2 mt-3">
-                    <span className="text-[10px] font-semibold bg-teal-500/10 text-teal-500 px-2 py-0.5 rounded-full">Lv.{agent.level}</span>
-                    <span className="text-[10px] text-stone-500 ml-auto tabular-nums">
+                    <span className="text-[10px] font-semibold bg-[rgba(99,91,255,0.1)] text-[#635bff] px-2 py-0.5 rounded-full">Lv.{agent.level}</span>
+                    <span className="text-[10px] text-[rgba(255,255,255,0.45)] ml-auto tabular-nums">
                       {agent.tasksCompleted} tasks
                     </span>
                   </div>
@@ -301,25 +301,25 @@ export default async function DashboardPage() {
           </div>
         </CollapsibleSection>
 
-        <div className="divider-glass" />
+        <div className="border-t border-[rgba(255,255,255,0.06)]" />
 
         {/* ── ACTIVITY FEED + GAMIFICATION ─────────────────── */}
         <div>
           <p className="section-label mb-4 mt-8">Activity & Leaderboard</p>
           <div className="grid gap-4 lg:grid-cols-3">
             {/* Activity feed */}
-            <div className="glass-card p-5">
+            <div className="stripe-card">
               <p className="section-label mb-4">Recent Activity</p>
               <div className="divide-y divide-[rgba(255,255,255,0.04)]">
                 {recentActivity.slice(0, 8).map((entry) => {
                   const icons: Record<string, React.ReactNode> = {
-                    completed_task: <CheckCircle2 className="h-3 w-3 text-teal-500" />,
-                    sent_message: <MessageSquare className="h-3 w-3 text-stone-400" />,
-                    updated_knowledge: <BookOpen className="h-3 w-3 text-stone-400" />,
-                    created_sop: <FileText className="h-3 w-3 text-stone-400" />,
+                    completed_task: <CheckCircle2 className="h-3 w-3 text-[#635bff]" />,
+                    sent_message: <MessageSquare className="h-3 w-3 text-[rgba(255,255,255,0.45)]" />,
+                    updated_knowledge: <BookOpen className="h-3 w-3 text-[rgba(255,255,255,0.45)]" />,
+                    created_sop: <FileText className="h-3 w-3 text-[rgba(255,255,255,0.45)]" />,
                     flagged: <Flag className="h-3 w-3 text-red-500" />,
                   }
-                  const icon = icons[entry.action] ?? <Activity className="h-3 w-3 text-stone-500" />
+                  const icon = icons[entry.action] ?? <Activity className="h-3 w-3 text-[rgba(255,255,255,0.45)]" />
                   const diffMs = Date.now() - new Date(entry.createdAt).getTime()
                   const diffMin = Math.floor(diffMs / 60000)
                   const diffHr = Math.floor(diffMin / 60)
@@ -328,9 +328,9 @@ export default async function DashboardPage() {
                   return (
                     <div key={entry.id} className="flex items-center gap-2.5 py-2.5 text-xs">
                       <span className="shrink-0 w-3">{icon}</span>
-                      <span className="font-medium shrink-0 text-stone-300">{entry.agentName}</span>
-                      <span className="text-stone-500 truncate flex-1">{entry.description}</span>
-                      <span className="text-stone-600 tabular-nums shrink-0">{t}</span>
+                      <span className="font-medium shrink-0 text-[rgba(255,255,255,0.7)]">{entry.agentName}</span>
+                      <span className="text-[rgba(255,255,255,0.45)] truncate flex-1">{entry.description}</span>
+                      <span className="text-[rgba(255,255,255,0.35)] tabular-nums shrink-0">{t}</span>
                     </div>
                   )
                 })}
@@ -343,7 +343,7 @@ export default async function DashboardPage() {
         </div>
 
         <div className="pt-8 pb-4 text-center">
-          <p className="text-[10px] text-stone-700">Cmd+K to search · Cmd+/ for shortcuts</p>
+          <p className="text-[10px] text-[rgba(255,255,255,0.2)]">Cmd+K to search · Cmd+/ for shortcuts</p>
         </div>
       </div>
     </div>

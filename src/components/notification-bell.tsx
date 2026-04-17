@@ -36,12 +36,12 @@ function categorize(action: string): NotificationCategory {
 }
 
 const categoryDot: Record<NotificationCategory, string> = {
-  task_completed: "bg-teal-500",
+  task_completed: "bg-[#635bff]",
   approval_needed: "bg-amber-500",
   agent_error: "bg-red-500",
-  message_mention: "bg-stone-400",
-  milestone_unlocked: "bg-teal-400",
-  other: "bg-stone-500",
+  message_mention: "bg-[#9ca3af]",
+  milestone_unlocked: "bg-[#635bff]",
+  other: "bg-[#6b7280]",
 }
 
 const categoryNav: Record<NotificationCategory, string> = {
@@ -158,12 +158,12 @@ export function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center h-7 w-7 rounded-lg hover:bg-stone-800 transition-colors"
+        className="relative flex items-center justify-center h-7 w-7 rounded-lg hover:bg-[#16213e] transition-colors"
         aria-label="Notifications"
       >
-        <Bell className="h-4 w-4 text-stone-500" />
+        <Bell className="h-4 w-4 text-[#6b7280]" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-[16px] min-w-[16px] rounded-full bg-teal-500 px-1 text-[9px] font-bold text-white flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 h-[16px] min-w-[16px] rounded-full bg-[#635bff] px-1 text-[9px] font-bold text-white flex items-center justify-center leading-none">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -172,7 +172,7 @@ export function NotificationBell() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 top-full mt-1.5 glass-elevated rounded-xl w-80 max-h-96 overflow-y-auto z-50"
+          className="absolute left-0 top-full mt-1.5 bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl w-80 max-h-96 overflow-y-auto z-50"
         >
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)]">
@@ -182,7 +182,7 @@ export function NotificationBell() {
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[11px] text-teal-500 hover:text-teal-400 transition-colors"
+                className="text-[11px] text-[#635bff] hover:text-[#5b52e6] transition-colors"
               >
                 Mark all read
               </button>
@@ -191,7 +191,7 @@ export function NotificationBell() {
 
           {/* Items */}
           {entries.length === 0 ? (
-            <div className="px-4 py-8 text-center text-[13px] text-stone-600">
+            <div className="px-4 py-8 text-center text-[13px] text-[rgba(255,255,255,0.35)]">
               No notifications yet
             </div>
           ) : (
@@ -205,8 +205,8 @@ export function NotificationBell() {
                     key={entry.id}
                     onClick={() => handleNotificationClick(entry)}
                     className={cn(
-                      "flex items-start gap-2.5 px-4 py-3 hover:bg-stone-800/40 transition-colors w-full text-left",
-                      isUnread && "border-l-2 border-l-teal-500"
+                      "flex items-start gap-2.5 px-4 py-3 hover:bg-[#16213e]/40 transition-colors w-full text-left",
+                      isUnread && "border-l-2 border-l-[#635bff]"
                     )}
                   >
                     {/* Avatar */}
@@ -230,8 +230,8 @@ export function NotificationBell() {
                           className={cn(
                             "text-[13px] leading-tight truncate",
                             isUnread
-                              ? "text-stone-200 font-medium"
-                              : "text-stone-500"
+                              ? "text-[#f3f4f6] font-medium"
+                              : "text-[#6b7280]"
                           )}
                         >
                           {entry.agentName}
@@ -241,13 +241,13 @@ export function NotificationBell() {
                         className={cn(
                           "text-[13px] leading-snug mt-0.5 line-clamp-2",
                           isUnread
-                            ? "text-stone-400"
-                            : "text-stone-600"
+                            ? "text-[#9ca3af]"
+                            : "text-[rgba(255,255,255,0.35)]"
                         )}
                       >
                         {entry.description}
                       </p>
-                      <span className="text-[11px] text-stone-700 mt-0.5 block">
+                      <span className="text-[11px] text-[rgba(255,255,255,0.2)] mt-0.5 block">
                         {timeAgo(entry.createdAt)}
                       </span>
                     </div>

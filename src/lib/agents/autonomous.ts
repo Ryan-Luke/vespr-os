@@ -26,6 +26,7 @@ import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildWebTools } from "@/lib/agents/web-tools"
 import { consultAgent } from "@/lib/agents/consultation"
 import { buildAgentContext } from "@/lib/learning/context-builder"
+import { checkDependencies } from "@/lib/agents/orchestrator"
 
 // ── Department-specific handoff prompts ───────────────────────────────
 // When one department hands off to another, the receiving agent needs
@@ -808,6 +809,8 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
             status: "done",
             completedAt: new Date()
           }).where(eq(tasks.id, parentTask.id))
+          // Trigger dependency checks so downstream tasks can start
+          await checkDependencies(input.workspaceId, parentTask.id).catch(() => {})
           break // only complete the most relevant task
         }
       }

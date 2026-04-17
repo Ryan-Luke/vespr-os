@@ -166,11 +166,11 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
       {/* Overlay click to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative z-10 modal-glass rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto mx-4">
+      <div className="relative z-10 bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-2xl shadow-2xl p-8 max-w-lg w-full max-h-[80vh] overflow-y-auto mx-4">
         {/* ── Toolbar ─────────────────────────────────── */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-teal-500" />
+            <Mail className="h-4 w-4 text-[#635bff]" />
             <span className="section-label">
               VESPR
             </span>
@@ -178,7 +178,7 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="text-[11px] text-teal-500 hover:text-teal-400 flex items-center gap-1 transition-colors"
+              className="text-[11px] text-[#635bff] hover:text-[#5b52e6] flex items-center gap-1 transition-colors"
             >
               {copied ? (
                 <>
@@ -194,16 +194,16 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
             </button>
             <button
               onClick={onClose}
-              className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-stone-800 transition-colors"
+              className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-[#16213e] transition-colors"
             >
-              <X className="h-4 w-4 text-stone-400" />
+              <X className="h-4 w-4 text-[#9ca3af]" />
             </button>
           </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="text-sm text-stone-500 animate-pulse">
+            <div className="text-sm text-[#6b7280] animate-pulse">
               Preparing your digest...
             </div>
           </div>
@@ -211,8 +211,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
           <>
             {/* ── Date Header ────────────────────────── */}
             <div className="border-b border-[rgba(255,255,255,0.06)] pb-4 mb-6">
-              <h1 className="text-lg font-semibold text-stone-200">Daily Digest</h1>
-              <p className="text-[11px] text-stone-500 mt-0.5">{todayLabel()}</p>
+              <h1 className="text-lg font-semibold text-[#f3f4f6]">Daily Digest</h1>
+              <p className="text-[11px] text-[#6b7280] mt-0.5">{todayLabel()}</p>
             </div>
 
             {/* ── Executive Summary ───────────────────── */}
@@ -220,7 +220,7 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
               <h2 className="section-label mb-2">
                 Executive Summary
               </h2>
-              <p className="text-xs text-stone-400 leading-relaxed">
+              <p className="text-xs text-[#9ca3af] leading-relaxed">
                 Your team of {agents.length} agents completed {totalTasks} tasks today,
                 saving an estimated {hoursSaved} hours. {activeAgents} agents are currently
                 active, with a total spend of ${totalCost.toFixed(2)}.
@@ -229,17 +229,17 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
 
             {/* ── KPI row ────────────────────────── */}
             <section className="mb-6 grid grid-cols-3 gap-3">
-              <div className="glass-subtle rounded-lg p-3 text-center">
+              <div className="bg-[#16213e] rounded-lg p-3 text-center">
                 <p className="text-[22px] font-bold tabular-nums">{totalTasks}</p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Tasks</p>
+                <p className="text-[10px] text-[#6b7280] uppercase tracking-wider mt-0.5">Tasks</p>
               </div>
-              <div className="glass-subtle rounded-lg p-3 text-center">
+              <div className="bg-[#16213e] rounded-lg p-3 text-center">
                 <p className="text-[22px] font-bold tabular-nums">{hoursSaved}h</p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Saved</p>
+                <p className="text-[10px] text-[#6b7280] uppercase tracking-wider mt-0.5">Saved</p>
               </div>
-              <div className="glass-subtle rounded-lg p-3 text-center">
+              <div className="bg-[#16213e] rounded-lg p-3 text-center">
                 <p className="text-[22px] font-bold tabular-nums">${totalCost.toFixed(0)}</p>
-                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Cost</p>
+                <p className="text-[10px] text-[#6b7280] uppercase tracking-wider mt-0.5">Cost</p>
               </div>
             </section>
 
@@ -255,10 +255,10 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
                       key={entry.id}
                       className="flex items-start gap-2 py-2 text-xs"
                     >
-                      <span className="text-stone-600 shrink-0 mt-0.5">-</span>
+                      <span className="text-[rgba(255,255,255,0.35)] shrink-0 mt-0.5">-</span>
                       <span>
-                        <span className="font-medium text-stone-300">{entry.agentName}</span>{" "}
-                        <span className="text-stone-500">{entry.description}</span>
+                        <span className="font-medium text-[#d1d5db]">{entry.agentName}</span>{" "}
+                        <span className="text-[#6b7280]">{entry.description}</span>
                       </span>
                     </div>
                   ))}
@@ -280,10 +280,10 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
                         key={task.id}
                         className="flex items-center gap-2 py-2 text-xs"
                       >
-                        <span className="text-teal-500 shrink-0">-</span>
-                        <span className="flex-1 truncate text-stone-300">{task.title}</span>
+                        <span className="text-[#635bff] shrink-0">-</span>
+                        <span className="flex-1 truncate text-[#d1d5db]">{task.title}</span>
                         {agent && (
-                          <span className="text-stone-600 shrink-0 text-[11px]">
+                          <span className="text-[rgba(255,255,255,0.35)] shrink-0 text-[11px]">
                             {agent.name}
                           </span>
                         )}
@@ -319,8 +319,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
               <h2 className="section-label mb-2">
                 Cost Today
               </h2>
-              <p className="text-xs text-stone-500">
-                <span className="text-stone-200 font-bold tabular-nums">
+              <p className="text-xs text-[#6b7280]">
+                <span className="text-[#f3f4f6] font-bold tabular-nums">
                   ${totalCost.toFixed(2)}
                 </span>{" "}
                 across {agents.length} agents
@@ -340,7 +340,7 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
                       className="flex items-center gap-2 py-1 text-xs"
                     >
                       <span className="text-amber-500 shrink-0">-</span>
-                      <span className="text-stone-500 truncate">{task.title}</span>
+                      <span className="text-[#6b7280] truncate">{task.title}</span>
                     </div>
                   ))}
                 </div>
@@ -349,7 +349,7 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
 
             {/* ── Footer ─────────────────────────────── */}
             <div className="border-t border-[rgba(255,255,255,0.06)] pt-3 mt-2">
-              <p className="text-[10px] text-stone-700 text-center">
+              <p className="text-[10px] text-[rgba(255,255,255,0.2)] text-center">
                 Generated by VESPR on {todayLabel()}
               </p>
             </div>
@@ -369,10 +369,10 @@ export function DailyDigestButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs btn-glass rounded-xl px-3 py-1.5"
+        className="flex items-center gap-1.5 text-xs btn-secondary rounded-xl px-3 py-1.5"
       >
-        <Calendar className="h-3 w-3 text-stone-500" />
-        <span className="text-stone-400">Daily Digest</span>
+        <Calendar className="h-3 w-3 text-[#6b7280]" />
+        <span className="text-[#9ca3af]">Daily Digest</span>
       </button>
       <DailyDigest open={open} onClose={() => setOpen(false)} />
     </>

@@ -26,12 +26,12 @@ interface DBAgent {
 }
 
 const TYPE_STYLES: Record<string, { icon: typeof Trophy; color: string; label: string }> = {
-  deal_closed: { icon: DollarSign, color: "text-teal-500", label: "Deal Closed" },
-  meeting_booked: { icon: Calendar, color: "text-teal-400", label: "Meeting Booked" },
+  deal_closed: { icon: DollarSign, color: "text-[#635bff]", label: "Deal Closed" },
+  meeting_booked: { icon: Calendar, color: "text-[#635bff]", label: "Meeting Booked" },
   milestone: { icon: Trophy, color: "text-amber-500", label: "Milestone" },
-  evolution: { icon: TrendingUp, color: "text-teal-500", label: "Evolution" },
+  evolution: { icon: TrendingUp, color: "text-[#635bff]", label: "Evolution" },
   first: { icon: Star, color: "text-amber-500", label: "First" },
-  capability_unlocked: { icon: Zap, color: "text-teal-400", label: "New Capability" },
+  capability_unlocked: { icon: Zap, color: "text-[#635bff]", label: "New Capability" },
 }
 
 function groupByTimePeriod(events: TrophyEvent[]): { label: string; events: TrophyEvent[] }[] {
@@ -86,7 +86,7 @@ export default function TrophyFeedPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-stone-500">
+      <div className="flex items-center justify-center h-full text-[rgba(255,255,255,0.45)]">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />Loading your wins...
       </div>
     )
@@ -108,33 +108,33 @@ export default function TrophyFeedPage() {
             <Trophy className="h-4 w-4 text-amber-500" />
             <h1 className="text-lg font-semibold tracking-tight">What your team shipped</h1>
           </div>
-          <p className="text-[11px] text-stone-500">{totalWins} wins while you were building</p>
+          <p className="text-[11px] text-[#6b7280]">{totalWins} wins while you were building</p>
         </div>
 
         {/* Stats header */}
         {events.length > 0 && (
           <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             {totalRevenue > 0 && (
-              <div className="kpi-card p-4">
-                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</p>
-                <p className="text-[22px] font-bold tabular-nums text-teal-500 mt-1">${totalRevenue.toLocaleString()}</p>
+              <div className="stripe-card p-4">
+                <p className="text-[11px] text-[#6b7280] uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</p>
+                <p className="text-[22px] font-bold tabular-nums text-[#635bff] mt-1">${totalRevenue.toLocaleString()}</p>
               </div>
             )}
             {dealsCount > 0 && (
-              <div className="kpi-card p-4">
-                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Trophy className="h-3 w-3" />Deals</p>
+              <div className="stripe-card p-4">
+                <p className="text-[11px] text-[#6b7280] uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Trophy className="h-3 w-3" />Deals</p>
                 <p className="text-[22px] font-bold tabular-nums mt-1">{dealsCount}</p>
               </div>
             )}
             {evolutionCount > 0 && (
-              <div className="kpi-card p-4">
-                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><TrendingUp className="h-3 w-3" />Evolutions</p>
-                <p className="text-[22px] font-bold tabular-nums text-teal-400 mt-1">{evolutionCount}</p>
+              <div className="stripe-card p-4">
+                <p className="text-[11px] text-[#6b7280] uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><TrendingUp className="h-3 w-3" />Evolutions</p>
+                <p className="text-[22px] font-bold tabular-nums text-[#635bff] mt-1">{evolutionCount}</p>
               </div>
             )}
             {milestoneCount > 0 && (
-              <div className="kpi-card p-4">
-                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Star className="h-3 w-3" />Milestones</p>
+              <div className="stripe-card p-4">
+                <p className="text-[11px] text-[#6b7280] uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Star className="h-3 w-3" />Milestones</p>
                 <p className="text-[22px] font-bold tabular-nums text-amber-500 mt-1">{milestoneCount}</p>
               </div>
             )}
@@ -142,7 +142,7 @@ export default function TrophyFeedPage() {
         )}
 
         {events.length === 0 ? (
-          <div className="text-center py-16 text-stone-500">
+          <div className="text-center py-16 text-[#6b7280]">
             <Trophy className="h-8 w-8 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No wins yet. Your team is just getting started.</p>
           </div>
@@ -151,17 +151,17 @@ export default function TrophyFeedPage() {
             <div key={group.label} className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="section-label">{group.label}</span>
-                <div className="flex-1 divider-glass" />
-                <span className="text-[11px] text-stone-600 tabular-nums">{group.events.length}</span>
+                <div className="flex-1 border-t border-[rgba(255,255,255,0.06)]" />
+                <span className="text-[11px] text-[rgba(255,255,255,0.35)] tabular-nums">{group.events.length}</span>
               </div>
 
               <div className="space-y-3">
                 {group.events.map((event) => {
-                  const style = TYPE_STYLES[event.type] || { icon: Trophy, color: "text-stone-500", label: event.type }
+                  const style = TYPE_STYLES[event.type] || { icon: Trophy, color: "text-[#6b7280]", label: event.type }
                   const Icon = style.icon
                   const agent = agents.find((a) => a.id === event.agentId)
                   return (
-                    <div key={event.id} className="glass-card p-4">
+                    <div key={event.id} className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl p-4">
                       <div className="flex items-start gap-3">
                         {/* Icon/Avatar */}
                         {agent ? (
@@ -169,7 +169,7 @@ export default function TrophyFeedPage() {
                             <PixelAvatar characterIndex={0} size={36} className="rounded-lg" />
                           </div>
                         ) : (
-                          <div className="h-9 w-9 rounded-lg bg-stone-800/50 flex items-center justify-center shrink-0">
+                          <div className="h-9 w-9 rounded-lg bg-[#16213e]/50 flex items-center justify-center shrink-0">
                             <Icon className={cn("h-4 w-4", style.color)} />
                           </div>
                         )}
@@ -181,20 +181,20 @@ export default function TrophyFeedPage() {
                               <Icon className="h-3 w-3" />
                               {style.label}
                             </span>
-                            <span className="text-[11px] text-stone-600">· {formatTimeAgo(event.createdAt)}</span>
+                            <span className="text-[11px] text-[rgba(255,255,255,0.35)]">· {formatTimeAgo(event.createdAt)}</span>
                             {event.amount && (
-                              <span className="ml-auto text-[13px] font-bold text-teal-500 tabular-nums">
+                              <span className="ml-auto text-[13px] font-bold text-[#635bff] tabular-nums">
                                 ${event.amount.toLocaleString()}
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
-                          <p className="text-[14px] font-medium leading-snug text-stone-200">{event.title}</p>
+                          <p className="text-[14px] font-medium leading-snug text-[#f3f4f6]">{event.title}</p>
 
                           {/* Description */}
                           {event.description && (
-                            <p className="text-[12px] text-stone-500 mt-1 leading-relaxed">{event.description}</p>
+                            <p className="text-[12px] text-[#6b7280] mt-1 leading-relaxed">{event.description}</p>
                           )}
 
                           {/* Share button */}
@@ -203,7 +203,7 @@ export default function TrophyFeedPage() {
                               href={`/api/share-card/trophy?id=${event.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-stone-600 hover:text-stone-300 transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] text-[rgba(255,255,255,0.35)] hover:text-[#d1d5db] transition-colors"
                             >
                               <Share2 className="h-3 w-3" />
                               Share
@@ -221,7 +221,7 @@ export default function TrophyFeedPage() {
 
         {events.length > 0 && (
           <div className="pt-4 text-center">
-            <p className="text-[11px] text-stone-700">
+            <p className="text-[11px] text-[rgba(255,255,255,0.2)]">
               {totalWins} wins since you joined — your team is building.
             </p>
           </div>

@@ -72,8 +72,8 @@ export default function LoginPage() {
 
   if (mode === "loading") {
     return (
-      <div className="min-h-dvh flex items-center justify-center bg-background">
-        <Loader2 className="h-4 w-4 animate-spin text-stone-500" />
+      <div className="min-h-dvh flex items-center justify-center bg-[#0f0f23]">
+        <Loader2 className="h-4 w-4 animate-spin text-gray-500" />
       </div>
     )
   }
@@ -81,14 +81,14 @@ export default function LoginPage() {
   const isSignup = mode === "signup"
 
   return (
-    <div className="min-h-dvh flex items-center justify-center bg-background bg-ambient p-4">
-      <div className="w-full max-w-[360px]">
+    <div className="min-h-dvh flex items-center justify-center gradient-mesh p-4">
+      <div className="w-full max-w-[360px] relative z-10">
         {/* Card */}
-        <div className="glass-elevated gradient-border rounded-2xl p-8 space-y-6">
+        <div className="stripe-card p-10 space-y-6">
           {/* Wordmark */}
           <div className="text-center space-y-1">
-            <p className="text-[24px] font-bold tracking-tight text-teal-500 glow-teal-sm">VESPR</p>
-            <p className="text-[13px] text-stone-500 leading-relaxed">
+            <p className="text-[24px] font-bold tracking-tight text-[#635bff]">VESPR</p>
+            <p className="text-[13px] text-gray-500 leading-relaxed">
               {isSignup
                 ? "Create your account to get started."
                 : "Sign in to your workspace"}
@@ -98,50 +98,50 @@ export default function LoginPage() {
           <form onSubmit={handleSubmit} className="space-y-3">
             {isSignup && (
               <div className="relative">
-                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-500" />
+                <User className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
                 <input
                   type="text"
                   placeholder="Your name"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
-                  className="w-full h-10 rounded-lg input-glass pl-9 pr-3 text-[13px] text-stone-100 placeholder:text-stone-500 outline-none transition-colors"
+                  className="w-full h-10 rounded-xl bg-[#16213e] border border-[rgba(255,255,255,0.08)] pl-9 pr-3 text-[13px] text-white placeholder:text-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                   autoFocus
                   required
                 />
               </div>
             )}
             <div className="relative">
-              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-500" />
+              <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
               <input
                 type="email"
                 placeholder="Email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                className="w-full h-10 rounded-lg border border-stone-700 bg-stone-800 pl-9 pr-3 text-[13px] text-stone-100 placeholder:text-stone-500 outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+                className="w-full h-10 rounded-xl bg-[#16213e] border border-[rgba(255,255,255,0.08)] pl-9 pr-3 text-[13px] text-white placeholder:text-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                 autoFocus={!isSignup}
                 required
               />
             </div>
             <div className="relative">
-              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-stone-500" />
+              <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-500" />
               <input
                 type="password"
                 placeholder={isSignup ? "Password (min 8 characters)" : "Password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full h-10 rounded-lg border border-stone-700 bg-stone-800 pl-9 pr-3 text-[13px] text-stone-100 placeholder:text-stone-500 outline-none focus:border-teal-500/50 focus:ring-1 focus:ring-teal-500/20 transition-colors"
+                className="w-full h-10 rounded-xl bg-[#16213e] border border-[rgba(255,255,255,0.08)] pl-9 pr-3 text-[13px] text-white placeholder:text-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                 required
                 minLength={isSignup ? 8 : undefined}
               />
             </div>
 
             {error && <p className="text-[11px] text-red-400">{error}</p>}
-            {forgotMsg && <p className="text-[11px] text-teal-400">{forgotMsg}</p>}
+            {forgotMsg && <p className="text-[11px] text-[#635bff]">{forgotMsg}</p>}
 
             <button
               type="submit"
               disabled={submitting || !email || !password || (isSignup && !name)}
-              className="w-full h-10 rounded-lg btn-teal text-white text-[13px] font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
+              className="w-full h-10 rounded-lg btn-primary text-white text-[13px] font-semibold transition-colors disabled:opacity-50 flex items-center justify-center gap-1.5"
             >
               {submitting && <Loader2 className="h-3 w-3 animate-spin" />}
               {isSignup ? "Create account" : "Sign in"}
@@ -150,11 +150,11 @@ export default function LoginPage() {
 
           {!isSignup && (
             <div className="text-center space-y-1.5 pt-1">
-              <p className="text-[11px] text-stone-500 leading-relaxed">
+              <p className="text-[11px] text-gray-500 leading-relaxed">
                 Need an account? Ask your workspace owner to invite you.
               </p>
               <p className="text-[11px]">
-                <a href="/forgot-password" className="text-teal-500 hover:text-teal-400 hover:underline cursor-pointer transition-colors">
+                <a href="/forgot-password" className="text-[#635bff] hover:text-[#7c3aed] hover:underline cursor-pointer transition-colors">
                   Forgot your password?
                 </a>
               </p>

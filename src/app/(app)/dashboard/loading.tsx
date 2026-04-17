@@ -16,7 +16,7 @@ export default function DashboardLoading() {
       {/* KPI cards row */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
         {Array.from({ length: 4 }).map((_, i) => (
-          <div key={i} className="rounded-md border border-border p-4 space-y-2 glass-card">
+          <div key={i} className="stripe-card-sm p-4 space-y-2">
             <Skeleton className="h-3 w-20 shimmer" />
             <Skeleton className="h-8 w-16 shimmer" />
             <Skeleton className="h-3 w-24 shimmer" />
@@ -26,18 +26,18 @@ export default function DashboardLoading() {
 
       {/* Charts row */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-md border border-border p-4 space-y-3 glass-card">
+        <div className="stripe-card-sm p-4 space-y-3">
           <Skeleton className="h-4 w-32 shimmer" />
           <Skeleton className="h-40 w-full shimmer" />
         </div>
-        <div className="rounded-md border border-border p-4 space-y-3 glass-card">
+        <div className="stripe-card-sm p-4 space-y-3">
           <Skeleton className="h-4 w-32 shimmer" />
           <Skeleton className="h-40 w-full shimmer" />
         </div>
       </div>
 
       {/* Activity feed */}
-      <div className="rounded-md border border-border p-4 space-y-4 glass-card">
+      <div className="stripe-card-sm p-4 space-y-4">
         <Skeleton className="h-4 w-28 shimmer" />
         {Array.from({ length: 5 }).map((_, i) => (
           <div key={i} className="flex items-center gap-3">

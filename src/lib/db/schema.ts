@@ -763,3 +763,65 @@ export const skills = pgTable("skills", {
   workspaceIdx: index("skills_workspace_id_idx").on(t.workspaceId),
   agentIdx: index("skills_agent_id_idx").on(t.agentId),
 }))
+
+// ── Agent Threads (persistent multi-turn agent conversations) ──
+// Cross-agent collaboration threads: coordination, negotiation,
+// review, and escalation conversations between agents.
+export const agentThreads = pgTable("agent_threads", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  type: text("type").notNull().default("coordination"), // coordination | negotiation | review | escalation
+  subject: text("subject").notNull(),
+  initiatorAgentId: uuid("initiator_agent_id").references(() => agents.id).notNull(),
+  participantAgentIds: jsonb("participant_agent_ids").$type<string[]>().notNull().default([]),
+  linkedTaskId: uuid("linked_task_id"),
+  status: text("status").notNull().default("active"), // active | resolved | archived | escalated
+  resolution: text("resolution"), // summary of outcome
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  resolvedAt: timestamp("resolved_at"),
+})
+
+export const agentThreadMessages = pgTable("agent_thread_messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  threadId: uuid("thread_id").references(() => agentThreads.id).notNull(),
+  senderAgentId: uuid("sender_agent_id").references(() => agents.id).notNull(),
+  content: text("content").notNull(),
+  messageType: text("message_type").notNull().default("message"), // message | proposal | approval | rejection | question | deliverable | status_update
+  referencedArtifactIds: jsonb("referenced_artifact_ids").$type<string[]>().default([]),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+})
+
+// ── Task Dependencies (explicit blocking relationships) ──────
+// When task A depends on task B, task A is blocked until task B
+// completes. The orchestrator uses this to chain multi-agent plans.
+export const taskDependencies = pgTable("task_dependencies", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  taskId: uuid("task_id").notNull(), // the task that is blocked
+  dependsOnTaskId: uuid("depends_on_task_id").notNull(), // the task it waits for
+  status: text("status").notNull().default("pending"), // pending | satisfied | canceled
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  satisfiedAt: timestamp("satisfied_at"),
+})
+
+// ── Collaboration Events (unified cross-agent activity log) ──
+// Every cross-agent interaction is logged here for observability,
+// debugging, and analytics. Covers delegations, consultations,
+// handoffs, artifact sharing, decisions, and escalations.
+export const collaborationEvents = pgTable("collaboration_events", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  eventType: text("event_type").notNull(), // task_delegated | task_claimed | agent_consulted | handoff_sent | handoff_received | artifact_shared | decision_made | help_requested | status_updated | escalated | blocked | unblocked
+  sourceAgentId: uuid("source_agent_id").references(() => agents.id),
+  targetAgentId: uuid("target_agent_id").references(() => agents.id),
+  taskId: uuid("task_id"),
+  threadId: uuid("thread_id"),
+  summary: text("summary").notNull(),
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  wsIdx: index("collab_events_ws_idx").on(t.workspaceId),
+  typeIdx: index("collab_events_type_idx").on(t.eventType),
+}))

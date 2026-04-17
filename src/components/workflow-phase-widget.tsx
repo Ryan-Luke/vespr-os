@@ -20,16 +20,16 @@ import { inArray } from "drizzle-orm"
 
 // ── Workflow Phase Widget ──────────────────────────────────────
 // Stripe-inspired: one calm glance at the current phase.
-// Teal accent for active state, clean progress, subtle breadcrumb.
+// Purple accent for active state, clean progress, subtle breadcrumb.
 
 function outputStatusIcon(status?: "empty" | "provided" | "confirmed") {
   if (status === "confirmed") {
-    return <Check className="h-3.5 w-3.5 text-teal-500" />
+    return <Check className="h-3.5 w-3.5 text-[#635bff]" />
   }
   if (status === "provided") {
-    return <Check className="h-3.5 w-3.5 text-stone-500" />
+    return <Check className="h-3.5 w-3.5 text-[#6b7280]" />
   }
-  return <Circle className="h-3.5 w-3.5 text-stone-700" />
+  return <Circle className="h-3.5 w-3.5 text-[rgba(255,255,255,0.2)]" />
 }
 
 function OutputRow({
@@ -45,18 +45,18 @@ function OutputRow({
       <span className="mt-0.5 shrink-0">{outputStatusIcon(status)}</span>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={cn("text-xs font-medium", done && "text-stone-600 line-through decoration-stone-700")}>
+          <span className={cn("text-xs font-medium", done && "text-[rgba(255,255,255,0.35)] line-through decoration-[rgba(255,255,255,0.2)]")}>
             {spec.label}
           </span>
           {spec.kind === "integration" && (
-            <span className="text-[10px] uppercase tracking-[0.1em] text-stone-600">Integration</span>
+            <span className="text-[10px] uppercase tracking-[0.1em] text-[rgba(255,255,255,0.35)]">Integration</span>
           )}
           {spec.kind === "milestone" && (
-            <span className="text-[10px] uppercase tracking-[0.1em] text-stone-600">Milestone</span>
+            <span className="text-[10px] uppercase tracking-[0.1em] text-[rgba(255,255,255,0.35)]">Milestone</span>
           )}
         </div>
         {!done && (
-          <p className="text-[11px] text-stone-600 mt-0.5 leading-relaxed">
+          <p className="text-[11px] text-[rgba(255,255,255,0.35)] mt-0.5 leading-relaxed">
             {spec.description}
           </p>
         )}
@@ -80,13 +80,13 @@ export async function WorkflowPhaseWidget() {
   if (!state.currentPhaseKey) {
     const completedCount = state.phases.filter((p) => p.status === "completed" || p.status === "skipped").length
     return (
-      <div className="glass-card gradient-border p-5">
+      <div className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl p-5">
         <div className="flex items-center gap-2">
-          <CheckCircle className="h-3.5 w-3.5 text-teal-500/50" />
+          <CheckCircle className="h-3.5 w-3.5 text-[#635bff]/50" />
           <span className="section-label">Workflow</span>
         </div>
-        <p className="text-sm mt-2 text-stone-300">All {completedCount} phases complete — running in steady state.</p>
-        <p className="text-[11px] text-stone-600 mt-1">Your team is operating on ongoing rhythms.</p>
+        <p className="text-sm mt-2 text-[#d1d5db]">All {completedCount} phases complete — running in steady state.</p>
+        <p className="text-[11px] text-[rgba(255,255,255,0.35)] mt-1">Your team is operating on ongoing rhythms.</p>
       </div>
     )
   }
@@ -110,35 +110,35 @@ export async function WorkflowPhaseWidget() {
   const pct = total > 0 ? Math.round((done / total) * 100) : 0
 
   return (
-    <div className="glass-card gradient-border p-5">
+    <div className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl p-5">
       {/* Header: phase position + label + tagline */}
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0">
           <div className="flex items-center gap-2">
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-600 tabular-nums">
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgba(255,255,255,0.35)] tabular-nums">
               Phase {currentPhase.order} of {PHASES.length}
             </span>
-            <span className="text-stone-700">·</span>
-            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-stone-600">
+            <span className="text-[rgba(255,255,255,0.2)]">·</span>
+            <span className="text-[10px] font-semibold uppercase tracking-[0.1em] text-[rgba(255,255,255,0.35)]">
               {currentPhase.label}
             </span>
           </div>
-          <p className="text-base font-semibold mt-2 text-stone-200">{currentPhase.tagline}</p>
+          <p className="text-base font-semibold mt-2 text-[#f3f4f6]">{currentPhase.tagline}</p>
         </div>
 
         {/* Progress number */}
         <div className="text-right shrink-0">
           <p className="text-[28px] font-bold tabular-nums leading-none">
-            {done}<span className="text-stone-700">/{total}</span>
+            {done}<span className="text-[rgba(255,255,255,0.2)]">/{total}</span>
           </p>
-          <p className="text-[10px] uppercase tracking-[0.1em] text-stone-600 mt-1">Outputs</p>
+          <p className="text-[10px] uppercase tracking-[0.1em] text-[rgba(255,255,255,0.35)] mt-1">Outputs</p>
         </div>
       </div>
 
-      {/* Progress bar — teal fill on stone-800 track */}
-      <div className="progress-glass mt-5 h-1">
+      {/* Progress bar — purple fill on indigo track */}
+      <div className="bg-[#16213e] rounded-full mt-5 h-1">
         <div
-          className="h-full rounded-full transition-all"
+          className="h-full rounded-full bg-[#635bff] transition-all"
           style={{ width: `${pct}%` }}
         />
       </div>
@@ -150,8 +150,8 @@ export async function WorkflowPhaseWidget() {
             <div key={lead.id} className="flex items-center gap-2">
               <PixelAvatar characterIndex={lead.pixelAvatarIndex} size={24} className="rounded-lg" />
               <div className="flex flex-col leading-tight">
-                <span className="text-xs font-medium text-stone-300">{lead.name}</span>
-                <span className="text-[10px] text-stone-600">{lead.role}</span>
+                <span className="text-xs font-medium text-[#d1d5db]">{lead.name}</span>
+                <span className="text-[10px] text-[rgba(255,255,255,0.35)]">{lead.role}</span>
               </div>
             </div>
           ))}
@@ -221,16 +221,16 @@ export async function WorkflowPhaseWidget() {
               <div
                 className={cn(
                   "h-1.5 w-full rounded-full transition-colors",
-                  isCurrent && "bg-teal-500",
-                  isDone && "bg-teal-500/30",
-                  isSkipped && "bg-stone-700",
-                  !isCurrent && !isDone && !isSkipped && "bg-stone-800",
+                  isCurrent && "bg-[#635bff]",
+                  isDone && "bg-[#635bff]/30",
+                  isSkipped && "bg-[#1e2a4a]",
+                  !isCurrent && !isDone && !isSkipped && "bg-[#16213e]",
                 )}
               />
               <span
                 className={cn(
                   "text-[9px] uppercase tracking-[0.1em] truncate max-w-full",
-                  isCurrent ? "text-teal-500 font-semibold" : "text-stone-700",
+                  isCurrent ? "text-[#635bff] font-semibold" : "text-[rgba(255,255,255,0.2)]",
                 )}
               >
                 {p.label.split(" ")[0]}
@@ -242,12 +242,12 @@ export async function WorkflowPhaseWidget() {
 
       {/* Call to action */}
       <div className="mt-4 flex items-center justify-between">
-        <p className="text-[11px] text-stone-600">
+        <p className="text-[11px] text-[rgba(255,255,255,0.35)]">
           {leads.chiefOfStaff?.name ?? "Your team"} is ready when you are.
         </p>
         <Link
           href="/"
-          className="text-[11px] font-medium text-teal-500 hover:text-teal-400 transition-colors"
+          className="text-[11px] font-medium text-[#635bff] hover:text-[#5b52e6] transition-colors"
         >
           Go to Chat →
         </Link>

@@ -14,7 +14,7 @@ export default function AppLoading() {
       {/* Content cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         {Array.from({ length: 6 }).map((_, i) => (
-          <div key={i} className="rounded-md border border-border p-4 space-y-3 glass-card">
+          <div key={i} className="stripe-card-sm p-4 space-y-3">
             <Skeleton className="h-4 w-3/4 shimmer" />
             <Skeleton className="h-3 w-full shimmer" />
             <Skeleton className="h-3 w-5/6 shimmer" />

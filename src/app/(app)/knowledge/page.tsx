@@ -203,7 +203,7 @@ function NewEntryForm({ onSave, onCancel, saving }: { onSave: (entry: { title: s
           <label className="section-label mb-1 block">Category</label>
           <div className="flex gap-1 flex-wrap">
             {categories.filter((c) => c.id !== "all").map((cat) => (
-              <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-teal-500/20 text-teal-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+              <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-[#635bff]/20 text-[#7c3aed]" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
             ))}
           </div>
         </div>
@@ -418,7 +418,7 @@ function ImportPanel({ onSave, onCancel, saving }: { onSave: (entry: { title: st
                 <label className="section-label mb-1 block">Category</label>
                 <div className="flex gap-1 flex-wrap">
                   {categories.filter((c) => c.id !== "all").map((cat) => (
-                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-teal-500/20 text-teal-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+                    <button key={cat.id} onClick={() => setCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium transition-colors", category === cat.id ? "bg-[#635bff]/20 text-[#7c3aed]" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
                   ))}
                 </div>
               </div>
@@ -428,7 +428,7 @@ function ImportPanel({ onSave, onCancel, saving }: { onSave: (entry: { title: st
                 {preview.tags.length > 0 ? (
                   <div className="flex gap-1.5 flex-wrap">
                     {preview.tags.map((tag) => (
-                      <button key={tag} onClick={() => toggleTag(tag)} className={cn("text-[11px] px-2 py-0.5 rounded-full transition-colors", editableTags.includes(tag) ? "bg-teal-500/20 text-teal-400" : "bg-muted/60 text-muted-foreground/60 hover:text-muted-foreground")}>
+                      <button key={tag} onClick={() => toggleTag(tag)} className={cn("text-[11px] px-2 py-0.5 rounded-full transition-colors", editableTags.includes(tag) ? "bg-[#635bff]/20 text-[#7c3aed]" : "bg-muted/60 text-muted-foreground/60 hover:text-muted-foreground")}>
                         #{tag}
                       </button>
                     ))}
@@ -582,7 +582,7 @@ export default function KnowledgePage() {
       <div className="flex-1 flex flex-col min-w-0">
         <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
           <div className="flex items-center gap-2">
-            <Brain className="h-5 w-5 text-teal-400" />
+            <Brain className="h-5 w-5 text-[#7c3aed]" />
             <h1 className="text-lg font-semibold tracking-tight">Knowledge</h1>
             <div className="flex rounded-md border border-border overflow-hidden ml-2">
               <button onClick={() => setKnowledgeTab("wiki")} className={cn("px-2.5 py-1 text-xs font-medium transition-colors", knowledgeTab === "wiki" ? "bg-primary text-primary-foreground" : "text-muted-foreground hover:text-foreground")}>Wiki</button>
@@ -615,7 +615,7 @@ export default function KnowledgePage() {
               </div>
               <div className="flex gap-1 overflow-x-auto">
                 {categories.map((cat) => (
-                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-teal-500/20 text-teal-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
+                  <button key={cat.id} onClick={() => setActiveCategory(cat.id)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", activeCategory === cat.id ? "bg-[#635bff]/20 text-[#7c3aed]" : "bg-muted text-muted-foreground hover:text-foreground")}>{cat.label}</button>
                 ))}
               </div>
             </div>
@@ -627,7 +627,7 @@ export default function KnowledgePage() {
                 {filtered.map((entry) => {
                   const agent = agents.find((a) => a.id === entry.createdByAgentId)
                   return (
-                    <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setShowImport(false); setEditing(false) }} className={cn("w-full text-left rounded-lg border p-3 transition-colors glass-card", selectedEntry === entry.id ? "border-teal-500/50 bg-teal-500/5" : "border-border hover:border-teal-500/30")}>
+                    <button key={entry.id} onClick={() => { setSelectedEntry(entry.id); setShowNewForm(false); setShowImport(false); setEditing(false) }} className={cn("w-full text-left rounded-lg border p-3 transition-colors bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl", selectedEntry === entry.id ? "border-[#635bff]/50 bg-[#635bff]/5" : "border-border hover:border-[#635bff]/30")}>
                       <div className="flex items-start gap-3">
                         {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={28} className="rounded-md border border-border shrink-0 mt-0.5" />}
                         <div className="flex-1 min-w-0">
@@ -642,7 +642,7 @@ export default function KnowledgePage() {
                             {entry.linkedEntries.length > 0 && <> · <Link2 className="h-3 w-3 inline" /> {entry.linkedEntries.length}</>}
                           </p>
                           <div className="flex gap-1 mt-1.5 flex-wrap">
-                            {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-[6px] badge-glass">#{tag}</span>)}
+                            {entry.tags.slice(0, 3).map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-[6px] bg-[rgba(99,91,255,0.1)] text-[#635bff] border border-[rgba(99,91,255,0.15)] rounded-full">#{tag}</span>)}
                           </div>
                         </div>
                       </div>
@@ -660,7 +660,7 @@ export default function KnowledgePage() {
                 const labels: Record<string, string> = { all: "All", client: "Clients", process: "Processes", preference: "Preferences", lesson: "Lessons", fact: "Facts" }
                 const count = cat === "all" ? companyMemories.length : companyMemories.filter((m) => m.category === cat).length
                 return (
-                  <button key={cat} onClick={() => setMemoryCategory(cat)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", memoryCategory === cat ? "bg-teal-500/20 text-teal-400" : "bg-muted text-muted-foreground hover:text-foreground")}>{labels[cat]} {count > 0 && <span className="ml-1 tabular-nums">{count}</span>}</button>
+                  <button key={cat} onClick={() => setMemoryCategory(cat)} className={cn("px-2.5 py-1 rounded-md text-xs font-medium whitespace-nowrap transition-colors", memoryCategory === cat ? "bg-[#635bff]/20 text-[#7c3aed]" : "bg-muted text-muted-foreground hover:text-foreground")}>{labels[cat]} {count > 0 && <span className="ml-1 tabular-nums">{count}</span>}</button>
                 )
               })}
             </div>
@@ -674,7 +674,7 @@ export default function KnowledgePage() {
                   <textarea placeholder="Details..." value={newMemContent} onChange={(e) => setNewMemContent(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
                   <div className="flex gap-1 flex-wrap">
                     {(["client", "process", "preference", "lesson", "fact"] as const).map((cat) => (
-                      <button key={cat} onClick={() => setNewMemCategory(cat)} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors capitalize", newMemCategory === cat ? "bg-teal-500/20 text-teal-400" : "text-muted-foreground hover:text-foreground")}>{cat}</button>
+                      <button key={cat} onClick={() => setNewMemCategory(cat)} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors capitalize", newMemCategory === cat ? "bg-[#635bff]/20 text-[#7c3aed]" : "text-muted-foreground hover:text-foreground")}>{cat}</button>
                     ))}
                   </div>
                   <div className="flex gap-2">
@@ -691,7 +691,7 @@ export default function KnowledgePage() {
 
               {/* Description */}
               <div className="bg-muted/30 border border-dashed border-border rounded-md p-4 text-center">
-                <Database className="h-5 w-5 text-teal-400/50 mx-auto mb-2" />
+                <Database className="h-5 w-5 text-[#7c3aed]/50 mx-auto mb-2" />
                 <p className="text-xs text-muted-foreground">Shared knowledge that all agents draw from — client preferences, learned patterns, company facts.</p>
                 <p className="text-[11px] text-muted-foreground/60 mt-1">Agents contribute memories automatically as they work. You can add them manually too.</p>
               </div>
@@ -748,21 +748,21 @@ export default function KnowledgePage() {
 
       {/* Right -- Import Panel */}
       {showImport && !showNewForm && (
-        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden modal-glass">
+        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-2xl shadow-2xl">
           <ImportPanel onSave={handleCreate} onCancel={() => setShowImport(false)} saving={saving} />
         </div>
       )}
 
       {/* Right -- New Entry Form */}
       {showNewForm && (
-        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden modal-glass">
+        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-2xl shadow-2xl">
           <NewEntryForm onSave={handleCreate} onCancel={() => setShowNewForm(false)} saving={saving} />
         </div>
       )}
 
       {/* Right -- Detail */}
       {selected && !showNewForm && !showImport && (
-        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden glass-subtle">
+        <div className="w-[480px] border-l border-border flex flex-col shrink-0 overflow-hidden bg-[#1a1a2e/50]">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0">
             <h2 className="text-[13px] font-semibold truncate flex-1 mr-2">{selected.title}</h2>
             <div className="flex items-center gap-1">
@@ -802,15 +802,15 @@ export default function KnowledgePage() {
             </div>
 
             <div className="flex flex-wrap gap-1">
-              {selected.tags.map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-[6px] badge-glass">#{tag}</span>)}
+              {selected.tags.map((tag) => <span key={tag} className="text-xs px-1.5 py-0.5 rounded-[6px] bg-[rgba(99,91,255,0.1)] text-[#635bff] border border-[rgba(99,91,255,0.15)] rounded-full">#{tag}</span>)}
             </div>
 
             {/* AI Summary */}
             {selected && summaries[selected.id] && (
-              <div className="bg-teal-500/5 border border-teal-500/10 rounded-md p-3">
+              <div className="bg-[#635bff]/5 border border-[#635bff]/10 rounded-md p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Lightbulb className="h-3 w-3 text-teal-400" />
-                  <span className="text-[11px] text-teal-400 uppercase tracking-wider font-medium">Summary</span>
+                  <Lightbulb className="h-3 w-3 text-[#7c3aed]" />
+                  <span className="text-[11px] text-[#7c3aed] uppercase tracking-wider font-medium">Summary</span>
                 </div>
                 <p className="text-xs text-foreground/80 leading-relaxed">{summaries[selected.id]}</p>
               </div>

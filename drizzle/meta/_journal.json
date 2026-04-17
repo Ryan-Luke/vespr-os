@@ -57,6 +57,13 @@
       "when": 1776285025513,
       "tag": "0007_deep_prima",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1776448397281,
+      "tag": "0008_careless_jane_foster",
+      "breakpoints": true
     }
   ]
 }

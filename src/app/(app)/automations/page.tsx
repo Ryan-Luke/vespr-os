@@ -167,7 +167,7 @@ export default function AutomationsPage() {
         <h1 className="text-lg font-semibold tracking-tight">Automations</h1>
         <button
           onClick={() => setShowNewSchedule(true)}
-          className="h-7 px-2.5 rounded-md btn-teal text-xs font-medium transition-colors inline-flex items-center gap-1.5"
+          className="h-7 px-2.5 rounded-md btn-primary text-xs font-medium transition-colors inline-flex items-center gap-1.5"
         >
           <Plus className="h-3 w-3" />
           New Schedule
@@ -177,7 +177,7 @@ export default function AutomationsPage() {
       {/* New Schedule Modal */}
       {showNewSchedule && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50" onClick={() => setShowNewSchedule(false)}>
-          <div className="modal-glass border border-border rounded-lg shadow-xl w-full max-w-md p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
+          <div className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-2xl shadow-2xl border border-border rounded-lg shadow-xl w-full max-w-md p-5 space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold">New Schedule</h2>
               <button onClick={() => setShowNewSchedule(false)} className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent text-muted-foreground transition-colors">
@@ -299,7 +299,7 @@ export default function AutomationsPage() {
           { label: "Paused", value: pausedCount, icon: <Pause className="h-3.5 w-3.5 text-amber-500/50" /> },
           { label: "Total Schedules", value: schedules.length, icon: <Calendar className="h-3.5 w-3.5 text-muted-foreground/50" /> },
         ].map((s) => (
-          <div key={s.label} className="glass-card p-4">
+          <div key={s.label} className="bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl p-4">
             <div className="flex items-center gap-1.5">{s.icon}<span className="section-label">{s.label}</span></div>
             <p className="text-xl font-semibold tabular-nums mt-1">{s.value}</p>
           </div>

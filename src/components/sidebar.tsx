@@ -10,7 +10,7 @@ import {
   Zap,
   PlusCircle,
   Settings,
-  ChevronRight,
+  ChevronDown,
   Plug,
   ClipboardList,
   LogOut,
@@ -28,13 +28,9 @@ import { useState, useEffect, useCallback } from "react"
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover"
 import { useWorkspace } from "@/lib/workspace-context"
 
-/* ────────────────────────────────────────────────────────────
-   Navigation grouped by concern.
-   Groups create visual rhythm and semantic clarity.
-   ──────────────────────────────────────────────────────────── */
 const navGroups = [
   {
-    label: null, // primary — no label
+    label: null,
     items: [
       { href: "/feed", label: "Home", icon: Trophy },
       { href: "/", label: "Chat", icon: MessageSquare },
@@ -134,74 +130,76 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   }
 
   return (
-    <aside className="flex flex-col w-52 border-r border-border sidebar-glass h-full max-md:w-60">
-      {/* Header — Workspace switcher */}
-      <div className="flex items-center justify-between h-12 px-3 border-b divider-glass shrink-0">
+    <aside className="flex flex-col w-[240px] border-r border-[rgba(255,255,255,0.06)] bg-[#0a0a1a] h-full max-md:w-64 shrink-0">
+      {/* ─── Header: Workspace Switcher ─── */}
+      <div className="flex items-center justify-between h-14 px-4 border-b border-[rgba(255,255,255,0.06)] shrink-0">
         <Popover>
-          <PopoverTrigger className="flex items-center gap-2 hover:bg-white/[0.04] rounded-md px-1.5 py-1 transition-colors -ml-1">
+          <PopoverTrigger className="flex items-center gap-2.5 hover:bg-white/[0.04] rounded-lg px-2 py-1.5 transition-colors -ml-1.5 min-w-0">
             {activeWorkspace ? (
               <>
-                <span className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center text-sm shrink-0">{activeWorkspace.icon}</span>
-                <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px] text-stone-100">{activeWorkspace.name}</span>
+                <span className="h-7 w-7 rounded-lg bg-[#635bff]/15 flex items-center justify-center text-sm shrink-0">{activeWorkspace.icon}</span>
+                <span className="text-[14px] font-semibold tracking-tight truncate text-white">{activeWorkspace.name}</span>
               </>
             ) : (
-              <span className="text-[13px] font-semibold tracking-tight text-stone-100">VESPR</span>
+              <span className="text-[14px] font-semibold tracking-tight text-white">VESPR</span>
             )}
-            <ChevronRight className="h-3 w-3 text-stone-500 rotate-90" />
+            <ChevronDown className="h-3.5 w-3.5 text-gray-500 shrink-0" />
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-1.5 glass-elevated">
-            <p className="text-[10px] text-stone-500 uppercase tracking-widest font-medium px-2 py-1">Workspaces</p>
+          <PopoverContent align="start" className="w-60 p-2 bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl shadow-xl">
+            <p className="text-[10px] text-gray-500 uppercase tracking-[0.1em] font-medium px-2 py-1.5">Workspaces</p>
             {workspaces.map((ws) => (
               <button
                 key={ws.id}
                 onClick={() => setActiveWorkspace(ws)}
                 className={cn(
-                  "flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] transition-colors",
-                  activeWorkspace?.id === ws.id ? "bg-[rgba(20,184,166,0.08)] text-stone-100" : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
+                  "flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-[13px] transition-all",
+                  activeWorkspace?.id === ws.id
+                    ? "bg-[#635bff]/10 text-[#635bff]"
+                    : "text-gray-400 hover:bg-white/[0.04] hover:text-white"
                 )}
               >
-                <span className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center text-xs shrink-0">{ws.icon}</span>
+                <span className="h-6 w-6 rounded-md bg-[#635bff]/10 flex items-center justify-center text-xs shrink-0">{ws.icon}</span>
                 <span className="truncate flex-1 text-left">{ws.name}</span>
-                {activeWorkspace?.id === ws.id && <span className="h-1.5 w-1.5 rounded-full bg-teal-500 shrink-0" />}
+                {activeWorkspace?.id === ws.id && <span className="h-1.5 w-1.5 rounded-full bg-[#635bff] shrink-0" />}
               </button>
             ))}
             {!showNewWs ? (
-              <button onClick={() => setShowNewWs(true)} className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] text-stone-400 hover:bg-white/[0.04] hover:text-stone-100 transition-colors mt-1 border-t border-border pt-1.5">
+              <button onClick={() => setShowNewWs(true)} className="flex items-center gap-2.5 w-full rounded-lg px-2.5 py-2 text-[13px] text-gray-500 hover:bg-white/[0.04] hover:text-white transition-all mt-1 border-t border-[rgba(255,255,255,0.06)] pt-2.5">
                 <PlusCircle className="h-3.5 w-3.5" />
                 New Workspace
               </button>
             ) : (
-              <div className="mt-1 border-t border-border pt-1.5 px-1">
+              <div className="mt-1.5 border-t border-[rgba(255,255,255,0.06)] pt-2 px-0.5">
                 <input
                   value={newWsName}
                   onChange={(e) => setNewWsName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") createWorkspace(); if (e.key === "Escape") setShowNewWs(false) }}
                   placeholder="Business name..."
-                  className="w-full h-7 rounded-md input-glass px-2 text-[12px] text-stone-100 outline-none transition-colors"
+                  className="w-full h-8 rounded-lg bg-[#16213e] border border-[rgba(255,255,255,0.08)] px-3 text-[12px] text-white outline-none transition-all focus:border-[#635bff]/50 focus:ring-1 focus:ring-[#635bff]/20"
                   autoFocus
                 />
-                <div className="flex gap-1 mt-1">
-                  <button onClick={createWorkspace} className="flex-1 h-6 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90">Create</button>
-                  <button onClick={() => setShowNewWs(false)} className="h-6 px-2 rounded-md text-[11px] text-stone-400 hover:bg-white/[0.04]">Cancel</button>
+                <div className="flex gap-1.5 mt-1.5">
+                  <button onClick={createWorkspace} className="flex-1 h-7 rounded-lg bg-[#635bff] text-white text-[11px] font-medium hover:bg-[#5b52e6] transition-colors">Create</button>
+                  <button onClick={() => setShowNewWs(false)} className="h-7 px-3 rounded-lg text-[11px] text-gray-500 hover:bg-white/[0.04] transition-colors">Cancel</button>
                 </div>
               </div>
             )}
           </PopoverContent>
         </Popover>
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-0.5 shrink-0">
           <NotificationBell />
-          <Button variant="ghost" size="sm" className="h-6 w-6 p-0 md:hidden" onClick={onMobileClose}>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 md:hidden text-gray-500" onClick={onMobileClose}>
             <X className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Navigation */}
-      <nav className="flex-1 overflow-y-auto py-2 px-2">
+      {/* ─── Navigation ─── */}
+      <nav className="flex-1 overflow-y-auto py-3 px-3">
         {navGroups.map((group, gi) => (
-          <div key={gi} className={cn(gi > 0 && "mt-4")}>
+          <div key={gi} className={cn(gi > 0 && "mt-5")}>
             {group.label && (
-              <p className="text-[11px] uppercase tracking-widest text-stone-500 font-medium px-2 mb-1">{group.label}</p>
+              <p className="text-[10px] uppercase tracking-[0.1em] text-gray-500 font-semibold px-3 mb-2">{group.label}</p>
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -212,32 +210,23 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                     key={item.href}
                     href={item.href}
                     onClick={() => onMobileClose?.()}
-                    data-tutorial={
-                      item.href === "/" ? "chat" :
-                      item.href === "/teams" ? "teams" :
-                      item.href === "/dashboard" ? "dashboard" :
-                      item.href === "/tasks" ? "tasks" :
-                      item.href === "/knowledge" ? "knowledge" :
-                      undefined
-                    }
                     className={cn(
-                      "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+                      "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all",
                       isActive
-                        ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
-                        : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
+                        ? "bg-[#635bff]/10 text-white font-medium"
+                        : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
                     )}
                   >
-                    {/* Teal left border for active item */}
                     {isActive && (
-                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#635bff]" />
                     )}
                     <item.icon className={cn(
-                      "h-4 w-4 shrink-0",
-                      isActive ? "text-teal-500" : "text-stone-500"
+                      "h-[18px] w-[18px] shrink-0",
+                      isActive ? "text-[#635bff]" : "text-gray-500"
                     )} />
                     <span className="flex-1 truncate">{item.label}</span>
                     {count > 0 && (
-                      <span className="h-4.5 min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">
+                      <span className="h-5 min-w-[20px] rounded-full bg-[#635bff] px-1.5 text-[10px] font-semibold text-white flex items-center justify-center">
                         {count > 99 ? "99+" : count}
                       </span>
                     )}
@@ -249,54 +238,57 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
         ))}
       </nav>
 
-      {/* Footer */}
-      <div className="border-t divider-glass p-2 space-y-0.5">
+      {/* ─── Footer ─── */}
+      <div className="border-t border-[rgba(255,255,255,0.06)] px-3 py-3 space-y-0.5">
         <Link
           href="/builder"
           className={cn(
-            "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all",
             pathname === "/builder"
-              ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
-              : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
+              ? "bg-[#635bff]/10 text-white font-medium"
+              : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
           )}
         >
           {pathname === "/builder" && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#635bff]" />
           )}
-          <PlusCircle className={cn("h-4 w-4 shrink-0", pathname === "/builder" ? "text-teal-500" : "text-stone-500")} />
+          <PlusCircle className={cn("h-[18px] w-[18px] shrink-0", pathname === "/builder" ? "text-[#635bff]" : "text-gray-500")} />
           <span>Hire Agent</span>
         </Link>
         <Link
           href="/settings"
           className={cn(
-            "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            "relative flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] transition-all",
             pathname === "/settings"
-              ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
-              : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
+              ? "bg-[#635bff]/10 text-white font-medium"
+              : "text-gray-400 hover:bg-white/[0.04] hover:text-gray-200"
           )}
         >
           {pathname === "/settings" && (
-            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-[#635bff]" />
           )}
-          <Settings className={cn("h-4 w-4 shrink-0", pathname === "/settings" ? "text-teal-500" : "text-stone-500")} />
+          <Settings className={cn("h-[18px] w-[18px] shrink-0", pathname === "/settings" ? "text-[#635bff]" : "text-gray-500")} />
           <span>Settings</span>
         </Link>
+
+        {/* User Identity */}
         {currentUser && (
-          <div className="flex items-center gap-2.5 px-2 py-2 glass-subtle rounded-lg mt-1 mb-1">
-            <div className="h-7 w-7 rounded-full bg-teal-500/15 flex items-center justify-center text-xs font-semibold text-teal-500 shrink-0">
+          <div className="flex items-center gap-3 px-3 py-2.5 mt-2 rounded-lg bg-white/[0.02] border border-[rgba(255,255,255,0.04)]">
+            <div className="h-8 w-8 rounded-full bg-[#635bff]/15 flex items-center justify-center text-xs font-semibold text-[#635bff] shrink-0">
               {currentUser.avatarEmoji || currentUser.name.charAt(0).toUpperCase()}
             </div>
             <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-medium text-stone-100 truncate">{currentUser.name}</p>
-              <p className="text-[11px] text-stone-500 truncate">{currentUser.email}</p>
+              <p className="text-[13px] font-medium text-white truncate leading-tight">{currentUser.name}</p>
+              <p className="text-[11px] text-gray-500 truncate leading-tight">{currentUser.email}</p>
             </div>
           </div>
         )}
+
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-stone-400 hover:bg-white/[0.04] hover:text-stone-100 transition-colors w-full"
+          className="flex items-center gap-3 rounded-lg px-3 py-2 text-[13px] text-gray-500 hover:bg-white/[0.04] hover:text-gray-300 transition-all w-full mt-1"
         >
-          <LogOut className="h-4 w-4 shrink-0 text-stone-500" />
+          <LogOut className="h-[18px] w-[18px] shrink-0" />
           <span>Log out</span>
         </button>
       </div>
@@ -309,7 +301,7 @@ export function MobileMenuButton({ onClick }: { onClick: () => void }) {
     <Button
       variant="ghost"
       size="sm"
-      className="md:hidden fixed top-2 left-2 z-40 h-8 w-8 p-0"
+      className="md:hidden fixed top-3 left-3 z-40 h-9 w-9 p-0 rounded-lg"
       onClick={onClick}
       aria-label="Open menu"
     >

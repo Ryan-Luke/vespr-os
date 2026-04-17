@@ -89,15 +89,15 @@ const columns = [
 const priorityColors: Record<string, string> = {
   urgent: "text-red-400",
   high: "text-amber-400",
-  medium: "text-teal-500",
+  medium: "text-[#635bff]",
   low: "text-muted-foreground",
 }
 
 const priorityDots: Record<string, string> = {
   urgent: "bg-red-400",
   high: "bg-amber-400",
-  medium: "bg-teal-500",
-  low: "bg-stone-600",
+  medium: "bg-[#635bff]",
+  low: "bg-[rgba(255,255,255,0.08)]",
 }
 
 // --- Task Templates ---
@@ -213,12 +213,12 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
       draggable
       onDragStart={(e) => { e.dataTransfer.setData("taskId", task.id); e.dataTransfer.effectAllowed = "move" }}
       className={cn(
-        "glass-card border border-border rounded-lg p-3 group hover:border-stone-600 transition-all relative cursor-grab active:cursor-grabbing active:opacity-70 active:ring-2 active:ring-teal-500",
+        "bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-xl border border-border rounded-lg p-3 group hover:border-[rgba(255,255,255,0.08)] transition-all relative cursor-grab active:cursor-grabbing active:opacity-70 active:ring-2 active:ring-[#635bff]",
         task.assignedToUser && !isBlocked && "border-l-2 border-l-amber-500",
         isBlocked && "border-l-2 border-l-red-500 opacity-60",
-        isLinkSource && "ring-2 ring-teal-500",
+        isLinkSource && "ring-2 ring-[#635bff]",
         linkingFrom && !isLinkSource && "cursor-pointer",
-        isHighlighted && "ring-1 ring-teal-400/60 shadow-[0_0_8px_rgba(20,184,166,0.25)]",
+        isHighlighted && "ring-1 ring-[#7c3aed]/60 shadow-[0_0_8px_rgba(99,91,255,0.25)]",
       )}
       onClick={() => { if (linkingFrom && linkingFrom !== task.id) { onCompleteLink(task.id) } else if (!linkingFrom) { onOpenDetail(task) } }}
       onMouseEnter={() => onHover(task.id)}
@@ -229,7 +229,7 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
         <span className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0", priorityDots[task.priority] || "bg-zinc-500")} />
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-1">
-            <p className="text-[13px] font-medium leading-snug flex-1 text-stone-100">{task.title}</p>
+            <p className="text-[13px] font-medium leading-snug flex-1 text-white">{task.title}</p>
             {task.description?.includes(TEMPLATE_TAG) && (
               <span className="text-[10px] px-1.5 py-0.5 rounded bg-muted text-muted-foreground shrink-0">📋 Template</span>
             )}
@@ -267,7 +267,7 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
               <Link2 className="h-3 w-3" />
             </button>
           </div>
-          {task.description && <p className="text-[12px] text-stone-400 mt-0.5 line-clamp-2">{task.description}</p>}
+          {task.description && <p className="text-[12px] text-[#9ca3af] mt-0.5 line-clamp-2">{task.description}</p>}
           {/* Task metadata — time, agent, created */}
           <div className="flex items-center gap-3 mt-1.5">
             {elapsed > 0 && (
@@ -277,13 +277,13 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
               </span>
             )}
             {assignedAgent && (
-              <span className="text-[11px] text-stone-500 flex items-center gap-1">
+              <span className="text-[11px] text-[#6b7280] flex items-center gap-1">
                 <PixelAvatar characterIndex={assignedAgent.pixelAvatarIndex} size={14} className="rounded-sm" />
                 {assignedAgent.name}
               </span>
             )}
             {task.assignedToUser && <span className="text-[10px] text-amber-400 font-medium">You</span>}
-            <span className="ml-auto text-[11px] text-stone-500">{new Date(task.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
+            <span className="ml-auto text-[11px] text-[#6b7280]">{new Date(task.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}</span>
           </div>
         </div>
       </div>
@@ -557,7 +557,7 @@ function UserTaskCard({ task, canComplete, onComplete, onFulfill }: {
   const [showDetail, setShowDetail] = useState(false)
   const req = task.requirement
   const isFulfilled = req?.fulfilled === true
-  const priorityDot = task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-amber-500" : task.priority === "medium" ? "bg-teal-500" : "bg-stone-600"
+  const priorityDot = task.priority === "urgent" ? "bg-red-500" : task.priority === "high" ? "bg-amber-500" : task.priority === "medium" ? "bg-[#635bff]" : "bg-[rgba(255,255,255,0.08)]"
 
   return (
     <div className={cn("rounded-md border border-l-2 transition-colors", isFulfilled ? "border-l-emerald-500 bg-emerald-500/5" : "border-l-amber-500 bg-card")}>
@@ -1009,7 +1009,7 @@ export default function TasksPage() {
           </div>
           <div className="relative">
             <Search className="absolute left-2 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-            <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-32 rounded-md input-glass pl-7 pr-2 text-xs outline-none transition-colors" />
+            <input placeholder="Search..." value={search} onChange={(e) => setSearch(e.target.value)} className="h-7 w-32 rounded-md bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] pl-7 pr-2 text-xs outline-none transition-colors" />
           </div>
           <div className="relative">
             <button onClick={() => setShowTemplates((p) => !p)} className="h-7 px-2 rounded-md text-xs font-medium border border-border text-foreground flex items-center gap-1 hover:bg-accent transition-colors"><ClipboardList className="h-3 w-3" />Templates</button>
@@ -1040,12 +1040,12 @@ export default function TasksPage() {
               </div>
             )}
           </div>
-          <button onClick={() => setShowNewTask(true)} className="h-7 px-2 rounded-lg text-xs font-medium btn-teal flex items-center gap-1"><Plus className="h-3 w-3" />New</button>
+          <button onClick={() => setShowNewTask(true)} className="h-7 px-2 rounded-lg text-xs font-medium btn-primary flex items-center gap-1"><Plus className="h-3 w-3" />New</button>
         </div>
       </div>
 
       {/* Filters */}
-      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-border shrink-0 overflow-x-auto glass-subtle">
+      <div className="flex items-center gap-1 px-6 py-1.5 border-b border-border shrink-0 overflow-x-auto bg-[#1a1a2e/50]">
         <button onClick={() => { setFilterTeam(null); setFilterAgent(null) }} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0", !filterTeam && !filterAgent ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>All</button>
         {dbTeams.map((team) => (
           <button key={team.id} onClick={() => { setFilterTeam(filterTeam === team.id ? null : team.id); setFilterAgent(null) }} className={cn("px-2 py-1 rounded-md text-[11px] font-medium transition-colors shrink-0", filterTeam === team.id ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}>{team.icon} {team.name}</button>
@@ -1107,10 +1107,10 @@ export default function TasksPage() {
         {/* New Task Form */}
         {showNewTask && (
           <div className="px-6 py-4 border-b border-border">
-            <div className="glass-elevated border border-border rounded-md p-4 space-y-3">
+            <div className="bg-[#16213e] border border-border rounded-md p-4 space-y-3">
               <p className="section-label">New Task</p>
-              <input placeholder="Task title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full h-8 rounded-md input-glass px-3 text-[13px] outline-none transition-colors" />
-              <textarea placeholder="Description (optional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} className="w-full rounded-md input-glass px-3 py-2 text-[13px] outline-none resize-none transition-colors" />
+              <input placeholder="Task title" value={newTitle} onChange={(e) => setNewTitle(e.target.value)} className="w-full h-8 rounded-md bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] px-3 text-[13px] outline-none transition-colors" />
+              <textarea placeholder="Description (optional)" value={newDesc} onChange={(e) => setNewDesc(e.target.value)} rows={2} className="w-full rounded-md bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] px-3 py-2 text-[13px] outline-none resize-none transition-colors" />
               <div className="grid grid-cols-3 gap-2">
                 <Select value={newPriority} onValueChange={(v) => setNewPriority(v ?? "medium")}>
                   <SelectTrigger className="h-8 text-xs"><SelectValue placeholder="Priority" /></SelectTrigger>
@@ -1152,9 +1152,9 @@ export default function TasksPage() {
 
         {/* Linking mode banner */}
         {linkingFrom && (
-          <div className="px-6 py-1.5 bg-teal-500/10 border-b border-teal-500/20 flex items-center gap-2">
-            <Link2 className="h-3 w-3 text-teal-400" />
-            <span className="text-[11px] text-teal-400 font-medium">
+          <div className="px-6 py-1.5 bg-[#635bff]/10 border-b border-[#635bff]/20 flex items-center gap-2">
+            <Link2 className="h-3 w-3 text-[#7c3aed]" />
+            <span className="text-[11px] text-[#7c3aed] font-medium">
               Linking mode — click a task to mark it as blocked by &ldquo;{filteredTasks.find((t) => t.id === linkingFrom)?.title ?? "selected task"}&rdquo;
             </span>
             <button onClick={() => setLinkingFrom(null)} className="ml-auto text-[11px] text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1">
@@ -1187,15 +1187,15 @@ export default function TasksPage() {
                     key={col.id}
                     className={cn(
                       "w-60 flex flex-col shrink-0 bg-background transition-colors",
-                      dragOverColumn === col.id && "bg-teal-500/5 border border-teal-500/20",
+                      dragOverColumn === col.id && "bg-[#635bff]/5 border border-[#635bff]/20",
                     )}
                     onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverColumn(col.id) }}
                     onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverColumn(null) }}
                     onDrop={(e) => { e.preventDefault(); setDragOverColumn(null); const taskId = e.dataTransfer.getData("taskId"); if (taskId) moveTask(taskId, col.id) }}
                   >
-                    <div className="flex items-center justify-between px-3 py-2 border-b border-border glass-subtle">
-                      <span className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold">{col.label}</span>
-                      <span className="text-[10px] text-stone-300 tabular-nums badge-glass rounded-full px-1.5 py-0.5">{colTasks.length}</span>
+                    <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-[#1a1a2e/50]">
+                      <span className="text-[11px] uppercase tracking-widest text-[#6b7280] font-semibold">{col.label}</span>
+                      <span className="text-[10px] text-[#d1d5db] tabular-nums bg-[rgba(99,91,255,0.1)] text-[#635bff] border border-[rgba(99,91,255,0.15)] rounded-full rounded-full px-1.5 py-0.5">{colTasks.length}</span>
                     </div>
                     <div className="flex-1 p-2 space-y-1.5 overflow-y-auto">
                       {colTasks.map((task) => (

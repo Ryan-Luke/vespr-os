@@ -41,18 +41,18 @@ interface DBTask {
 }
 
 const statusOptions = [
-  { id: "backlog", label: "Backlog", icon: <Clock className="h-3 w-3" />, color: "text-white", bg: "bg-teal-500" },
-  { id: "todo", label: "To Do", icon: <AlertCircle className="h-3 w-3" />, color: "text-white", bg: "bg-teal-500" },
-  { id: "in_progress", label: "In Progress", icon: <Loader2 className="h-3 w-3" />, color: "text-white", bg: "bg-teal-500" },
-  { id: "review", label: "Review", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-white", bg: "bg-teal-500" },
-  { id: "done", label: "Done", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-white", bg: "bg-teal-500" },
+  { id: "backlog", label: "Backlog", icon: <Clock className="h-3 w-3" />, color: "text-white", bg: "bg-[#635bff]" },
+  { id: "todo", label: "To Do", icon: <AlertCircle className="h-3 w-3" />, color: "text-white", bg: "bg-[#635bff]" },
+  { id: "in_progress", label: "In Progress", icon: <Loader2 className="h-3 w-3" />, color: "text-white", bg: "bg-[#635bff]" },
+  { id: "review", label: "Review", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-white", bg: "bg-[#635bff]" },
+  { id: "done", label: "Done", icon: <CheckCircle2 className="h-3 w-3" />, color: "text-white", bg: "bg-[#635bff]" },
 ]
 
 const priorityOptions = [
   { id: "urgent", label: "Urgent", dot: "bg-red-400", text: "text-red-400" },
   { id: "high", label: "High", dot: "bg-amber-400", text: "text-amber-400" },
-  { id: "medium", label: "Medium", dot: "bg-teal-500", text: "text-teal-500" },
-  { id: "low", label: "Low", dot: "bg-stone-600", text: "text-muted-foreground" },
+  { id: "medium", label: "Medium", dot: "bg-[#635bff]", text: "text-[#635bff]" },
+  { id: "low", label: "Low", dot: "bg-[rgba(255,255,255,0.08)]", text: "text-muted-foreground" },
 ]
 
 interface TaskDetailModalProps {
@@ -149,7 +149,7 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
     >
       <div
         ref={panelRef}
-        className="relative modal-glass gradient-border rounded-2xl shadow-2xl w-full max-w-[600px] mx-4 max-h-[85vh] overflow-y-auto translate-y-4 opacity-0 transition-all duration-200"
+        className="relative bg-[#1a1a2e] border border-[rgba(255,255,255,0.08)] rounded-2xl shadow-2xl rounded-2xl shadow-2xl w-full max-w-[600px] mx-4 max-h-[85vh] overflow-y-auto translate-y-4 opacity-0 transition-all duration-200"
       >
         {/* Close button */}
         <button
@@ -183,8 +183,8 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
                     className={cn(
                       "h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 transition-colors",
                       status === s.id
-                        ? "btn-teal"
-                        : "btn-glass text-muted-foreground/60 hover:text-muted-foreground",
+                        ? "btn-primary"
+                        : "btn-secondary text-muted-foreground/60 hover:text-muted-foreground",
                     )}
                   >
                     {s.icon}
@@ -206,8 +206,8 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
                   className={cn(
                     "h-7 px-2.5 rounded-full text-[11px] font-medium flex items-center gap-1.5 transition-colors",
                     priority === p.id
-                      ? "btn-teal"
-                      : "btn-glass text-muted-foreground/60 hover:text-muted-foreground",
+                      ? "btn-primary"
+                      : "btn-secondary text-muted-foreground/60 hover:text-muted-foreground",
                   )}
                 >
                   <span className={cn("h-1.5 w-1.5 rounded-full", p.dot)} />
@@ -258,7 +258,7 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
               onChange={(e) => setDescription(e.target.value)}
               rows={3}
               placeholder="Add a description..."
-              className="w-full rounded-lg input-glass px-3 py-2 text-[13px] outline-none resize-none transition-colors"
+              className="w-full rounded-lg bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] px-3 py-2 text-[13px] outline-none resize-none transition-colors"
             />
           </div>
 
@@ -270,7 +270,7 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
               onChange={(e) => setInstructions(e.target.value)}
               rows={3}
               placeholder="Add instructions for the agent..."
-              className="w-full rounded-lg input-glass px-3 py-2 text-[13px] outline-none resize-none transition-colors"
+              className="w-full rounded-lg bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] px-3 py-2 text-[13px] outline-none resize-none transition-colors"
             />
           </div>
 
@@ -365,7 +365,7 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
                 className={cn(
                   "h-8 px-4 rounded-lg text-[12px] font-medium transition-colors flex items-center gap-1.5",
                   hasChanges
-                    ? "bg-teal-500 text-white hover:bg-teal-600"
+                    ? "bg-[#635bff] text-white hover:bg-[#5b52e0]"
                     : "bg-muted text-muted-foreground cursor-not-allowed",
                 )}
               >

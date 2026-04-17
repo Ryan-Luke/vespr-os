@@ -17,15 +17,15 @@ import {
 } from "recharts"
 
 // ── Design tokens (Stripe-inspired) ──────────────────────────
-const TEAL = "#14b8a6"               // Primary data series
-const STONE_600 = "#57534e"          // Secondary data series
+const TEAL = "#635bff"               // Primary purple accent
+const STONE_600 = "#4a4a6a"          // Secondary muted
 const GRID_STROKE = "rgba(255,255,255,0.04)"
-const AXIS_STYLE = { fill: "#78716c", fontSize: 11 }
+const AXIS_STYLE = { fill: "#6b7280", fontSize: 11 }
 const TOOLTIP_STYLE = {
-  backgroundColor: "#1c1917",
-  border: "1px solid rgba(255,255,255,0.06)",
+  backgroundColor: "#1a1a2e",
+  border: "1px solid rgba(255,255,255,0.08)",
   borderRadius: "12px",
-  color: "#e7e5e4",
+  color: "#d1d5db",
   fontSize: "12px",
 }
 
@@ -55,7 +55,7 @@ export function AgentActivityChart() {
           strokeWidth={2}
           fill="none"
           dot={false}
-          activeDot={{ r: 4, fill: TEAL, stroke: "#1c1917", strokeWidth: 2 }}
+          activeDot={{ r: 4, fill: TEAL, stroke: "#1a1a2e", strokeWidth: 2 }}
         />
       </AreaChart>
     </ResponsiveContainer>
@@ -63,7 +63,7 @@ export function AgentActivityChart() {
 }
 
 // ── Cost by Team (Bar Chart) ──────────────────────────────────
-const TEAM_COLORS = [TEAL, STONE_600, "#78716c", "#a8a29e", "#44403c"]
+const TEAM_COLORS = [TEAL, STONE_600, "#6b7280", "#9ca3af", "#1e2a4a"]
 
 export function CostByTeamChart({ data }: { data: { team: string; cost: number }[] }) {
   return (
@@ -88,11 +88,11 @@ export function CostByTeamChart({ data }: { data: { team: string; cost: number }
 
 // ── Task Status Distribution (Pie/Donut Chart) ───────────────
 const STATUS_COLORS: Record<string, string> = {
-  backlog: "#44403c",      // stone-700
-  todo: "#78716c",         // stone-500
-  in_progress: TEAL,       // teal primary
-  review: "#5eead4",       // teal-300
-  done: "#0d9488",         // teal-600
+  backlog: "#1e2a4a",      // navy muted
+  todo: "#6b7280",         // gray muted
+  in_progress: TEAL,       // purple primary
+  review: "#7c3aed",       // secondary purple
+  done: "#5b52e0",         // deeper purple
 }
 
 const STATUS_LABELS: Record<string, string> = {

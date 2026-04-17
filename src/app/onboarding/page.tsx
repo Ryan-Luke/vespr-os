@@ -293,18 +293,18 @@ export default function OnboardingWizard() {
               <PixelAvatar characterIndex={3} size={80} />
             </div>
             <h2 className="text-2xl font-bold text-white">Welcome to VESPR</h2>
-            <p className="text-zinc-400 max-w-md mx-auto">
+            <p className="text-gray-400 max-w-md mx-auto">
               I&apos;m Nova, your team coordinator. I&apos;ll get your workspace set up in about 3 minutes.
               Let&apos;s start with the basics.
             </p>
             <div className="max-w-sm mx-auto">
-              <label className="block text-sm text-zinc-400 mb-2 text-left">What&apos;s your name?</label>
+              <label className="block text-sm text-gray-400 mb-2 text-left">What&apos;s your name?</label>
               <input
                 type="text"
                 value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)}
                 placeholder="Your name"
-                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
+                className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white placeholder-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && isStepValid() && goNext()}
               />
@@ -317,16 +317,16 @@ export default function OnboardingWizard() {
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white">What kind of business, {ownerName.split(" ")[0]}?</h2>
-              <p className="text-zinc-400 mt-2">This determines your agent team, workflows, and integrations.</p>
+              <p className="text-gray-400 mt-2">This determines your agent team, workflows, and integrations.</p>
             </div>
             <div className="max-w-sm mx-auto mb-4">
-              <label className="block text-sm text-zinc-400 mb-2">Business name</label>
+              <label className="block text-sm text-gray-400 mb-2">Business name</label>
               <input
                 type="text"
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="Acme Inc"
-                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
+                className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white placeholder-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
               />
             </div>
             <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
@@ -335,15 +335,15 @@ export default function OnboardingWizard() {
                   key={bt.id}
                   onClick={() => setBusinessType(bt.id)}
                   className={cn(
-                    "flex flex-col items-start p-4 rounded-lg border transition-all text-left",
+                    "flex flex-col items-start p-4 rounded-xl border transition-all text-left",
                     businessType === bt.id
-                      ? "btn-teal border-teal-500/50 ring-1 ring-teal-500/30"
-                      : "btn-glass"
+                      ? "bg-[rgba(99,91,255,0.1)] border-[#635bff]/50 ring-1 ring-[#635bff]/30"
+                      : "bg-[#1a1a2e] border-[rgba(255,255,255,0.08)] hover:border-[rgba(255,255,255,0.12)] hover:bg-[rgba(255,255,255,0.05)]"
                   )}
                 >
                   <span className="text-2xl mb-2">{bt.icon}</span>
                   <span className="text-sm font-medium text-white">{bt.label}</span>
-                  <span className="text-xs text-zinc-500 mt-1">{bt.description}</span>
+                  <span className="text-xs text-gray-500 mt-1">{bt.description}</span>
                 </button>
               ))}
             </div>
@@ -355,33 +355,33 @@ export default function OnboardingWizard() {
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white">Tell me about {businessName}</h2>
-              <p className="text-zinc-400 mt-2">This context helps your agents make better decisions from day one.</p>
+              <p className="text-gray-400 mt-2">This context helps your agents make better decisions from day one.</p>
             </div>
             <div className="max-w-md mx-auto space-y-4">
               <div>
-                <label className="block text-sm text-zinc-400 mb-2">Industry</label>
+                <label className="block text-sm text-gray-400 mb-2">Industry</label>
                 <input
                   type="text"
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
                   placeholder="e.g., AI Services, E-commerce, Fintech"
-                  className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
+                  className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white placeholder-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                 />
               </div>
               {templatePreview?.onboardingQuestions.map((q) => (
                 <div key={q.key}>
-                  <label className="block text-sm text-zinc-400 mb-2">
+                  <label className="block text-sm text-gray-400 mb-2">
                     {q.question}
                     {q.required && <span className="text-red-400 ml-1">*</span>}
                   </label>
-                  {q.helpText && <p className="text-xs text-zinc-600 mb-2">{q.helpText}</p>}
+                  {q.helpText && <p className="text-xs text-gray-600 mb-2">{q.helpText}</p>}
                   {q.inputType === "select" && q.options ? (
                     <select
                       value={(profileAnswers[q.storageKey] as string) || ""}
                       onChange={(e) =>
                         setProfileAnswers((prev) => ({ ...prev, [q.storageKey]: e.target.value }))
                       }
-                      className="w-full px-4 py-3 input-glass rounded-lg text-white focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                     >
                       <option value="">Select...</option>
                       {q.options.map((o) => (
@@ -409,8 +409,8 @@ export default function OnboardingWizard() {
                             className={cn(
                               "px-3 py-1.5 rounded-full text-xs border transition-all",
                               selected
-                                ? "bg-blue-500/20 border-blue-500/50 text-blue-300"
-                                : "bg-zinc-900 border-zinc-700 text-zinc-400 hover:border-zinc-600"
+                                ? "bg-[rgba(99,91,255,0.15)] border-[#635bff]/50 text-[#635bff]"
+                                : "bg-[#1a1a2e] border-[rgba(255,255,255,0.08)] text-gray-400 hover:border-[rgba(255,255,255,0.12)]"
                             )}
                           >
                             {o.label}
@@ -426,7 +426,7 @@ export default function OnboardingWizard() {
                       }
                       placeholder={q.placeholder || ""}
                       rows={3}
-                      className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white placeholder-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                     />
                   ) : (
                     <input
@@ -436,7 +436,7 @@ export default function OnboardingWizard() {
                         setProfileAnswers((prev) => ({ ...prev, [q.storageKey]: e.target.value }))
                       }
                       placeholder={q.placeholder || ""}
-                      className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
+                      className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl text-white placeholder-gray-500 outline-none focus:border-[#635bff] focus:ring-1 focus:ring-[#635bff]/20 transition-colors"
                     />
                   )}
                 </div>
@@ -450,14 +450,14 @@ export default function OnboardingWizard() {
           <div className="space-y-6 text-center">
             <Key className="w-12 h-12 text-amber-400 mx-auto" />
             <h2 className="text-2xl font-bold text-white">Your Anthropic API Key</h2>
-            <p className="text-zinc-400 max-w-md mx-auto">
+            <p className="text-gray-400 max-w-md mx-auto">
               Your agents run on Claude. You bring your own API key so you control costs directly.
               Get one at{" "}
               <a
                 href="https://console.anthropic.com/settings/keys"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-400 underline"
+                className="text-[#635bff] underline hover:text-[#7c3aed]"
               >
                 console.anthropic.com
               </a>
@@ -472,7 +472,7 @@ export default function OnboardingWizard() {
                   setError(null)
                 }}
                 placeholder="sk-ant-..."
-                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none font-mono text-sm"
+                className="w-full px-4 py-3 bg-[#16213e] border border-[rgba(255,255,255,0.08)] rounded-xl focus:border-[#635bff] rounded-lg text-white placeholder-gray-500 focus:outline-none font-mono text-sm"
                 onKeyDown={(e) => e.key === "Enter" && apiKey.length > 10 && validateApiKey()}
               />
               {apiKeyValid && (
@@ -484,7 +484,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={validateApiKey}
                 disabled={apiKeyValidating || apiKey.length < 10}
-                className="w-full py-3 btn-teal disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 btn-primary disabled:bg-[#16213e] disabled:text-gray-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {apiKeyValidating ? (
                   <>
@@ -504,7 +504,7 @@ export default function OnboardingWizard() {
           <div className="space-y-6">
             <div className="text-center">
               <h2 className="text-2xl font-bold text-white">Meet Your Team</h2>
-              <p className="text-zinc-400 mt-2">
+              <p className="text-gray-400 mt-2">
                 Here&apos;s the team we&apos;ve assembled for {businessName}. You can customize everything later.
               </p>
               {templatePreview && !templatePreview.businessTypes?.includes(businessType) && (
@@ -518,56 +518,56 @@ export default function OnboardingWizard() {
                 {/* Teams */}
                 <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
                   {templatePreview.teams.map((team) => (
-                    <div key={team.name} className="p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+                    <div key={team.name} className="p-3 bg-[#1a1a2e] rounded-lg border border-[rgba(255,255,255,0.08)]">
                       <div className="text-lg mb-1">{team.icon}</div>
                       <div className="text-sm font-medium text-white">{team.name}</div>
-                      <div className="text-xs text-zinc-500 mt-1">{team.description}</div>
+                      <div className="text-xs text-gray-500 mt-1">{team.description}</div>
                     </div>
                   ))}
                 </div>
                 {/* Agents */}
                 <div className="space-y-2">
-                  <h3 className="text-sm font-medium text-zinc-400 uppercase tracking-wider">Agents ({templatePreview.agentCount})</h3>
+                  <h3 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Agents ({templatePreview.agentCount})</h3>
                   {templatePreview.agents.map((agent) => (
-                    <div key={agent.name} className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg border border-zinc-800">
+                    <div key={agent.name} className="flex items-center gap-3 p-3 bg-[#1a1a2e] rounded-lg border border-[rgba(255,255,255,0.08)]">
                       <PixelAvatar characterIndex={0} size={32} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2">
                           <span className="text-sm font-medium text-white">{agent.name}</span>
-                          <span className="text-xs text-zinc-500">{agent.role}</span>
+                          <span className="text-xs text-gray-500">{agent.role}</span>
                           {agent.isTeamLead && (
                             <span className="text-[10px] px-1.5 py-0.5 bg-amber-500/10 text-amber-400 rounded">Lead</span>
                           )}
                         </div>
                         <div className="flex flex-wrap gap-1 mt-1">
                           {agent.skills.slice(0, 3).map((skill) => (
-                            <span key={skill} className="text-[10px] px-1.5 py-0.5 bg-zinc-800 text-zinc-500 rounded">
+                            <span key={skill} className="text-[10px] px-1.5 py-0.5 bg-[#16213e] text-gray-500 rounded">
                               {skill}
                             </span>
                           ))}
                           {agent.skills.length > 3 && (
-                            <span className="text-[10px] text-zinc-600">+{agent.skills.length - 3} more</span>
+                            <span className="text-[10px] text-gray-600">+{agent.skills.length - 3} more</span>
                           )}
                         </div>
                       </div>
-                      <span className="text-xs text-zinc-600">{agent.teamName}</span>
+                      <span className="text-xs text-gray-600">{agent.teamName}</span>
                     </div>
                   ))}
                   {/* Nova */}
-                  <div className="flex items-center gap-3 p-3 bg-zinc-900 rounded-lg border border-zinc-800 border-dashed">
+                  <div className="flex items-center gap-3 p-3 bg-[#1a1a2e] rounded-lg border border-[rgba(255,255,255,0.08)] border-dashed">
                     <PixelAvatar characterIndex={3} size={32} />
                     <div className="flex-1">
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-medium text-white">Nova</span>
-                        <span className="text-xs text-zinc-500">Chief of Staff</span>
+                        <span className="text-xs text-gray-500">Chief of Staff</span>
                       </div>
-                      <div className="text-[10px] text-zinc-600 mt-1">Cross-team coordination (included with every workspace)</div>
+                      <div className="text-[10px] text-gray-600 mt-1">Cross-team coordination (included with every workspace)</div>
                     </div>
                   </div>
                 </div>
               </div>
             ) : (
-              <div className="text-center text-zinc-500 py-12">
+              <div className="text-center text-gray-500 py-12">
                 <Loader2 className="w-8 h-8 animate-spin mx-auto mb-3" />
                 Loading team preview...
               </div>
@@ -580,44 +580,44 @@ export default function OnboardingWizard() {
           <div className="space-y-6 text-center">
             {launching ? (
               <>
-                <Loader2 className="w-16 h-16 text-blue-400 mx-auto animate-spin" />
+                <Loader2 className="w-16 h-16 text-[#635bff] mx-auto animate-spin" />
                 <h2 className="text-2xl font-bold text-white">Setting Up {businessName}</h2>
-                <p className="text-zinc-400">{launchProgress}</p>
+                <p className="text-gray-400">{launchProgress}</p>
               </>
             ) : (
               <>
-                <CheckCircle className="w-16 h-16 text-blue-400 mx-auto" />
+                <CheckCircle className="w-16 h-16 text-[#635bff] mx-auto" />
                 <h2 className="text-2xl font-bold text-white">Ready to Go</h2>
-                <p className="text-zinc-400 max-w-md mx-auto">
+                <p className="text-gray-400 max-w-md mx-auto">
                   We&apos;ll create your workspace with {templatePreview?.agentCount ?? "your"} agents,
                   {" "}{templatePreview?.teams.length ?? "your"} teams, and everything configured for{" "}
                   {businessName}. You can change anything later.
                 </p>
                 <div className="max-w-sm mx-auto space-y-2 text-left">
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>Owner: {ownerName}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>Business: {businessName} ({BUSINESS_TYPES.find((b) => b.id === businessType)?.label})</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>API Key: validated</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>Template: {templatePreview?.label ?? selectedTemplateId ?? "Default"}</span>
                   </div>
-                  <div className="flex items-center gap-2 text-zinc-400 text-sm">
+                  <div className="flex items-center gap-2 text-gray-400 text-sm">
                     <Check className="w-4 h-4 text-emerald-400" />
                     <span>Plan: Free (upgrade anytime)</span>
                   </div>
                 </div>
                 <button
                   onClick={launchWorkspace}
-                  className="px-8 py-4 btn-teal text-white rounded-lg font-bold text-lg transition-colors flex items-center gap-2 mx-auto"
+                  className="px-8 py-4 btn-primary text-white rounded-lg font-bold text-lg transition-colors flex items-center gap-2 mx-auto"
                 >
                   Get started
                 </button>
@@ -629,9 +629,9 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-black bg-ambient flex flex-col">
+    <div className="min-h-screen gradient-mesh flex flex-col relative">
       {/* Progress bar */}
-      <div className="border-b border-zinc-800 px-6 py-4">
+      <div className="border-b border-[rgba(255,255,255,0.06)] px-6 py-4 relative z-10">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
           {STEPS.map((step, i) => (
             <div key={step} className="flex items-center gap-2">
@@ -641,8 +641,8 @@ export default function OnboardingWizard() {
                   i < currentIndex
                     ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
                     : i === currentIndex
-                      ? "bg-teal-500/20 border-teal-500/50 text-teal-400"
-                      : "bg-zinc-900 border-zinc-700 text-zinc-600"
+                      ? "bg-[rgba(99,91,255,0.15)] border-[#635bff]/50 text-[#635bff]"
+                      : "bg-[#1a1a2e] border-[rgba(255,255,255,0.08)] text-gray-600"
                 )}
               >
                 {i < currentIndex ? <Check className="w-3.5 h-3.5" /> : i + 1}
@@ -650,13 +650,13 @@ export default function OnboardingWizard() {
               <span
                 className={cn(
                   "text-xs hidden sm:block",
-                  i === currentIndex ? "text-white" : "text-zinc-600"
+                  i === currentIndex ? "text-white" : "text-gray-600"
                 )}
               >
                 {STEP_META[step].label}
               </span>
               {i < STEPS.length - 1 && (
-                <div className={cn("w-8 h-px", i < currentIndex ? "bg-emerald-500/30" : "bg-zinc-800")} />
+                <div className={cn("w-8 h-px", i < currentIndex ? "bg-emerald-500/30" : "bg-[#16213e]")} />
               )}
             </div>
           ))}
@@ -664,8 +664,8 @@ export default function OnboardingWizard() {
       </div>
 
       {/* Step content */}
-      <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl glass-elevated gradient-border rounded-2xl p-8">
+      <div className="flex-1 flex items-center justify-center px-6 py-12 relative z-10">
+        <div className="w-full max-w-2xl stripe-card p-8">
           {renderStep()}
 
           {/* Error */}
@@ -680,12 +680,12 @@ export default function OnboardingWizard() {
 
       {/* Navigation */}
       {!launching && (
-        <div className="border-t border-zinc-800 px-6 py-4">
+        <div className="border-t border-[rgba(255,255,255,0.06)] px-6 py-4 relative z-10">
           <div className="max-w-2xl mx-auto flex items-center justify-between">
             <button
               onClick={goBack}
               disabled={!canGoBack}
-              className="flex items-center gap-2 text-zinc-400 hover:text-white disabled:text-zinc-700 transition-colors"
+              className="flex items-center gap-2 text-gray-400 hover:text-white disabled:text-gray-700 transition-colors"
             >
               <ArrowLeft className="w-4 h-4" />
               Back
@@ -694,7 +694,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={goNext}
                 disabled={!isStepValid()}
-                className="flex items-center gap-2 px-6 py-2 btn-teal disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-2 btn-primary disabled:bg-[#16213e] disabled:text-gray-500 text-white rounded-lg font-medium transition-colors"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />

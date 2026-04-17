@@ -66,7 +66,7 @@ export default function OfficePage() {
       </div>
 
       {selectedAgent && (
-        <div className="w-64 shrink-0 border-l border-border overflow-y-auto glass">
+        <div className="w-64 shrink-0 border-l border-border overflow-y-auto bg-[#0f0f23]">
           <div className="flex items-center justify-between h-12 px-3 border-b border-border">
             <span className="text-[13px] font-medium">Details</span>
             <button className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-accent" onClick={() => setSelectedAgent(null)}><X className="h-3 w-3 text-muted-foreground" /></button>
