@@ -24,9 +24,10 @@ import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildWebTools } from "@/lib/agents/web-tools"
-import { consultAgent } from "@/lib/agents/consultation"
+import { consultAgent, startAgentThread } from "@/lib/agents/consultation"
 import { buildAgentContext } from "@/lib/learning/context-builder"
 import { checkDependencies } from "@/lib/agents/orchestrator"
+import { escalate } from "@/lib/agents/escalation"
 
 // ── Department-specific handoff prompts ───────────────────────────────
 // When one department hands off to another, the receiving agent needs
@@ -608,6 +609,185 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           return result
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Consultation failed" }
+        }
+      },
+    }),
+
+    start_collaboration: tool({
+      description:
+        "Start a persistent collaboration thread with another agent. Unlike consult_agent (single question/answer), this creates an ongoing conversation for coordination, negotiation, or joint planning. Both agents can exchange multiple messages. Use when you need to work through something complex with a colleague.",
+      inputSchema: jsonSchema<{
+        targetAgentName: string
+        subject: string
+        message: string
+        type?: "coordination" | "negotiation" | "review"
+      }>({
+        type: "object",
+        properties: {
+          targetAgentName: {
+            type: "string",
+            description: "The name of the agent to collaborate with",
+          },
+          subject: {
+            type: "string",
+            description: "Brief subject line for the thread",
+            minLength: 3,
+            maxLength: 200,
+          },
+          message: {
+            type: "string",
+            description: "Your opening message. Be clear about what you want to work on together.",
+            minLength: 5,
+            maxLength: 3000,
+          },
+          type: {
+            type: "string",
+            enum: ["coordination", "negotiation", "review"],
+            description: "Type of collaboration. Default: coordination",
+          },
+        },
+        required: ["targetAgentName", "subject", "message"],
+        additionalProperties: false,
+      }),
+      execute: async ({ targetAgentName, subject, message, type }) => {
+        try {
+          const result = await startAgentThread({
+            workspaceId,
+            initiatorAgentId: agentId,
+            targetAgentName,
+            subject,
+            initialMessage: message,
+            type: type ?? "coordination",
+          })
+          return {
+            ok: true,
+            threadId: result.threadId,
+            response: result.response,
+            message: `Collaboration thread started with ${targetAgentName}. Thread ID: ${result.threadId}`,
+          }
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Failed to start collaboration" }
+        }
+      },
+    }),
+
+    request_review: tool({
+      description:
+        "Ask another agent to review your work before finalizing. Creates a review thread where the reviewer can approve, suggest changes, or reject. Use this before publishing content, sending communications, or completing major deliverables.",
+      inputSchema: jsonSchema<{
+        reviewerAgentName: string
+        title: string
+        content: string
+        context?: string
+      }>({
+        type: "object",
+        properties: {
+          reviewerAgentName: {
+            type: "string",
+            description: "The name of the agent to review your work",
+          },
+          title: {
+            type: "string",
+            description: "What you're asking them to review",
+            minLength: 3,
+            maxLength: 200,
+          },
+          content: {
+            type: "string",
+            description: "The work product to review. Include the full text or a detailed summary.",
+            minLength: 10,
+            maxLength: 5000,
+          },
+          context: {
+            type: "string",
+            description: "Additional context about the work (audience, goals, constraints)",
+            maxLength: 1000,
+          },
+        },
+        required: ["reviewerAgentName", "title", "content"],
+        additionalProperties: false,
+      }),
+      execute: async ({ reviewerAgentName, title, content, context }) => {
+        try {
+          const reviewMessage = `**Review Request: ${title}**
+
+${context ? `Context: ${context}\n\n` : ""}Content to review:
+
+${content}
+
+Please review and respond with:
+- "ACCEPTED:" if this is good to go, with any minor notes
+- "COUNTER:" if changes are needed, with specific suggestions
+- "REJECTED:" if this needs significant rework, with reasons`
+
+          const result = await startAgentThread({
+            workspaceId,
+            initiatorAgentId: agentId,
+            targetAgentName: reviewerAgentName,
+            subject: `Review: ${title}`,
+            initialMessage: reviewMessage,
+            type: "review",
+          })
+          return {
+            ok: true,
+            threadId: result.threadId,
+            reviewerFeedback: result.response,
+            message: `Review requested from ${reviewerAgentName}. Thread ID: ${result.threadId}`,
+          }
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Review request failed" }
+        }
+      },
+    }),
+
+    escalate_issue: tool({
+      description:
+        "Escalate a blocker or critical issue to the Chief of Staff (Nova) or the human workspace owner. Use this when you're stuck, need a decision you can't make, or something is going wrong that needs immediate attention. Low/medium issues go to Nova; high/critical also alert the human.",
+      inputSchema: jsonSchema<{
+        reason: string
+        context: string
+        severity: "low" | "medium" | "high" | "critical"
+      }>({
+        type: "object",
+        properties: {
+          reason: {
+            type: "string",
+            description: "Brief reason for the escalation",
+            minLength: 5,
+            maxLength: 500,
+          },
+          context: {
+            type: "string",
+            description: "Full context: what you tried, what went wrong, what you need",
+            minLength: 10,
+            maxLength: 3000,
+          },
+          severity: {
+            type: "string",
+            enum: ["low", "medium", "high", "critical"],
+            description: "low/medium = Nova handles. high/critical = human is also notified.",
+          },
+        },
+        required: ["reason", "context", "severity"],
+        additionalProperties: false,
+      }),
+      execute: async ({ reason, context, severity }) => {
+        try {
+          const result = await escalate({
+            workspaceId,
+            escalatingAgentId: agentId,
+            reason,
+            context,
+            severity,
+          })
+          return {
+            ok: true,
+            escalationId: result.escalationId,
+            handledBy: result.handledBy,
+            message: `Escalation created (${severity}). Handled by: ${result.handledBy}`,
+          }
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Escalation failed" }
         }
       },
     }),

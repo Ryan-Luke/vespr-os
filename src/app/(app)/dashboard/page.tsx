@@ -24,6 +24,7 @@ import { DailyDigestButton } from "@/components/daily-digest"
 import { UtilizationHeatmap } from "@/components/utilization-heatmap"
 import { WorkflowPhaseWidget } from "@/components/workflow-phase-widget"
 import { GettingStarted } from "@/components/getting-started"
+import { DashboardCoordination } from "@/components/dashboard-coordination"
 
 export const dynamic = "force-dynamic"
 
@@ -340,6 +341,12 @@ export default async function DashboardPage() {
             <AgentLeaderboard />
             <CompanyAchievements />
           </div>
+        </div>
+
+        {/* ── AGENT COORDINATION ──────────────────────────── */}
+        <div className="section-spacing">
+          <p className="section-label mb-4 mt-8">Agent Coordination</p>
+          <DashboardCoordination />
         </div>
 
         <div className="pt-8 pb-4 text-center">

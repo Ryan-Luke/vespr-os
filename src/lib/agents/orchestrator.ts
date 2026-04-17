@@ -9,13 +9,16 @@
 
 import { db } from "@/lib/db"
 import {
-  agents, tasks, channels,
+  agents, tasks, channels, agentTasks,
   collaborationEvents, taskDependencies, workspaces,
 } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateText } from "ai"
 import { runAgentTask } from "./autonomous"
+import { findBestAgent } from "./workload"
+import { checkAuthority, type ActionType } from "./authority"
+import { escalateIfStuck } from "./escalation"
 
 // ── Types ────────────────────────────────────────────────────────────
 
@@ -89,18 +92,37 @@ Rules:
 
   try {
     const plan = JSON.parse(text.replace(/```json\n?|\n?```/g, "").trim()) as TaskPlan
+
+    // Enhance plan with workload-aware agent selection: for each task,
+    // if the LLM-suggested agent is overloaded, find a better match
+    for (const taskDef of plan.tasks) {
+      const suggestedAgent = workspaceAgents.find(
+        a => a.name.toLowerCase() === taskDef.agentName.toLowerCase(),
+      )
+      if (!suggestedAgent) {
+        // Agent name from LLM not found — use workload-aware fallback
+        const best = await findBestAgent({
+          workspaceId,
+          preferredRole: taskDef.agentName, // treat as role hint
+        })
+        if (best) taskDef.agentName = best.agent.name
+      }
+    }
+
     return { plan }
   } catch {
-    // Fallback: single-agent assignment to the most relevant agent
+    // Fallback: workload-aware single-agent assignment
+    const best = await findBestAgent({ workspaceId })
+    const fallbackName = best?.agent.name || workspaceAgents[0]?.name || "Nova"
     return {
       plan: {
         tasks: [{
           title: prompt.slice(0, 80),
-          agentName: workspaceAgents[0]?.name || "Nova",
+          agentName: fallbackName,
           prompt,
           dependsOn: [],
         }],
-        reasoning: "Single agent assignment (could not decompose)",
+        reasoning: `Single agent assignment to ${fallbackName} (could not decompose)`,
         requiresMultipleAgents: false,
       },
     }
@@ -152,18 +174,48 @@ export async function executePlan(params: {
       metadata: { planIndex: i, reasoning: plan.reasoning },
     })
 
-    // If no dependencies, trigger immediately
+    // If no dependencies, trigger immediately (with authority check)
     if (taskDef.dependsOn.length === 0) {
       const [ch] = await db.select().from(channels)
         .where(and(eq(channels.teamId, agent.teamId!), eq(channels.workspaceId, workspaceId)))
         .limit(1)
 
-      runAgentTask({
-        agentId: agent.id,
-        channelId: ch?.id || channelId || "",
-        workspaceId,
-        prompt: taskDef.prompt,
-      }).catch(() => {}) // fire and forget
+      // Check if the task involves an action that needs authority
+      const externalActions: ActionType[] = ["send_email", "publish_content", "contact_external", "make_commitment"]
+      const promptLower = taskDef.prompt.toLowerCase()
+      let authorityBlocked = false
+
+      for (const action of externalActions) {
+        // Heuristic: if the prompt mentions the action type, check authority
+        const actionWords = action.replace(/_/g, " ")
+        if (promptLower.includes(actionWords) || promptLower.includes(action)) {
+          const auth = await checkAuthority({
+            agentId: agent.id,
+            workspaceId,
+            action,
+          })
+          if (!auth.allowed && auth.level === "blocked") {
+            authorityBlocked = true
+            await db.insert(collaborationEvents).values({
+              workspaceId,
+              eventType: "blocked",
+              targetAgentId: agent.id,
+              taskId: task.id,
+              summary: `Task blocked: agent lacks authority for "${action}". ${auth.reason ?? ""}`,
+            })
+            break
+          }
+        }
+      }
+
+      if (!authorityBlocked) {
+        runAgentTask({
+          agentId: agent.id,
+          channelId: ch?.id || channelId || "",
+          workspaceId,
+          prompt: taskDef.prompt,
+        }).catch(() => {}) // fire and forget
+      }
     }
   }
 
@@ -241,4 +293,64 @@ export async function checkDependencies(workspaceId: string, completedTaskId: st
       }
     }
   }
+}
+
+// ── Check Stuck Tasks: escalate tasks that haven't progressed ────────
+
+/**
+ * Scan for tasks that have been in_progress or running for too long
+ * and escalate them. Designed to be called by the cron job.
+ *
+ * Returns the number of escalations triggered.
+ */
+export async function checkStuckTasks(workspaceId: string): Promise<number> {
+  const now = Date.now()
+  let escalations = 0
+
+  // Check agentTasks stuck in "running"
+  const runningTasks = await db.select().from(agentTasks)
+    .where(and(
+      eq(agentTasks.workspaceId, workspaceId),
+      eq(agentTasks.status, "running"),
+    ))
+
+  for (const task of runningTasks) {
+    const startTime = task.startedAt?.getTime() ?? task.createdAt.getTime()
+    const stuckMinutes = Math.floor((now - startTime) / 60000)
+
+    const result = await escalateIfStuck({
+      workspaceId,
+      taskId: task.id,
+      taskTitle: task.prompt.slice(0, 80),
+      assignedAgentId: task.agentId,
+      stuckSinceMinutes: stuckMinutes,
+    })
+
+    if (result) escalations++
+  }
+
+  // Check kanban tasks stuck in "in_progress"
+  const stuckKanban = await db.select().from(tasks)
+    .where(and(
+      eq(tasks.workspaceId, workspaceId),
+      eq(tasks.status, "in_progress"),
+    ))
+
+  for (const task of stuckKanban) {
+    if (!task.assignedAgentId) continue
+    const createdTime = task.createdAt.getTime()
+    const stuckMinutes = Math.floor((now - createdTime) / 60000)
+
+    const result = await escalateIfStuck({
+      workspaceId,
+      taskId: task.id,
+      taskTitle: task.title,
+      assignedAgentId: task.assignedAgentId,
+      stuckSinceMinutes: stuckMinutes,
+    })
+
+    if (result) escalations++
+  }
+
+  return escalations
 }

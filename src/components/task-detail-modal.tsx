@@ -1,11 +1,22 @@
 "use client"
 
-import { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef, useCallback } from "react"
 import {
   X, Loader2, Trash2, Clock, CheckCircle2, AlertCircle,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { PixelAvatar } from "@/components/pixel-avatar"
+
+interface TaskDependency {
+  id: string
+  taskId: string
+  dependsOnTaskId: string
+  status: string // pending | satisfied | canceled
+  dependsOnTitle?: string
+  dependsOnStatus?: string
+  blocksTitle?: string
+  blocksStatus?: string
+}
 
 interface DBAgent {
   id: string
@@ -72,6 +83,8 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
   const [saving, setSaving] = useState(false)
   const [deleting, setDeleting] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [blockedBy, setBlockedBy] = useState<TaskDependency[]>([])
+  const [blocks, setBlocks] = useState<TaskDependency[]>([])
   const overlayRef = useRef<HTMLDivElement>(null)
   const panelRef = useRef<HTMLDivElement>(null)
 
@@ -100,6 +113,24 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
       panelRef.current?.classList.remove("translate-y-4", "opacity-0")
     })
   }, [])
+
+  // Fetch task dependencies
+  const fetchDeps = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tasks/${task.id}/dependencies`)
+      if (res.ok) {
+        const data = await res.json()
+        setBlockedBy(data.blockedBy ?? [])
+        setBlocks(data.blocks ?? [])
+      }
+    } catch {
+      /* silent — feature degrades gracefully */
+    }
+  }, [task.id])
+
+  useEffect(() => {
+    fetchDeps()
+  }, [fetchDeps])
 
   function handleBackdropClick(e: React.MouseEvent) {
     if (e.target === overlayRef.current) onClose()
@@ -309,6 +340,78 @@ export function TaskDetailModal({ task, agents, onClose, onUpdate }: TaskDetailM
                   </p>
                 )}
               </div>
+            </div>
+          )}
+
+          {/* Dependencies */}
+          {(blockedBy.length > 0 || blocks.length > 0) && (
+            <div className="space-y-3">
+              {blockedBy.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                    Blocked by
+                  </span>
+                  <div className="space-y-1">
+                    {blockedBy.map((dep) => (
+                      <div
+                        key={dep.id}
+                        className="flex items-center gap-2 rounded-md bg-[#16213e] border border-[rgba(255,255,255,0.06)] px-2.5 py-1.5"
+                      >
+                        {dep.status === "satisfied" ? (
+                          <CheckCircle2 className="h-3 w-3 text-emerald-400 shrink-0" />
+                        ) : (
+                          <Clock className="h-3 w-3 text-amber-400 shrink-0" />
+                        )}
+                        <span className="text-[12px] text-[rgba(255,255,255,0.6)] flex-1 truncate">
+                          {dep.dependsOnTitle ?? dep.dependsOnTaskId.slice(0, 8)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                            dep.status === "satisfied"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : dep.status === "canceled"
+                              ? "bg-[rgba(255,255,255,0.06)] text-[#6b7280]"
+                              : "bg-amber-500/15 text-amber-400",
+                          )}
+                        >
+                          {dep.status === "satisfied" ? "Done" : dep.status === "canceled" ? "Canceled" : "Waiting"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {blocks.length > 0 && (
+                <div className="space-y-1.5">
+                  <span className="text-[11px] text-muted-foreground uppercase tracking-wider font-medium">
+                    Blocks
+                  </span>
+                  <div className="space-y-1">
+                    {blocks.map((dep) => (
+                      <div
+                        key={dep.id}
+                        className="flex items-center gap-2 rounded-md bg-[#16213e] border border-[rgba(255,255,255,0.06)] px-2.5 py-1.5"
+                      >
+                        <AlertCircle className="h-3 w-3 text-[#635bff] shrink-0" />
+                        <span className="text-[12px] text-[rgba(255,255,255,0.6)] flex-1 truncate">
+                          {dep.blocksTitle ?? dep.taskId.slice(0, 8)}
+                        </span>
+                        <span
+                          className={cn(
+                            "text-[10px] font-medium px-1.5 py-0.5 rounded",
+                            dep.status === "satisfied"
+                              ? "bg-emerald-500/15 text-emerald-400"
+                              : "bg-[#635bff]/15 text-[#635bff]",
+                          )}
+                        >
+                          {dep.status === "satisfied" ? "Unblocked" : "Blocked"}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
 

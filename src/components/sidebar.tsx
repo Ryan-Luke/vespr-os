@@ -20,6 +20,7 @@ import {
   Shield,
   TrendingUp,
   Trophy,
+  Network,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
@@ -52,6 +53,7 @@ const navGroups = [
     label: "System",
     items: [
       { href: "/decisions", label: "Decisions", icon: Shield },
+      { href: "/coordination", label: "Coordination", icon: Network },
       { href: "/timeline", label: "Timeline", icon: TrendingUp },
       { href: "/integrations", label: "Integrations", icon: Plug },
       { href: "/office", label: "Office", icon: Building2 },
