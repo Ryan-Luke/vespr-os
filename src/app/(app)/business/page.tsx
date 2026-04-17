@@ -164,7 +164,7 @@ export default function BusinessPage() {
       <div className="p-6 max-w-3xl space-y-6">
         {/* Header */}
         <div className="flex items-start justify-between">
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-3 glass-card gradient-border rounded-xl p-3">
             <div className="h-12 w-12 rounded-lg bg-primary/15 flex items-center justify-center text-2xl shrink-0">{view.icon}</div>
             <div>
               <h1 className="text-lg font-semibold tracking-tight">{view.name}</h1>
@@ -184,7 +184,7 @@ export default function BusinessPage() {
                 </button>
               </>
             ) : (
-              <button onClick={() => setEditing(true)} className="h-7 px-3 rounded-md text-xs text-muted-foreground hover:bg-accent transition-colors flex items-center gap-1.5">
+              <button onClick={() => setEditing(true)} className="h-7 px-3 rounded-md text-xs btn-glass text-muted-foreground transition-colors flex items-center gap-1.5">
                 <Edit3 className="h-3 w-3" />
                 Edit
               </button>
@@ -281,7 +281,7 @@ export default function BusinessPage() {
 
         {/* Stats grid */}
         <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-3">
-          <div className="bg-card p-3">
+          <div className="glass-card p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Users className="h-3 w-3 text-muted-foreground" />
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Team Size</p>
@@ -297,7 +297,7 @@ export default function BusinessPage() {
               <p className="text-sm font-medium">{view.businessProfile.teamSize || "—"}</p>
             )}
           </div>
-          <div className="bg-card p-3">
+          <div className="glass-card p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <DollarSign className="h-3 w-3 text-muted-foreground" />
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Revenue</p>
@@ -313,7 +313,7 @@ export default function BusinessPage() {
               <p className="text-sm font-medium">{view.businessProfile.revenue || "—"}</p>
             )}
           </div>
-          <div className="bg-card p-3">
+          <div className="glass-card p-3">
             <div className="flex items-center gap-1.5 mb-1">
               <Globe className="h-3 w-3 text-muted-foreground" />
               <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Website</p>
@@ -410,7 +410,7 @@ export default function BusinessPage() {
                   <Link
                     key={doc.id}
                     href={`/business/docs/${doc.id}`}
-                    className="flex items-center gap-3 rounded-md border border-border bg-card p-4 hover:border-muted-foreground/20 transition-colors group"
+                    className="flex items-center gap-3 rounded-md border border-border glass-card p-4 hover:border-muted-foreground/20 transition-colors group"
                   >
                     <div className="h-10 w-10 rounded-md bg-primary/10 flex items-center justify-center shrink-0">
                       <FileText className="h-5 w-5 text-primary/60" />

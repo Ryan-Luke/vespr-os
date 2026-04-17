@@ -421,29 +421,28 @@ function MessageBubble({
   const nameEl = <span className="text-[13px] font-semibold hover:underline">{displayName}</span>
 
   return (
-    <div data-message-id={message.id} className={cn("group relative flex items-start gap-2.5 px-4 py-1 -mx-4 transition-colors", hovered && "bg-accent/40", isPinned && "border-l-2 border-l-primary/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
+    <div data-message-id={message.id} className={cn("group relative flex items-start gap-2.5 px-4 py-1.5 -mx-4 transition-colors", hovered && "bg-accent/40", isPinned && "border-l-2 border-l-teal-500/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
       <div className="shrink-0 mt-0.5">
         {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}>{avatarEl}</AgentProfileCard> : avatarEl}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}>{nameEl}</AgentProfileCard> : nameEl}
-          {agent && <span className={cn("h-1.5 w-1.5 rounded-full", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />}
+          {agent ? <AgentProfileCard agent={agent as any} onDM={onDM as any}><span className="text-[13px] font-semibold text-stone-200 hover:underline">{displayName}</span></AgentProfileCard> : <span className="text-[13px] font-semibold text-stone-200">{displayName}</span>}
+          <span className="text-[11px] text-stone-500">{formatTime(message.createdAt)}</span>
           {agent && (agent.level ?? 0) > 0 && (
             <span className="text-xs font-mono text-muted-foreground bg-muted/50 rounded px-1 py-0.5">Lv.{agent.level}</span>
           )}
           {message.messageType === "approval_request" && <Badge variant="destructive" className="text-xs h-5"><AlertCircle className="h-3 w-3 mr-1" />Needs Approval</Badge>}
           {message.messageType === "status" && <Badge variant="secondary" className="text-xs h-5">Status</Badge>}
           {message.messageType === "standup" && <Badge variant="outline" className="text-xs h-5 text-muted-foreground"><ClipboardList className="h-3 w-3 mr-1" />Standup</Badge>}
-          <span className="text-xs text-muted-foreground">{formatTime(message.createdAt)}</span>
           {isBookmarked && <Bookmark className="h-3 w-3 text-amber-400 fill-amber-400" />}
-          {isPinned && <Pin className="h-3 w-3 text-primary/60" />}
+          {isPinned && <Pin className="h-3 w-3 text-teal-500/60" />}
         </div>
         {message.messageType === "poll" ? (
           <PollCard message={message} agents={agents} />
         ) : (
           <>
-            <div className="text-[13px] text-foreground/85 mt-0.5 leading-relaxed whitespace-pre-wrap">
+            <div className="text-[14px] text-stone-200 mt-0.5 leading-relaxed whitespace-pre-wrap">
               {renderMarkdown(message.content)}
             </div>
             {message.linkedTaskId && (
@@ -481,7 +480,7 @@ function MessageBubble({
         )}
       </div>
       {hovered && (
-        <div className="absolute right-1 -top-2.5 flex items-center rounded-md border border-border bg-popover shadow-sm">
+        <div className="absolute right-1 -top-2.5 flex items-center rounded-[6px] border border-border glass shadow-sm">
           {agent && (
             <>
               <button className={cn("h-6 w-6 flex items-center justify-center rounded-sm transition-colors", feedbackGiven === "positive" ? "text-emerald-500" : "text-muted-foreground hover:text-emerald-500")} onClick={() => giveFeedback("positive")} disabled={!!feedbackGiven}>
@@ -630,11 +629,11 @@ function DMChat({ agent, channelId }: { agent: DBAgent; channelId?: string }) {
 
       {/* Input */}
       <div className="border-t border-border px-4 py-3 shrink-0">
-        <div className="rounded-md border border-border bg-muted/50 focus-within:border-muted-foreground/30 transition-colors">
-          <textarea ref={inputRef} placeholder={`Message ${agent.name}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" disabled={status === "submitted" || status === "streaming"} style={{ maxHeight: 100 }} />
+        <div className="rounded-xl input-glass focus-within:border-teal-500/50 transition-colors">
+          <textarea ref={inputRef} placeholder={`Message ${agent.name}`} value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); handleSend() } }} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-stone-500" disabled={status === "submitted" || status === "streaming"} style={{ maxHeight: 100 }} />
           <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
             <VoiceInputButton size="sm" onTranscript={(text) => setInput((prev) => prev ? `${prev} ${text}` : text)} />
-            <button onClick={handleSend} disabled={!input.trim() || status === "streaming" || status === "submitted"} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", input.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+            <button onClick={handleSend} disabled={!input.trim() || status === "streaming" || status === "submitted"} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", input.trim() ? "text-teal-500" : "text-muted-foreground hidden")}>
               {(status === "submitted" || status === "streaming") ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
             </button>
           </div>
@@ -1682,7 +1681,7 @@ export default function ChatPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Chat sidebar — channel list + DMs */}
-      <div className="w-52 border-r border-border flex flex-col bg-sidebar shrink-0">
+      <div className="w-52 border-r border-border flex flex-col glass-subtle shrink-0">
         <div className="flex-1 overflow-y-auto py-3">
           {/* Channels — split into System and Departments to reduce visual weight */}
           {(() => {
@@ -1697,12 +1696,12 @@ export default function ChatPage() {
                 <button key={channel.id} onClick={() => { setActiveChannel(channel.id); setDmAgent(null); setActiveThread(null); setSavedItemsView(false) }} className={cn(
                   "flex items-center gap-2 w-full rounded-md transition-colors group",
                   compact ? "px-2 py-0.5 text-[12px]" : "px-2 py-1 text-[13px]",
-                  isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                  isActive ? "bg-teal-500/[0.06] text-foreground border-l-2 border-l-teal-500" : "text-stone-400 hover:bg-accent hover:text-foreground border-l-2 border-l-transparent"
                 )}>
-                  <span className="opacity-50">{channelIcon(channel.type, channel.name)}</span>
+                  <span className={cn(isActive ? "text-teal-500" : "opacity-50")}>{channelIcon(channel.type, channel.name)}</span>
                   <span className={cn("truncate flex-1 text-left", hasUnread && "text-foreground font-medium")}>{channel.name}</span>
                   {hasUnread ? (
-                    <span className="h-[18px] min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">{unreadCounts[channel.id]}</span>
+                    <span className="h-[18px] min-w-[18px] rounded-full bg-teal-500 px-1 text-[10px] font-medium text-white flex items-center justify-center">{unreadCounts[channel.id]}</span>
                   ) : idx < 9 && (
                     <span className="text-[10px] text-muted-foreground/40 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">{idx + 1}</span>
                   )}
@@ -1712,14 +1711,14 @@ export default function ChatPage() {
             return (
               <>
                 <div className="px-3">
-                  <p className="section-label px-1 mb-1.5">Channels</p>
+                  <p className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold px-1 mb-1.5">Channels</p>
                   <div className="space-y-px">
                     {systemChannels.map((c) => renderChannelButton(c, false))}
                   </div>
                 </div>
                 {deptChannels.length > 0 && (
                   <div className="px-3 mt-4">
-                    <p className="section-label px-1 mb-1.5">Departments</p>
+                    <p className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold px-1 mb-1.5">Departments</p>
                     <div>
                       {deptChannels.map((c) => renderChannelButton(c, true))}
                     </div>
@@ -1735,7 +1734,7 @@ export default function ChatPage() {
               onClick={() => { setSavedItemsView(true); setDmAgent(null); setActiveThread(null) }}
               className={cn(
                 "flex items-center gap-2 w-full rounded-md px-2 py-1 text-[13px] transition-colors",
-                savedItemsView ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                savedItemsView ? "bg-teal-500/[0.06] text-foreground border-l-2 border-l-teal-500" : "text-stone-400 hover:bg-accent hover:text-foreground border-l-2 border-l-transparent"
               )}
             >
               <Bookmark className="h-4 w-4 opacity-50" />
@@ -1748,7 +1747,7 @@ export default function ChatPage() {
 
           {/* DMs — sorted by status: working > idle > paused */}
           <div className="px-3 mt-5">
-            <p className="section-label px-1 mb-1.5">Agents</p>
+            <p className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold px-1 mb-1.5">Agents</p>
             <div className="space-y-px">
               {[...dbAgents].sort((a, b) => {
                 const order: Record<string, number> = { working: 0, idle: 1, error: 2, paused: 3 }
@@ -1759,14 +1758,14 @@ export default function ChatPage() {
                 return (
                   <div key={agent.id} className={cn(
                     "flex items-center gap-2 rounded-md px-2 py-1 text-[13px] transition-colors group/agent",
-                    isActive ? "bg-accent text-foreground" : "text-sidebar-foreground hover:bg-accent hover:text-foreground",
+                    isActive ? "bg-teal-500/[0.06] text-foreground" : "text-stone-400 hover:bg-accent hover:text-foreground",
                     !isOnline && !isActive && "opacity-50"
                   )}>
                     <button onClick={() => { setDmAgent(agent); setSavedItemsView(false) }} className="flex items-center gap-2 flex-1 min-w-0">
                       <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={18} className="rounded-sm shrink-0" />
                       <span className="truncate flex-1 text-left">{agent.name}</span>
                     </button>
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
+                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "bg-teal-500" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "bg-stone-600")} />
                     <div className="hidden group-hover/agent:flex items-center gap-0.5 shrink-0">
                       <Link href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`} onClick={(e) => e.stopPropagation()} className="h-4 w-4 flex items-center justify-center rounded hover:bg-accent" title="Profile">
                         <User className="h-2.5 w-2.5" />
@@ -1880,7 +1879,7 @@ export default function ChatPage() {
                     {pinnedCount} pinned
                   </button>
                   {showPinnedPanel && (
-                    <div className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-y-auto bg-card border border-border rounded-md shadow-lg z-50">
+                    <div className="absolute right-0 top-full mt-1 w-80 max-h-96 overflow-y-auto glass-subtle border border-border rounded-md shadow-lg z-50">
                       <div className="flex items-center justify-between px-3 py-2 border-b border-border">
                         <span className="text-xs font-semibold">Pinned Messages</span>
                         <button onClick={() => setShowPinnedPanel(false)} className="h-5 w-5 flex items-center justify-center rounded hover:bg-accent"><X className="h-3 w-3" /></button>
@@ -2034,15 +2033,15 @@ export default function ChatPage() {
                   {typingAgent && (() => {
                     const agent = dbAgents.find((a) => a.name === typingAgent)
                     return (
-                      <div className="flex items-center gap-2.5 px-4 py-2 text-xs text-muted-foreground">
+                      <div className="flex items-center gap-2.5 px-4 py-2 text-xs text-stone-500">
                         {agent && <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm shrink-0 opacity-60" />}
                         <div className="flex items-center gap-2">
                           <div className="flex gap-0.5">
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "0ms" }} />
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "150ms" }} />
-                            <span className="h-1.5 w-1.5 rounded-full bg-muted-foreground/50 animate-bounce" style={{ animationDelay: "300ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "0ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "150ms" }} />
+                            <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-bounce" style={{ animationDelay: "300ms" }} />
                           </div>
-                          <span className="text-[11px]">{typingAgent} is typing...</span>
+                          <span className="text-[12px] text-stone-500">{typingAgent} is typing...</span>
                         </div>
                       </div>
                     )
@@ -2055,7 +2054,7 @@ export default function ChatPage() {
 
           {/* Message input */}
           <div className="border-t border-border px-4 py-3 shrink-0">
-            <div className="relative rounded-md border border-border bg-muted/50 focus-within:border-muted-foreground/30 transition-colors">
+            <div className="relative rounded-xl input-glass focus-within:border-teal-500/50 transition-colors">
               {/* @mention dropdown */}
               {mentionQuery !== null && mentionAgents.length > 0 && (
                 <div className="absolute bottom-full left-0 mb-1 w-64 rounded-md border border-border bg-popover shadow-lg z-50 overflow-hidden">
@@ -2099,13 +2098,13 @@ export default function ChatPage() {
               }} />
               {/* Formatting toolbar */}
               <div className="flex items-center gap-0.5 px-2 pt-1.5">
-                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Bold (Cmd+B)"><span className="font-bold">B</span></button>
-                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Italic (Cmd+I)"><span className="italic">I</span></button>
-                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("code") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="Code (Cmd+E)"><Code className="h-3 w-3" /></button>
-                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("list") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent text-muted-foreground hover:text-foreground transition-colors text-xs font-medium" title="List"><span>-</span></button>
-                <div className="h-4 w-px bg-border mx-1" />
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("bold") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-white/10 text-stone-500 hover:text-stone-300 transition-colors text-[11px] font-medium" title="Bold (Cmd+B)"><span className="font-bold">B</span></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("italic") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-white/10 text-stone-500 hover:text-stone-300 transition-colors text-[11px] font-medium" title="Italic (Cmd+I)"><span className="italic">I</span></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("code") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-white/10 text-stone-500 hover:text-stone-300 transition-colors text-[11px] font-medium" title="Code (Cmd+E)"><Code className="h-3 w-3" /></button>
+                <button type="button" onMouseDown={(e) => { e.preventDefault(); applyFormat("list") }} className="h-6 w-6 flex items-center justify-center rounded hover:bg-white/10 text-stone-500 hover:text-stone-300 transition-colors text-[11px] font-medium" title="List"><span>-</span></button>
+                <div className="h-4 w-px bg-white/10 mx-1" />
               </div>
-              <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-muted-foreground/60" style={{ maxHeight: 100 }} />
+              <textarea ref={inputRef} placeholder={`Message #${activeChannelData?.name ?? "channel"}`} value={inputValue} onChange={(e) => { setInputValue(e.target.value); detectMention(e.target.value, e.target.selectionStart ?? 0) }} onKeyDown={handleInputKeyDown} onClick={(e) => detectMention((e.target as HTMLTextAreaElement).value, (e.target as HTMLTextAreaElement).selectionStart ?? 0)} rows={1} className="w-full resize-none bg-transparent px-3 py-2 text-[13px] outline-none placeholder:text-stone-500" style={{ maxHeight: 100 }} />
               <div className="flex items-center justify-end gap-1 px-2 pb-1.5">
                 <button onClick={() => fileInputRef.current?.click()} className="h-6 w-6 flex items-center justify-center rounded hover:bg-accent transition-colors" title="Attach file"><Paperclip className="h-3.5 w-3.5 text-muted-foreground" /></button>
                 <VoiceInputButton
@@ -2172,7 +2171,7 @@ export default function ChatPage() {
                     </div>
                   )}
                 </div>
-                <button onClick={handleChannelSend} disabled={!inputValue.trim() || channelLoading} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", inputValue.trim() ? "bg-primary text-primary-foreground" : "text-muted-foreground")}>
+                <button onClick={handleChannelSend} disabled={!inputValue.trim() || channelLoading} className={cn("h-6 w-6 flex items-center justify-center rounded transition-colors", inputValue.trim() ? "text-teal-500" : "text-muted-foreground hidden")}>
                   {channelLoading ? <Loader2 className="h-3 w-3 animate-spin" /> : <Send className="h-3 w-3" />}
                 </button>
               </div>
@@ -2196,7 +2195,7 @@ export default function ChatPage() {
 
       {/* Thread Panel */}
       {activeThread && !dmAgent && (
-        <div className="w-72 border-l border-border flex flex-col shrink-0 bg-sidebar">
+        <div className="w-72 border-l border-border flex flex-col shrink-0 glass-subtle">
           <div className="flex items-center justify-between h-12 px-3 border-b border-border shrink-0">
             <span className="text-[13px] font-medium">Thread</span>
             <div className="flex items-center gap-1">

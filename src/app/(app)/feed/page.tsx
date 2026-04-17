@@ -26,12 +26,12 @@ interface DBAgent {
 }
 
 const TYPE_STYLES: Record<string, { icon: typeof Trophy; color: string; label: string }> = {
-  deal_closed: { icon: DollarSign, color: "text-emerald-400", label: "Deal Closed" },
-  meeting_booked: { icon: Calendar, color: "text-blue-400", label: "Meeting Booked" },
-  milestone: { icon: Trophy, color: "text-amber-400", label: "Milestone" },
-  evolution: { icon: TrendingUp, color: "text-purple-400", label: "Evolution" },
-  first: { icon: Star, color: "text-orange-400", label: "First" },
-  capability_unlocked: { icon: Zap, color: "text-cyan-400", label: "New Capability" },
+  deal_closed: { icon: DollarSign, color: "text-teal-500", label: "Deal Closed" },
+  meeting_booked: { icon: Calendar, color: "text-teal-400", label: "Meeting Booked" },
+  milestone: { icon: Trophy, color: "text-amber-500", label: "Milestone" },
+  evolution: { icon: TrendingUp, color: "text-teal-500", label: "Evolution" },
+  first: { icon: Star, color: "text-amber-500", label: "First" },
+  capability_unlocked: { icon: Zap, color: "text-teal-400", label: "New Capability" },
 }
 
 function groupByTimePeriod(events: TrophyEvent[]): { label: string; events: TrophyEvent[] }[] {
@@ -86,7 +86,7 @@ export default function TrophyFeedPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-full text-muted-foreground">
+      <div className="flex items-center justify-center h-full text-stone-500">
         <Loader2 className="h-5 w-5 animate-spin mr-2" />Loading your wins...
       </div>
     )
@@ -101,75 +101,75 @@ export default function TrophyFeedPage() {
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="max-w-2xl mx-auto p-6 space-y-6">
+      <div className="max-w-2xl mx-auto p-6 space-y-8">
         {/* Header */}
         <div className="space-y-2">
           <div className="flex items-center gap-2">
-            <Trophy className="h-4 w-4 text-amber-400" />
+            <Trophy className="h-4 w-4 text-amber-500" />
             <h1 className="text-lg font-semibold tracking-tight">What your team shipped</h1>
           </div>
-          <p className="text-xs text-muted-foreground">{totalWins} wins while you were building</p>
+          <p className="text-[11px] text-stone-500">{totalWins} wins while you were building</p>
         </div>
 
         {/* Stats header */}
         {events.length > 0 && (
-          <div className="grid gap-px bg-border rounded-lg overflow-hidden grid-cols-2 md:grid-cols-4">
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-4">
             {totalRevenue > 0 && (
-              <div className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</p>
-                <p className="text-base font-bold tabular-nums text-emerald-400 mt-0.5">${totalRevenue.toLocaleString()}</p>
+              <div className="kpi-card p-4">
+                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><DollarSign className="h-3 w-3" />Revenue</p>
+                <p className="text-[22px] font-bold tabular-nums text-teal-500 mt-1">${totalRevenue.toLocaleString()}</p>
               </div>
             )}
             {dealsCount > 0 && (
-              <div className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Trophy className="h-3 w-3" />Deals</p>
-                <p className="text-base font-bold tabular-nums mt-0.5">{dealsCount}</p>
+              <div className="kpi-card p-4">
+                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Trophy className="h-3 w-3" />Deals</p>
+                <p className="text-[22px] font-bold tabular-nums mt-1">{dealsCount}</p>
               </div>
             )}
             {evolutionCount > 0 && (
-              <div className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><TrendingUp className="h-3 w-3" />Evolutions</p>
-                <p className="text-base font-bold tabular-nums text-purple-400 mt-0.5">{evolutionCount}</p>
+              <div className="kpi-card p-4">
+                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><TrendingUp className="h-3 w-3" />Evolutions</p>
+                <p className="text-[22px] font-bold tabular-nums text-teal-400 mt-1">{evolutionCount}</p>
               </div>
             )}
             {milestoneCount > 0 && (
-              <div className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Star className="h-3 w-3" />Milestones</p>
-                <p className="text-base font-bold tabular-nums text-amber-400 mt-0.5">{milestoneCount}</p>
+              <div className="kpi-card p-4">
+                <p className="text-[11px] text-stone-500 uppercase tracking-[0.1em] font-semibold flex items-center gap-1"><Star className="h-3 w-3" />Milestones</p>
+                <p className="text-[22px] font-bold tabular-nums text-amber-500 mt-1">{milestoneCount}</p>
               </div>
             )}
           </div>
         )}
 
         {events.length === 0 ? (
-          <div className="text-center py-16 text-muted-foreground">
+          <div className="text-center py-16 text-stone-500">
             <Trophy className="h-8 w-8 mx-auto mb-3 opacity-30" />
             <p className="text-sm">No wins yet. Your team is just getting started.</p>
           </div>
         ) : (
           groups.map((group) => (
-            <div key={group.label} className="space-y-2">
-              <div className="flex items-center gap-2">
-                <span className="text-[11px] text-muted-foreground uppercase tracking-wider">{group.label}</span>
-                <div className="flex-1 h-px bg-border" />
-                <span className="text-[11px] text-muted-foreground tabular-nums">{group.events.length}</span>
+            <div key={group.label} className="space-y-3">
+              <div className="flex items-center gap-3">
+                <span className="section-label">{group.label}</span>
+                <div className="flex-1 divider-glass" />
+                <span className="text-[11px] text-stone-600 tabular-nums">{group.events.length}</span>
               </div>
 
-              <div className="space-y-2">
+              <div className="space-y-3">
                 {group.events.map((event) => {
-                  const style = TYPE_STYLES[event.type] || { icon: Trophy, color: "text-muted-foreground", label: event.type }
+                  const style = TYPE_STYLES[event.type] || { icon: Trophy, color: "text-stone-500", label: event.type }
                   const Icon = style.icon
                   const agent = agents.find((a) => a.id === event.agentId)
                   return (
-                    <div key={event.id} className="bg-card border border-border rounded-md p-4 hover:border-muted-foreground/20 transition-colors">
+                    <div key={event.id} className="glass-card p-4">
                       <div className="flex items-start gap-3">
                         {/* Icon/Avatar */}
                         {agent ? (
                           <div className="shrink-0">
-                            <PixelAvatar characterIndex={0} size={36} className="rounded-md" />
+                            <PixelAvatar characterIndex={0} size={36} className="rounded-lg" />
                           </div>
                         ) : (
-                          <div className="h-9 w-9 rounded-md bg-muted/50 flex items-center justify-center shrink-0">
+                          <div className="h-9 w-9 rounded-lg bg-stone-800/50 flex items-center justify-center shrink-0">
                             <Icon className={cn("h-4 w-4", style.color)} />
                           </div>
                         )}
@@ -177,24 +177,24 @@ export default function TrophyFeedPage() {
                         <div className="flex-1 min-w-0">
                           {/* Type badge + timestamp */}
                           <div className="flex items-center gap-2 mb-1">
-                            <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase tracking-wider font-medium", style.color)}>
+                            <span className={cn("inline-flex items-center gap-1 text-[10px] uppercase tracking-[0.1em] font-semibold", style.color)}>
                               <Icon className="h-3 w-3" />
                               {style.label}
                             </span>
-                            <span className="text-[11px] text-muted-foreground">· {formatTimeAgo(event.createdAt)}</span>
+                            <span className="text-[11px] text-stone-600">· {formatTimeAgo(event.createdAt)}</span>
                             {event.amount && (
-                              <span className="ml-auto text-[13px] font-semibold text-emerald-400 tabular-nums">
+                              <span className="ml-auto text-[13px] font-bold text-teal-500 tabular-nums">
                                 ${event.amount.toLocaleString()}
                               </span>
                             )}
                           </div>
 
                           {/* Title */}
-                          <p className="text-[14px] font-medium leading-snug">{event.title}</p>
+                          <p className="text-[14px] font-medium leading-snug text-stone-200">{event.title}</p>
 
                           {/* Description */}
                           {event.description && (
-                            <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">{event.description}</p>
+                            <p className="text-[12px] text-stone-500 mt-1 leading-relaxed">{event.description}</p>
                           )}
 
                           {/* Share button */}
@@ -203,7 +203,7 @@ export default function TrophyFeedPage() {
                               href={`/api/share-card/trophy?id=${event.id}`}
                               target="_blank"
                               rel="noopener noreferrer"
-                              className="inline-flex items-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                              className="inline-flex items-center gap-1 text-[11px] text-stone-600 hover:text-stone-300 transition-colors"
                             >
                               <Share2 className="h-3 w-3" />
                               Share
@@ -221,7 +221,7 @@ export default function TrophyFeedPage() {
 
         {events.length > 0 && (
           <div className="pt-4 text-center">
-            <p className="text-[11px] text-muted-foreground/60">
+            <p className="text-[11px] text-stone-700">
               {totalWins} wins since you joined — your team is building.
             </p>
           </div>

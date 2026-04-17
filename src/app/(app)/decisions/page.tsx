@@ -137,7 +137,7 @@ export default function DecisionsPage() {
           <p className="text-xs text-muted-foreground">{entries.length === 0 ? "No decisions logged yet. Actions will appear as agents work." : "No matching entries."}</p>
         </div>
       ) : (
-        <div className="bg-card border border-border rounded-md divide-y divide-border">
+        <div className="glass-card border border-border rounded-md divide-y divide-border">
           {filtered.map((entry) => {
             const agent = agents.find((a) => a.id === entry.agentId)
             const icon = ACTION_ICONS[entry.actionType] ?? <Zap className="h-3.5 w-3.5 text-muted-foreground" />
@@ -150,7 +150,7 @@ export default function DecisionsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
                       <p className="text-[13px] font-medium">{entry.title}</p>
-                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium", entry.actionType === "approval_requested" ? "bg-amber-500/10 text-amber-400" : entry.actionType === "decision_made" ? "bg-violet-500/10 text-violet-400" : "bg-muted text-muted-foreground")}>{ACTION_LABELS[entry.actionType] || entry.actionType}</span>
+                      <span className={cn("text-[10px] px-1.5 py-0.5 rounded-full font-medium badge-glass", entry.actionType === "approval_requested" ? "text-amber-400" : entry.actionType === "decision_made" ? "text-violet-400" : "text-muted-foreground")}>{ACTION_LABELS[entry.actionType] || entry.actionType}</span>
                     </div>
                     <p className="text-xs text-muted-foreground mt-0.5">{entry.description}</p>
                   </div>

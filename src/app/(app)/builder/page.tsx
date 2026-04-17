@@ -246,17 +246,17 @@ function BuilderPageInner() {
               className={cn(
                 "flex items-center gap-1.5 rounded-md px-2 py-1 text-xs transition-colors",
                 i === step
-                  ? "bg-accent text-foreground font-medium"
+                  ? "bg-teal-500/10 text-teal-500 font-medium"
                   : i < step
-                  ? "text-primary"
-                  : "text-muted-foreground"
+                  ? "text-teal-500"
+                  : "text-stone-700"
               )}
             >
               <span className="font-mono text-[10px] tabular-nums">{i + 1}</span>
               {label}
             </button>
             {i < 4 && (
-              <div className={cn("h-px w-4", i < step ? "bg-primary" : "bg-border")} />
+              <div className={cn("h-px w-4", i < step ? "bg-teal-500" : "bg-stone-700")} />
             )}
           </div>
         ))}
@@ -273,8 +273,8 @@ function BuilderPageInner() {
             <button
               key={template.id}
               className={cn(
-                "text-left rounded-md border p-3 transition-all hover:border-muted-foreground/30",
-                selectedTemplate === template.id ? "border-primary" : "border-border"
+                "text-left rounded-xl border p-3 transition-all hover:border-muted-foreground/30 glass-card",
+                selectedTemplate === template.id ? "border-teal-500 gradient-border glow-teal-sm" : "border-border"
               )}
               onClick={() => selectTemplate(template.id)}
             >
@@ -297,11 +297,11 @@ function BuilderPageInner() {
           <div className="grid gap-3 md:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium">Name</label>
-              <input placeholder="e.g., Maya, Jordan" value={agentName} onChange={(e) => setAgentName(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+              <input placeholder="e.g., Maya, Jordan" value={agentName} onChange={(e) => setAgentName(e.target.value)} className="w-full h-8 rounded-lg input-glass px-3 text-[13px] outline-none transition-colors" />
             </div>
             <div className="space-y-1.5">
               <label className="text-[13px] font-medium">Role</label>
-              <input placeholder="e.g., Content Writer" value={agentRole} onChange={(e) => setAgentRole(e.target.value)} className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors" />
+              <input placeholder="e.g., Content Writer" value={agentRole} onChange={(e) => setAgentRole(e.target.value)} className="w-full h-8 rounded-lg input-glass px-3 text-[13px] outline-none transition-colors" />
             </div>
           </div>
           <div className="grid gap-3 md:grid-cols-2">
@@ -342,7 +342,7 @@ function BuilderPageInner() {
           </div>
           <div className="space-y-1.5">
             <label className="text-[13px] font-medium">Description</label>
-            <textarea placeholder="Describe what this agent should do..." value={agentDescription} onChange={(e) => setAgentDescription(e.target.value)} rows={3} className="w-full rounded-md border border-border bg-muted/50 px-3 py-2 text-[13px] outline-none resize-none focus:border-muted-foreground/30 transition-colors" />
+            <textarea placeholder="Describe what this agent should do..." value={agentDescription} onChange={(e) => setAgentDescription(e.target.value)} rows={3} className="w-full rounded-lg input-glass px-3 py-2 text-[13px] outline-none resize-none transition-colors" />
             </div>
           <div className="flex justify-end pt-2">
             <button onClick={() => setStep(2)} className="h-7 px-2.5 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors">Next</button>
@@ -809,7 +809,7 @@ function BuilderPageInner() {
           </div>
           <div className="flex justify-between">
             <button onClick={() => setStep(3)} className="text-xs text-muted-foreground hover:text-foreground transition-colors">Back</button>
-            <button disabled={creating} className="h-7 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors flex items-center gap-1 disabled:opacity-50" onClick={async () => {
+            <button disabled={creating} className="h-7 px-3 rounded-md btn-teal text-xs font-medium transition-colors flex items-center gap-1 disabled:opacity-50" onClick={async () => {
               setCreating(true)
               try {
                 const team = dbTeams.find((t) => t.name === agentTeam)

@@ -715,7 +715,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
         </Link>
 
         {/* Header */}
-        <div className={cn("flex items-start gap-3", mood === "thriving" ? "border-l-2 border-emerald-500/50 pl-3" : "")}>
+        <div className={cn("flex items-start gap-3 glass-card gradient-border rounded-xl p-4", mood === "thriving" ? "border-l-2 border-emerald-500/50 pl-3" : "")}>
           <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md" />
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2">
@@ -777,7 +777,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
             { label: "Feedback", value: feedback ? `${feedback.positive}/${feedback.total}` : "—" },
             { label: "XP", value: (agent.xp ?? 0).toLocaleString() },
           ].map((s) => (
-            <div key={s.label} className="bg-card px-3 py-2.5">
+            <div key={s.label} className="glass-card px-3 py-2.5">
               <p className="text-[11px] text-muted-foreground">{s.label}</p>
               <p className="text-sm font-medium tabular-nums mt-0.5">{s.value}</p>
             </div>
@@ -786,7 +786,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
 
         {/* Performance Review Results */}
         {reviewData && (
-          <div className="bg-card border border-border rounded-md p-4 space-y-3">
+          <div className="glass-card border border-border rounded-md p-4 space-y-3">
             <div className="flex items-center justify-between">
               <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Performance Review</p>
               <button onClick={() => setReviewData(null)} className="text-[11px] text-muted-foreground hover:text-foreground transition-colors">Dismiss</button>
@@ -1165,7 +1165,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
                 const isEditing = editingSop === sop.id
                 const fb = sopFeedback[sop.id]
                 return (
-                  <div key={sop.id} className="bg-card border border-border rounded-md p-4">
+                  <div key={sop.id} className="glass-subtle border border-border rounded-md p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex items-center gap-2">
                         <span className="text-sm">{cat?.icon || "📝"}</span>

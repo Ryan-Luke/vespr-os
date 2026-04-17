@@ -10,7 +10,6 @@ import {
   Zap,
   PlusCircle,
   Settings,
-  ChevronLeft,
   ChevronRight,
   Plug,
   ClipboardList,
@@ -135,39 +134,39 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   }
 
   return (
-    <aside className="flex flex-col w-52 border-r border-border bg-sidebar h-full max-md:w-60">
+    <aside className="flex flex-col w-52 border-r border-border sidebar-glass h-full max-md:w-60">
       {/* Header — Workspace switcher */}
-      <div className="flex items-center justify-between h-12 px-3 border-b border-border shrink-0">
+      <div className="flex items-center justify-between h-12 px-3 border-b divider-glass shrink-0">
         <Popover>
-          <PopoverTrigger className="flex items-center gap-2 hover:bg-accent rounded-md px-1.5 py-1 transition-colors -ml-1">
+          <PopoverTrigger className="flex items-center gap-2 hover:bg-white/[0.04] rounded-md px-1.5 py-1 transition-colors -ml-1">
             {activeWorkspace ? (
               <>
                 <span className="h-6 w-6 rounded-md bg-primary/15 flex items-center justify-center text-sm shrink-0">{activeWorkspace.icon}</span>
-                <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px]">{activeWorkspace.name}</span>
+                <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px] text-stone-100">{activeWorkspace.name}</span>
               </>
             ) : (
-              <span className="text-[13px] font-semibold tracking-tight">VESPR</span>
+              <span className="text-[13px] font-semibold tracking-tight text-stone-100">VESPR</span>
             )}
-            <ChevronRight className="h-3 w-3 text-muted-foreground rotate-90" />
+            <ChevronRight className="h-3 w-3 text-stone-500 rotate-90" />
           </PopoverTrigger>
-          <PopoverContent align="start" className="w-56 p-1.5">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider px-2 py-1">Workspaces</p>
+          <PopoverContent align="start" className="w-56 p-1.5 glass-elevated">
+            <p className="text-[10px] text-stone-500 uppercase tracking-widest font-medium px-2 py-1">Workspaces</p>
             {workspaces.map((ws) => (
               <button
                 key={ws.id}
                 onClick={() => setActiveWorkspace(ws)}
                 className={cn(
                   "flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] transition-colors",
-                  activeWorkspace?.id === ws.id ? "bg-accent text-foreground" : "text-muted-foreground hover:bg-accent hover:text-foreground"
+                  activeWorkspace?.id === ws.id ? "bg-[rgba(20,184,166,0.08)] text-stone-100" : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
                 )}
               >
                 <span className="h-5 w-5 rounded bg-primary/10 flex items-center justify-center text-xs shrink-0">{ws.icon}</span>
                 <span className="truncate flex-1 text-left">{ws.name}</span>
-                {activeWorkspace?.id === ws.id && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                {activeWorkspace?.id === ws.id && <span className="h-1.5 w-1.5 rounded-full bg-teal-500 shrink-0" />}
               </button>
             ))}
             {!showNewWs ? (
-              <button onClick={() => setShowNewWs(true)} className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors mt-1 border-t border-border pt-1.5">
+              <button onClick={() => setShowNewWs(true)} className="flex items-center gap-2 w-full rounded-md px-2 py-1.5 text-[13px] text-stone-400 hover:bg-white/[0.04] hover:text-stone-100 transition-colors mt-1 border-t border-border pt-1.5">
                 <PlusCircle className="h-3.5 w-3.5" />
                 New Workspace
               </button>
@@ -178,12 +177,12 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                   onChange={(e) => setNewWsName(e.target.value)}
                   onKeyDown={(e) => { if (e.key === "Enter") createWorkspace(); if (e.key === "Escape") setShowNewWs(false) }}
                   placeholder="Business name..."
-                  className="w-full h-7 rounded-md border border-border bg-muted/50 px-2 text-[12px] outline-none focus:border-muted-foreground/30 transition-colors"
+                  className="w-full h-7 rounded-md input-glass px-2 text-[12px] text-stone-100 outline-none transition-colors"
                   autoFocus
                 />
                 <div className="flex gap-1 mt-1">
                   <button onClick={createWorkspace} className="flex-1 h-6 rounded-md bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90">Create</button>
-                  <button onClick={() => setShowNewWs(false)} className="h-6 px-2 rounded-md text-[11px] text-muted-foreground hover:bg-accent">Cancel</button>
+                  <button onClick={() => setShowNewWs(false)} className="h-6 px-2 rounded-md text-[11px] text-stone-400 hover:bg-white/[0.04]">Cancel</button>
                 </div>
               </div>
             )}
@@ -202,7 +201,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
         {navGroups.map((group, gi) => (
           <div key={gi} className={cn(gi > 0 && "mt-4")}>
             {group.label && (
-              <p className="section-label px-2 mb-1">{group.label}</p>
+              <p className="text-[11px] uppercase tracking-widest text-stone-500 font-medium px-2 mb-1">{group.label}</p>
             )}
             <div className="space-y-0.5">
               {group.items.map((item) => {
@@ -222,13 +221,20 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                       undefined
                     }
                     className={cn(
-                      "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+                      "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
                       isActive
-                        ? "bg-accent text-foreground font-medium"
-                        : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+                        ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
+                        : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
                     )}
                   >
-                    <item.icon className="h-4 w-4 shrink-0 opacity-60" />
+                    {/* Teal left border for active item */}
+                    {isActive && (
+                      <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+                    )}
+                    <item.icon className={cn(
+                      "h-4 w-4 shrink-0",
+                      isActive ? "text-teal-500" : "text-stone-500"
+                    )} />
                     <span className="flex-1 truncate">{item.label}</span>
                     {count > 0 && (
                       <span className="h-4.5 min-w-[18px] rounded-full bg-primary px-1 text-[10px] font-medium text-primary-foreground flex items-center justify-center">
@@ -244,47 +250,53 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-border p-2 space-y-0.5">
+      <div className="border-t divider-glass p-2 space-y-0.5">
         <Link
           href="/builder"
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
             pathname === "/builder"
-              ? "bg-accent text-foreground font-medium"
-              : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+              ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
+              : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
           )}
         >
-          <PlusCircle className="h-4 w-4 shrink-0 opacity-60" />
+          {pathname === "/builder" && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+          )}
+          <PlusCircle className={cn("h-4 w-4 shrink-0", pathname === "/builder" ? "text-teal-500" : "text-stone-500")} />
           <span>Hire Agent</span>
         </Link>
         <Link
           href="/settings"
           className={cn(
-            "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
+            "relative flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] transition-colors",
             pathname === "/settings"
-              ? "bg-accent text-foreground font-medium"
-              : "text-sidebar-foreground hover:bg-accent hover:text-foreground"
+              ? "bg-[rgba(20,184,166,0.08)] text-stone-100 font-medium glow-teal-sm"
+              : "text-stone-400 hover:bg-white/[0.04] hover:text-stone-100"
           )}
         >
-          <Settings className="h-4 w-4 shrink-0 opacity-60" />
+          {pathname === "/settings" && (
+            <span className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-4 rounded-r-full bg-teal-500" />
+          )}
+          <Settings className={cn("h-4 w-4 shrink-0", pathname === "/settings" ? "text-teal-500" : "text-stone-500")} />
           <span>Settings</span>
         </Link>
         {currentUser && (
-          <div className="flex items-center gap-2.5 px-2 py-2 border-t border-border mt-1 mb-1">
-            <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+          <div className="flex items-center gap-2.5 px-2 py-2 glass-subtle rounded-lg mt-1 mb-1">
+            <div className="h-7 w-7 rounded-full bg-teal-500/15 flex items-center justify-center text-xs font-semibold text-teal-500 shrink-0">
               {currentUser.avatarEmoji || currentUser.name.charAt(0).toUpperCase()}
             </div>
-            <div className="min-w-0">
-              <p className="text-[13px] font-medium text-foreground truncate">{currentUser.name}</p>
-              <p className="text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
+            <div className="min-w-0 flex-1">
+              <p className="text-[13px] font-medium text-stone-100 truncate">{currentUser.name}</p>
+              <p className="text-[11px] text-stone-500 truncate">{currentUser.email}</p>
             </div>
           </div>
         )}
         <button
           onClick={handleLogout}
-          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-sidebar-foreground hover:bg-accent hover:text-foreground transition-colors w-full"
+          className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-stone-400 hover:bg-white/[0.04] hover:text-stone-100 transition-colors w-full"
         >
-          <LogOut className="h-4 w-4 shrink-0 opacity-60" />
+          <LogOut className="h-4 w-4 shrink-0 text-stone-500" />
           <span>Log out</span>
         </button>
       </div>

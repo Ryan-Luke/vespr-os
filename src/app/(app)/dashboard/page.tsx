@@ -59,115 +59,132 @@ export default async function DashboardPage() {
     status: s, count: allTasks.filter((t) => t.status === s).length,
   }))
 
-  const statusColors = ["text-muted-foreground", "text-blue-400", "text-amber-400", "text-violet-400", "text-emerald-400"]
   const statusLabels: Record<string, string> = { backlog: "Backlog", todo: "To Do", in_progress: "Active", review: "Review", done: "Done" }
 
   return (
     <div className="h-full overflow-y-auto">
-      <div className="p-6 space-y-5 max-w-[1400px]">
+      <div className="p-6 space-y-8 max-w-[1400px]">
+        {/* ── Header ──────────────────────────────────────── */}
         <div className="flex items-center justify-between">
-          <h1 className="text-sm font-semibold text-muted-foreground">Dashboard</h1>
+          <h1 className="section-label">Dashboard</h1>
           <div className="flex items-center gap-2">
             <FocusModeToggle />
             <DailyDigestButton />
             <WeeklyReportButton />
           </div>
         </div>
+
         <GettingStarted />
         <ActivityTicker />
+
+        {/* ── KPI STRIP ───────────────────────────────────── */}
+        <div className="grid gap-4 grid-cols-2 md:grid-cols-4 lg:grid-cols-5">
+          {([
+            { label: "Tasks Completed", value: totalTasks > 0 ? totalTasks.toLocaleString() : "\u2014", change: null },
+            { label: "Hours Saved", value: totalTasks > 0 ? Math.round(totalTasks * 0.15).toLocaleString() : "\u2014", change: null },
+            { label: "Active Agents", value: String(allAgents.length), change: null, sub: workingAgents > 0 ? `${workingAgents} working` : undefined },
+            { label: "Monthly Spend", value: totalCost > 0 ? `$${totalCost.toFixed(0)}` : "\u2014", change: null },
+            { label: "Error Rate", value: errorAgents > 0 ? `${errorAgents}` : "\u2014", change: null },
+          ] as { label: string; value: string; change: number | null; sub?: string }[]).map((kpi) => (
+            <div key={kpi.label} className="kpi-card p-4">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.1em] text-stone-500 mb-3">{kpi.label}</p>
+              <p className="text-[28px] font-bold tabular-nums leading-none">{kpi.value}</p>
+              <div className="flex items-center gap-1.5 mt-2">
+                {kpi.change != null && kpi.change > 0 && <ArrowUpRight className="h-3 w-3 text-emerald-500" />}
+                {kpi.change != null && kpi.change < 0 && <ArrowDownRight className="h-3 w-3 text-red-500" />}
+                {kpi.change != null ? (
+                  <span className={cn("text-[11px] font-medium tabular-nums", kpi.change >= 0 ? "text-emerald-500" : "text-red-500")}>{Math.abs(kpi.change)}%</span>
+                ) : (
+                  <span className="text-[11px] text-stone-500 tabular-nums">&mdash;</span>
+                )}
+                {kpi.sub && <span className="text-[11px] text-stone-500">{kpi.sub}</span>}
+              </div>
+            </div>
+          ))}
+        </div>
+
+        <div className="divider-glass" />
+
+        {/* ── WORKFLOW PHASE ───────────────────────────────── */}
         <WorkflowPhaseWidget />
         <MorningCheckin />
         <OvernightSummary />
-        <div className="grid gap-3 md:grid-cols-2">
+
+        <div className="grid gap-4 md:grid-cols-2">
           <GoalTracker />
           <ROICalculator />
         </div>
         <ApprovalQueue />
 
-        {/* ── PRIMARY ZONE: KPIs + Activity ────────────────── */}
-        <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr_1fr_minmax(320px,1.2fr)]">
-          {/* 4 KPI cells */}
-          {([
-            { label: "Tasks", value: totalTasks.toLocaleString(), change: null },
-            { label: "Hours Saved", value: Math.round(totalTasks * 0.15).toLocaleString(), change: null },
-            { label: "Agents", value: String(allAgents.length), change: null, sub: `${workingAgents} active` },
-            { label: "Cost", value: `$${totalCost.toFixed(0)}`, change: null },
-          ] as { label: string; value: string; change: number | null; sub?: string }[]).map((kpi) => (
-            <div key={kpi.label} className="bg-card border border-border rounded-md p-4">
-              <p className="section-label">{kpi.label}</p>
-              <p className="text-2xl font-semibold tabular-nums mt-2">{kpi.value}</p>
-              <div className="flex items-center gap-1 mt-1">
-                {kpi.change != null && kpi.change > 0 && <ArrowUpRight className="h-3 w-3 text-emerald-500" />}
-                {kpi.change != null && kpi.change < 0 && <ArrowDownRight className="h-3 w-3 text-red-500" />}
-                {kpi.change != null ? <span className={cn("text-[11px] font-medium tabular-nums", kpi.change >= 0 ? "text-emerald-500" : "text-red-500")}>{Math.abs(kpi.change)}%</span> : <span className="text-[11px] text-muted-foreground tabular-nums">&mdash;</span>}
-                {kpi.sub && <span className="text-[11px] text-muted-foreground">{kpi.sub}</span>}
-              </div>
-            </div>
-          ))}
+        <div className="divider-glass" />
 
-          {/* Workforce health — sits alongside KPIs */}
-          <div className="bg-card border border-border rounded-md p-4 row-span-1">
-            <p className="section-label mb-3">Workforce</p>
-            <div className="space-y-2">
+        {/* ── WORKFORCE HEALTH ─────────────────────────────── */}
+        <div>
+          <p className="section-label mb-4 mt-8">Workforce</p>
+          <div className="glass-card p-5">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
               {[
                 { label: "Working", count: workingAgents, dot: "status-working" },
                 { label: "Idle", count: idleAgents, dot: "status-idle" },
                 { label: "Paused", count: pausedAgents, dot: "status-paused" },
                 ...(errorAgents > 0 ? [{ label: "Error", count: errorAgents, dot: "status-error" }] : []),
               ].map((s) => (
-                <div key={s.label} className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <span className={cn("h-1.5 w-1.5 rounded-full", s.dot)} />
-                    <span className="text-xs text-muted-foreground">{s.label}</span>
+                <div key={s.label} className="flex items-center gap-3">
+                  <span className={cn("h-2 w-2 rounded-full", s.dot)} />
+                  <div>
+                    <span className="text-[22px] font-bold tabular-nums leading-none">{s.count}</span>
+                    <p className="text-[11px] text-stone-500 mt-0.5">{s.label}</p>
                   </div>
-                  <span className="text-xs font-medium tabular-nums">{s.count}</span>
                 </div>
               ))}
             </div>
-            <div className="border-t border-border mt-3 pt-3 space-y-1.5">
-              {allTeams.map((team) => {
-                const ta = allAgents.filter((a) => a.teamId === team.id)
-                const tw = ta.filter((a) => a.status === "working").length
-                return (
-                  <div key={team.id} className="flex items-center justify-between text-xs">
-                    <span className="text-muted-foreground">{team.icon} {team.name}</span>
-                    <span className="tabular-nums text-muted-foreground">{tw}/{ta.length}</span>
-                  </div>
-                )
-              })}
-            </div>
+            {allTeams.length > 0 && (
+              <div className="border-t border-[rgba(255,255,255,0.06)] mt-5 pt-4 grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
+                {allTeams.map((team) => {
+                  const ta = allAgents.filter((a) => a.teamId === team.id)
+                  const tw = ta.filter((a) => a.status === "working").length
+                  return (
+                    <div key={team.id} className="flex items-center justify-between text-xs px-1">
+                      <span className="text-stone-500">{team.icon} {team.name}</span>
+                      <span className="tabular-nums text-stone-400 font-medium">{tw}/{ta.length}</span>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
 
-        {/* ── SECONDARY ZONE: Charts + Pipeline ────────────── */}
-        <div data-dashboard-section="charts" className="grid gap-5 lg:grid-cols-3">
-          <div className="bg-card border border-border rounded-md p-4">
-            <p className="section-label mb-3">Activity</p>
-            <AgentActivityChart />
-          </div>
-          <div className="bg-card border border-border rounded-md p-4">
-            <p className="section-label mb-3">Cost by Team</p>
-            <CostByTeamChart data={costByTeamData} />
-          </div>
-          <div className="bg-card border border-border rounded-md p-4">
-            <div className="flex items-center justify-between mb-3">
-              <p className="section-label">Pipeline</p>
+        {/* ── CHARTS ──────────────────────────────────────── */}
+        <div>
+          <p className="section-label mb-4 mt-8">Analytics</p>
+          <div data-dashboard-section="charts" className="grid gap-4 lg:grid-cols-3">
+            <div className="glass-card p-5">
+              <p className="section-label mb-4">Activity</p>
+              <AgentActivityChart />
             </div>
-            <div className="grid grid-cols-5 gap-2">
-              {taskStatusData.map((s, i) => (
-                <div key={s.status} className="text-center py-2">
-                  <p className={cn("text-lg font-semibold tabular-nums", statusColors[i])}>{s.count}</p>
-                  <p className="text-[10px] text-muted-foreground mt-0.5">{statusLabels[s.status]}</p>
-                </div>
-              ))}
+            <div className="glass-card p-5">
+              <p className="section-label mb-4">Cost by Team</p>
+              <CostByTeamChart data={costByTeamData} />
+            </div>
+            <div className="glass-card p-5">
+              <p className="section-label mb-4">Pipeline</p>
+              <div className="grid grid-cols-5 gap-2">
+                {taskStatusData.map((s) => (
+                  <div key={s.status} className="text-center py-3">
+                    <p className="text-[22px] font-bold tabular-nums">{s.count}</p>
+                    <p className="text-[10px] text-stone-500 mt-1 uppercase tracking-wider">{statusLabels[s.status]}</p>
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
         </div>
 
         {/* ── TEAM HEALTH SCORES ─────────────────────────────── */}
-        <div data-dashboard-section="health" className="bg-card border border-border rounded-md p-4">
-          <p className="section-label mb-3">Team Health</p>
-          <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-{allTeams.length > 4 ? 4 : allTeams.length}">
+        <div>
+          <p className="section-label mb-4 mt-8">Team Health</p>
+          <div data-dashboard-section="health" className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
             {allTeams.map((team) => {
               const ta = allAgents.filter((a) => a.teamId === team.id)
               const goals = allTasks.filter((t) => t.teamId === team.id)
@@ -176,20 +193,19 @@ export default async function DashboardPage() {
               const completionRate = Math.round((completed / total) * 100)
               const errorCount = ta.filter((a) => a.status === "error").length
               const avgLevel = ta.length > 0 ? Math.round(ta.reduce((sum, a) => sum + (a.level ?? 1), 0) / ta.length) : 0
-              // Health score: completion rate, minus error penalty, plus small team-level bonus
               const healthScore = Math.min(100, Math.max(0, completionRate - (errorCount * 15) + Math.min(avgLevel, 20)))
-              const healthColor = healthScore >= 70 ? "text-emerald-500" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
-              const barColor = healthScore >= 70 ? "bg-emerald-500" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
+              const healthColor = healthScore >= 70 ? "text-teal-500" : healthScore >= 40 ? "text-amber-500" : "text-red-500"
+              const barColor = healthScore >= 70 ? "bg-teal-500" : healthScore >= 40 ? "bg-amber-500" : "bg-red-500"
               return (
-                <div key={team.id} className="rounded-md border border-border p-3">
-                  <div className="flex items-center justify-between mb-2">
+                <div key={team.id} className="glass-card p-4">
+                  <div className="flex items-center justify-between mb-3">
                     <span className="text-xs font-medium">{team.icon} {team.name}</span>
-                    <span className={cn("text-sm font-bold tabular-nums", healthColor)}>{healthScore}</span>
+                    <span className={cn("text-lg font-bold tabular-nums", healthColor)}>{healthScore}</span>
                   </div>
-                  <div className="h-1.5 rounded-full bg-border overflow-hidden mb-2">
+                  <div className="progress-glass h-1 mb-3">
                     <div className={cn("h-full rounded-full transition-all", barColor)} style={{ width: `${healthScore}%` }} />
                   </div>
-                  <div className="flex justify-between text-[11px] text-muted-foreground">
+                  <div className="flex justify-between text-[11px] text-stone-500">
                     <span>{completionRate}% done</span>
                     <span>{ta.length} agents</span>
                     {errorCount > 0 && <span className="text-red-400">{errorCount} error</span>}
@@ -209,25 +225,27 @@ export default async function DashboardPage() {
           const maxCost = agentCosts[0]?.costThisMonth ?? 1
           if (agentCosts.length === 0) return null
           return (
-            <div className="bg-card border border-border rounded-md p-4">
-              <div className="flex items-center justify-between mb-3">
-                <p className="section-label">Cost by Agent</p>
-                <span className="text-xs text-muted-foreground tabular-nums">${totalCost.toFixed(0)} total</span>
-              </div>
-              <div className="space-y-1.5">
-                {agentCosts.map((agent) => {
-                  const pct = maxCost > 0 ? ((agent.costThisMonth ?? 0) / maxCost) * 100 : 0
-                  return (
-                    <div key={agent.id} className="flex items-center gap-2.5">
-                      <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={16} className="rounded-sm shrink-0" />
-                      <span className="text-xs w-16 truncate">{agent.name}</span>
-                      <div className="flex-1 h-1.5 rounded-full bg-border overflow-hidden">
-                        <div className="h-full rounded-full bg-primary/60 transition-all" style={{ width: `${pct}%` }} />
+            <div>
+              <p className="section-label mb-4 mt-8">Cost by Agent</p>
+              <div className="glass-card p-5">
+                <div className="flex items-center justify-end mb-4">
+                  <span className="text-[11px] text-stone-500 tabular-nums">${totalCost.toFixed(0)} total</span>
+                </div>
+                <div className="space-y-2.5">
+                  {agentCosts.map((agent) => {
+                    const pct = maxCost > 0 ? ((agent.costThisMonth ?? 0) / maxCost) * 100 : 0
+                    return (
+                      <div key={agent.id} className="flex items-center gap-3">
+                        <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={16} className="rounded-sm shrink-0" />
+                        <span className="text-xs w-20 truncate text-stone-300">{agent.name}</span>
+                        <div className="progress-glass flex-1 h-1.5">
+                          <div className="h-full rounded-full bg-teal-500/60 transition-all" style={{ width: `${pct}%` }} />
+                        </div>
+                        <span className="text-[11px] text-stone-500 tabular-nums w-14 text-right">${(agent.costThisMonth ?? 0).toFixed(2)}</span>
                       </div>
-                      <span className="text-[11px] text-muted-foreground tabular-nums w-12 text-right">${(agent.costThisMonth ?? 0).toFixed(2)}</span>
-                    </div>
-                  )
-                })}
+                    )
+                  })}
+                </div>
               </div>
             </div>
           )
@@ -260,20 +278,20 @@ export default async function DashboardPage() {
                 <Link
                   key={agent.id}
                   href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`}
-                  className="bg-card border border-border rounded-md p-3 hover:border-muted-foreground/20 transition-colors"
+                  className="glass-subtle rounded-xl p-4 transition-colors"
                 >
-                  <div className="flex items-center gap-2">
-                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
-                    <span className="text-xs font-medium truncate">{agent.name}</span>
-                    <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 ml-auto", statusDot)} />
+                  <div className="flex items-center gap-2.5">
+                    <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={24} className="rounded-md" />
+                    <span className="text-[13px] font-medium truncate">{agent.name}</span>
+                    <span className={cn("h-2 w-2 rounded-full shrink-0 ml-auto", statusDot)} />
                   </div>
-                  <p className="text-[11px] text-muted-foreground mt-1.5 truncate">
+                  <p className="text-[11px] text-stone-500 mt-2 truncate">
                     {agent.currentTask || "Idle"}
                   </p>
-                  <p className="text-[10px] text-muted-foreground/60 truncate">{agent.role}</p>
-                  <div className="flex items-center gap-2 mt-2">
-                    <span className="text-[10px] font-medium bg-muted px-1.5 py-0.5 rounded">Lv.{agent.level}</span>
-                    <span className="text-[10px] text-muted-foreground ml-auto tabular-nums">
+                  <p className="text-[10px] text-stone-600 truncate">{agent.role}</p>
+                  <div className="flex items-center gap-2 mt-3">
+                    <span className="text-[10px] font-semibold bg-teal-500/10 text-teal-500 px-2 py-0.5 rounded-full">Lv.{agent.level}</span>
+                    <span className="text-[10px] text-stone-500 ml-auto tabular-nums">
                       {agent.tasksCompleted} tasks
                     </span>
                   </div>
@@ -283,43 +301,49 @@ export default async function DashboardPage() {
           </div>
         </CollapsibleSection>
 
-        {/* ── TERTIARY ZONE: Activity feed + Gamification ──── */}
-        <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr]">
-          {/* Activity feed — takes 1 col */}
-          <div className="bg-card border border-border rounded-md p-4">
-            <p className="section-label mb-3">Recent Activity</p>
-            <div className="space-y-px">
-              {recentActivity.slice(0, 8).map((entry) => {
-                const icons: Record<string, React.ReactNode> = {
-                  completed_task: <CheckCircle2 className="h-3 w-3 text-emerald-500" />,
-                  sent_message: <MessageSquare className="h-3 w-3 text-blue-500" />,
-                  updated_knowledge: <BookOpen className="h-3 w-3 text-violet-500" />,
-                  created_sop: <FileText className="h-3 w-3 text-blue-400" />,
-                  flagged: <Flag className="h-3 w-3 text-red-500" />,
-                }
-                const icon = icons[entry.action] ?? <Activity className="h-3 w-3 text-muted-foreground" />
-                const diffMs = Date.now() - new Date(entry.createdAt).getTime()
-                const diffMin = Math.floor(diffMs / 60000)
-                const diffHr = Math.floor(diffMin / 60)
-                const t = diffHr > 0 ? `${diffHr}h` : diffMin > 0 ? `${diffMin}m` : "now"
+        <div className="divider-glass" />
 
-                return (
-                  <div key={entry.id} className="flex items-center gap-2 py-1.5 text-xs">
-                    <span className="shrink-0 w-3">{icon}</span>
-                    <span className="font-medium shrink-0">{entry.agentName}</span>
-                    <span className="text-muted-foreground truncate flex-1">{entry.description}</span>
-                    <span className="text-muted-foreground tabular-nums shrink-0">{t}</span>
-                  </div>
-                )
-              })}
+        {/* ── ACTIVITY FEED + GAMIFICATION ─────────────────── */}
+        <div>
+          <p className="section-label mb-4 mt-8">Activity & Leaderboard</p>
+          <div className="grid gap-4 lg:grid-cols-3">
+            {/* Activity feed */}
+            <div className="glass-card p-5">
+              <p className="section-label mb-4">Recent Activity</p>
+              <div className="divide-y divide-[rgba(255,255,255,0.04)]">
+                {recentActivity.slice(0, 8).map((entry) => {
+                  const icons: Record<string, React.ReactNode> = {
+                    completed_task: <CheckCircle2 className="h-3 w-3 text-teal-500" />,
+                    sent_message: <MessageSquare className="h-3 w-3 text-stone-400" />,
+                    updated_knowledge: <BookOpen className="h-3 w-3 text-stone-400" />,
+                    created_sop: <FileText className="h-3 w-3 text-stone-400" />,
+                    flagged: <Flag className="h-3 w-3 text-red-500" />,
+                  }
+                  const icon = icons[entry.action] ?? <Activity className="h-3 w-3 text-stone-500" />
+                  const diffMs = Date.now() - new Date(entry.createdAt).getTime()
+                  const diffMin = Math.floor(diffMs / 60000)
+                  const diffHr = Math.floor(diffMin / 60)
+                  const t = diffHr > 0 ? `${diffHr}h` : diffMin > 0 ? `${diffMin}m` : "now"
+
+                  return (
+                    <div key={entry.id} className="flex items-center gap-2.5 py-2.5 text-xs">
+                      <span className="shrink-0 w-3">{icon}</span>
+                      <span className="font-medium shrink-0 text-stone-300">{entry.agentName}</span>
+                      <span className="text-stone-500 truncate flex-1">{entry.description}</span>
+                      <span className="text-stone-600 tabular-nums shrink-0">{t}</span>
+                    </div>
+                  )
+                })}
+              </div>
             </div>
-          </div>
 
-          <AgentLeaderboard />
-          <CompanyAchievements />
+            <AgentLeaderboard />
+            <CompanyAchievements />
+          </div>
         </div>
+
         <div className="pt-8 pb-4 text-center">
-          <p className="text-[10px] text-muted-foreground/30">Cmd+K to search · Cmd+/ for shortcuts</p>
+          <p className="text-[10px] text-stone-700">Cmd+K to search · Cmd+/ for shortcuts</p>
         </div>
       </div>
     </div>

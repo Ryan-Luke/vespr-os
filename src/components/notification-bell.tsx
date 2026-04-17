@@ -36,12 +36,12 @@ function categorize(action: string): NotificationCategory {
 }
 
 const categoryDot: Record<NotificationCategory, string> = {
-  task_completed: "bg-emerald-500",
+  task_completed: "bg-teal-500",
   approval_needed: "bg-amber-500",
   agent_error: "bg-red-500",
-  message_mention: "bg-blue-500",
-  milestone_unlocked: "bg-purple-500",
-  other: "bg-muted-foreground",
+  message_mention: "bg-stone-400",
+  milestone_unlocked: "bg-teal-400",
+  other: "bg-stone-500",
 }
 
 const categoryNav: Record<NotificationCategory, string> = {
@@ -158,12 +158,12 @@ export function NotificationBell() {
       <button
         ref={buttonRef}
         onClick={() => setOpen((v) => !v)}
-        className="relative flex items-center justify-center h-6 w-6 rounded-md hover:bg-accent transition-colors"
+        className="relative flex items-center justify-center h-7 w-7 rounded-lg hover:bg-stone-800 transition-colors"
         aria-label="Notifications"
       >
-        <Bell className="h-4 w-4 text-muted-foreground" />
+        <Bell className="h-4 w-4 text-stone-500" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 h-[16px] min-w-[16px] rounded-full bg-red-500 px-1 text-[9px] font-semibold text-white flex items-center justify-center leading-none">
+          <span className="absolute -top-1 -right-1 h-[16px] min-w-[16px] rounded-full bg-teal-500 px-1 text-[9px] font-bold text-white flex items-center justify-center leading-none">
             {unreadCount > 99 ? "99+" : unreadCount}
           </span>
         )}
@@ -172,17 +172,17 @@ export function NotificationBell() {
       {open && (
         <div
           ref={panelRef}
-          className="absolute left-0 top-full mt-1 bg-popover border border-border rounded-md shadow-lg w-80 max-h-96 overflow-y-auto z-50"
+          className="absolute left-0 top-full mt-1.5 glass-elevated rounded-xl w-80 max-h-96 overflow-y-auto z-50"
         >
           {/* Header */}
-          <div className="flex items-center justify-between px-3 py-2 border-b border-border">
-            <span className="text-[13px] font-medium text-foreground">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-[rgba(255,255,255,0.06)]">
+            <span className="section-label">
               Notifications
             </span>
             {unreadCount > 0 && (
               <button
                 onClick={handleMarkAllRead}
-                className="text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+                className="text-[11px] text-teal-500 hover:text-teal-400 transition-colors"
               >
                 Mark all read
               </button>
@@ -191,11 +191,11 @@ export function NotificationBell() {
 
           {/* Items */}
           {entries.length === 0 ? (
-            <div className="px-3 py-6 text-center text-[13px] text-muted-foreground">
+            <div className="px-4 py-8 text-center text-[13px] text-stone-600">
               No notifications yet
             </div>
           ) : (
-            <div>
+            <div className="divide-y divide-[rgba(255,255,255,0.04)]">
               {entries.map((entry) => {
                 const isUnread =
                   new Date(entry.createdAt).getTime() > readAt
@@ -205,15 +205,15 @@ export function NotificationBell() {
                     key={entry.id}
                     onClick={() => handleNotificationClick(entry)}
                     className={cn(
-                      "flex items-start gap-2.5 px-3 py-2 hover:bg-accent transition-colors w-full text-left",
-                      isUnread && "border-l-2 border-l-primary"
+                      "flex items-start gap-2.5 px-4 py-3 hover:bg-stone-800/40 transition-colors w-full text-left",
+                      isUnread && "border-l-2 border-l-teal-500"
                     )}
                   >
                     {/* Avatar */}
                     <PixelAvatar
                       characterIndex={avatarIndex(entry.agentName)}
                       size={24}
-                      className="shrink-0 mt-0.5 rounded"
+                      className="shrink-0 mt-0.5 rounded-lg"
                     />
 
                     {/* Content */}
@@ -230,8 +230,8 @@ export function NotificationBell() {
                           className={cn(
                             "text-[13px] leading-tight truncate",
                             isUnread
-                              ? "text-foreground font-medium"
-                              : "text-muted-foreground"
+                              ? "text-stone-200 font-medium"
+                              : "text-stone-500"
                           )}
                         >
                           {entry.agentName}
@@ -241,13 +241,13 @@ export function NotificationBell() {
                         className={cn(
                           "text-[13px] leading-snug mt-0.5 line-clamp-2",
                           isUnread
-                            ? "text-foreground/80"
-                            : "text-muted-foreground"
+                            ? "text-stone-400"
+                            : "text-stone-600"
                         )}
                       >
                         {entry.description}
                       </p>
-                      <span className="text-[11px] text-muted-foreground/60 mt-0.5 block">
+                      <span className="text-[11px] text-stone-700 mt-0.5 block">
                         {timeAgo(entry.createdAt)}
                       </span>
                     </div>

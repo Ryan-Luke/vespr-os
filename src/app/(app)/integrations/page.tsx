@@ -665,7 +665,7 @@ export default function IntegrationsPage() {
       {/* Provider grid grouped by category */}
       {loaded && sortedGroups.map(([cat, groupProviders]) => (
         <div key={cat} className="space-y-3">
-          <h2 className="text-sm font-medium text-muted-foreground">
+          <h2 className="text-[11px] uppercase tracking-widest text-stone-500 font-semibold">
             {CATEGORY_LABELS[cat] ?? cat}
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -680,8 +680,8 @@ export default function IntegrationsPage() {
                 <div
                   key={provider.key}
                   className={cn(
-                    "bg-card border border-border rounded-md p-4 transition-colors",
-                    isConnected && "border-emerald-500/20",
+                    "glass-card border border-border rounded-xl p-4 transition-colors",
+                    isConnected && "border-teal-500/20",
                     isExpanded && "ring-1 ring-muted-foreground/10",
                   )}
                 >
@@ -692,8 +692,8 @@ export default function IntegrationsPage() {
                         <span className="text-[13px] font-medium">{provider.name}</span>
                         {isConnected && <HealthDot status={providerHealth?.status} />}
                         {isConnected && (
-                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-medium">
-                            Connected
+                          <span className="text-[10px] px-1.5 py-0.5 rounded badge-glass font-medium flex items-center gap-1">
+                            <span className="h-1.5 w-1.5 rounded-full bg-teal-500" />Connected
                           </span>
                         )}
                       </div>
@@ -716,7 +716,7 @@ export default function IntegrationsPage() {
                       ) : (
                         <button
                           onClick={() => handleCardClick(provider.key)}
-                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                          className="text-xs btn-teal rounded-md px-2.5 py-1 font-medium transition-colors"
                         >
                           {isExpanded ? "Cancel" : "Connect"}
                         </button>

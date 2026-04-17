@@ -162,23 +162,23 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
       {/* Overlay click to close */}
       <div className="absolute inset-0" onClick={onClose} />
 
-      <div className="relative z-10 bg-card border border-border rounded-xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto shadow-xl mx-4">
+      <div className="relative z-10 modal-glass rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto mx-4">
         {/* ── Toolbar ─────────────────────────────────── */}
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-2">
-            <Mail className="h-4 w-4 text-primary" />
-            <span className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            <Mail className="h-4 w-4 text-teal-500" />
+            <span className="section-label">
               VESPR
             </span>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={handleCopy}
-              className="text-xs text-primary hover:underline flex items-center gap-1"
+              className="text-[11px] text-teal-500 hover:text-teal-400 flex items-center gap-1 transition-colors"
             >
               {copied ? (
                 <>
@@ -194,55 +194,71 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
             </button>
             <button
               onClick={onClose}
-              className="flex items-center justify-center h-7 w-7 rounded-md hover:bg-accent transition-colors"
+              className="flex items-center justify-center h-7 w-7 rounded-lg hover:bg-stone-800 transition-colors"
             >
-              <X className="h-4 w-4" />
+              <X className="h-4 w-4 text-stone-400" />
             </button>
           </div>
         </div>
 
         {loading ? (
           <div className="flex items-center justify-center py-20">
-            <div className="text-sm text-muted-foreground animate-pulse">
+            <div className="text-sm text-stone-500 animate-pulse">
               Preparing your digest...
             </div>
           </div>
         ) : (
           <>
             {/* ── Date Header ────────────────────────── */}
-            <div className="border-b border-border pb-4 mb-5">
-              <h1 className="text-lg font-semibold">Daily Digest</h1>
-              <p className="text-sm text-muted-foreground">{todayLabel()}</p>
+            <div className="border-b border-[rgba(255,255,255,0.06)] pb-4 mb-6">
+              <h1 className="text-lg font-semibold text-stone-200">Daily Digest</h1>
+              <p className="text-[11px] text-stone-500 mt-0.5">{todayLabel()}</p>
             </div>
 
             {/* ── Executive Summary ───────────────────── */}
-            <section className="mb-5">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <section className="mb-6">
+              <h2 className="section-label mb-2">
                 Executive Summary
               </h2>
-              <p className="text-xs text-muted-foreground leading-relaxed">
+              <p className="text-xs text-stone-400 leading-relaxed">
                 Your team of {agents.length} agents completed {totalTasks} tasks today,
                 saving an estimated {hoursSaved} hours. {activeAgents} agents are currently
                 active, with a total spend of ${totalCost.toFixed(2)}.
               </p>
             </section>
 
+            {/* ── KPI row ────────────────────────── */}
+            <section className="mb-6 grid grid-cols-3 gap-3">
+              <div className="glass-subtle rounded-lg p-3 text-center">
+                <p className="text-[22px] font-bold tabular-nums">{totalTasks}</p>
+                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Tasks</p>
+              </div>
+              <div className="glass-subtle rounded-lg p-3 text-center">
+                <p className="text-[22px] font-bold tabular-nums">{hoursSaved}h</p>
+                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Saved</p>
+              </div>
+              <div className="glass-subtle rounded-lg p-3 text-center">
+                <p className="text-[22px] font-bold tabular-nums">${totalCost.toFixed(0)}</p>
+                <p className="text-[10px] text-stone-500 uppercase tracking-wider mt-0.5">Cost</p>
+              </div>
+            </section>
+
             {/* ── Highlights ─────────────────────────── */}
             {highlights.length > 0 && (
-              <section className="mb-5">
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              <section className="mb-6">
+                <h2 className="section-label mb-2">
                   Highlights
                 </h2>
-                <div className="space-y-1">
+                <div className="divide-y divide-[rgba(255,255,255,0.04)]">
                   {highlights.map((entry) => (
                     <div
                       key={entry.id}
-                      className="flex items-start gap-2 py-1 text-xs"
+                      className="flex items-start gap-2 py-2 text-xs"
                     >
-                      <span className="text-muted-foreground/60 shrink-0 mt-0.5">-</span>
+                      <span className="text-stone-600 shrink-0 mt-0.5">-</span>
                       <span>
-                        <span className="font-medium">{entry.agentName}</span>{" "}
-                        <span className="text-muted-foreground">{entry.description}</span>
+                        <span className="font-medium text-stone-300">{entry.agentName}</span>{" "}
+                        <span className="text-stone-500">{entry.description}</span>
                       </span>
                     </div>
                   ))}
@@ -252,22 +268,22 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
 
             {/* ── Tasks Completed ────────────────────── */}
             {doneTasks.length > 0 && (
-              <section className="mb-5">
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              <section className="mb-6">
+                <h2 className="section-label mb-2">
                   Tasks Completed
                 </h2>
-                <div className="space-y-1">
+                <div className="divide-y divide-[rgba(255,255,255,0.04)]">
                   {doneTasks.slice(0, 10).map((task) => {
                     const agent = agents.find((a) => a.id === task.assigneeId)
                     return (
                       <div
                         key={task.id}
-                        className="flex items-center gap-2 py-1 text-xs"
+                        className="flex items-center gap-2 py-2 text-xs"
                       >
-                        <span className="text-emerald-500 shrink-0">-</span>
-                        <span className="flex-1 truncate">{task.title}</span>
+                        <span className="text-teal-500 shrink-0">-</span>
+                        <span className="flex-1 truncate text-stone-300">{task.title}</span>
                         {agent && (
-                          <span className="text-muted-foreground shrink-0 text-[11px]">
+                          <span className="text-stone-600 shrink-0 text-[11px]">
                             {agent.name}
                           </span>
                         )}
@@ -280,8 +296,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
 
             {/* ── Active Blockers ────────────────────── */}
             {blockers.length > 0 && (
-              <section className="mb-5">
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              <section className="mb-6">
+                <h2 className="section-label mb-2">
                   Active Blockers
                 </h2>
                 <div className="space-y-1">
@@ -299,12 +315,12 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
             )}
 
             {/* ── Cost Today ─────────────────────────── */}
-            <section className="mb-5">
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+            <section className="mb-6">
+              <h2 className="section-label mb-2">
                 Cost Today
               </h2>
-              <p className="text-xs text-muted-foreground">
-                <span className="text-foreground font-semibold tabular-nums">
+              <p className="text-xs text-stone-500">
+                <span className="text-stone-200 font-bold tabular-nums">
                   ${totalCost.toFixed(2)}
                 </span>{" "}
                 across {agents.length} agents
@@ -313,8 +329,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
 
             {/* ── Tomorrow's Priorities ──────────────── */}
             {inProgress.length > 0 && (
-              <section className="mb-5">
-                <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-2">
+              <section className="mb-6">
+                <h2 className="section-label mb-2">
                   Tomorrow&apos;s Priorities
                 </h2>
                 <div className="space-y-1">
@@ -323,8 +339,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
                       key={task.id}
                       className="flex items-center gap-2 py-1 text-xs"
                     >
-                      <span className="text-amber-400 shrink-0">-</span>
-                      <span className="text-muted-foreground truncate">{task.title}</span>
+                      <span className="text-amber-500 shrink-0">-</span>
+                      <span className="text-stone-500 truncate">{task.title}</span>
                     </div>
                   ))}
                 </div>
@@ -332,8 +348,8 @@ export function DailyDigest({ open, onClose }: { open: boolean; onClose: () => v
             )}
 
             {/* ── Footer ─────────────────────────────── */}
-            <div className="border-t border-border pt-3 mt-2">
-              <p className="text-[10px] text-muted-foreground text-center">
+            <div className="border-t border-[rgba(255,255,255,0.06)] pt-3 mt-2">
+              <p className="text-[10px] text-stone-700 text-center">
                 Generated by VESPR on {todayLabel()}
               </p>
             </div>
@@ -353,10 +369,10 @@ export function DailyDigestButton() {
     <>
       <button
         onClick={() => setOpen(true)}
-        className="flex items-center gap-1.5 text-xs bg-card border border-border rounded-md px-3 py-1.5 hover:bg-accent transition-colors"
+        className="flex items-center gap-1.5 text-xs btn-glass rounded-xl px-3 py-1.5"
       >
-        <Calendar className="h-3 w-3" />
-        Daily Digest
+        <Calendar className="h-3 w-3 text-stone-500" />
+        <span className="text-stone-400">Daily Digest</span>
       </button>
       <DailyDigest open={open} onClose={() => setOpen(false)} />
     </>

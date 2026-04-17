@@ -165,8 +165,8 @@ export default function TimelinePage() {
             className={cn(
               "px-2.5 py-1 rounded-full text-[11px] font-medium transition-colors",
               activeFilter === chip.value
-                ? "bg-foreground text-background"
-                : "bg-muted text-muted-foreground hover:text-foreground"
+                ? "btn-teal"
+                : "btn-glass text-muted-foreground hover:text-foreground"
             )}
           >
             {chip.label}
@@ -212,7 +212,7 @@ export default function TimelinePage() {
                           "flex-1 min-w-0 border rounded-md p-3",
                           isMilestone
                             ? "bg-amber-500/5 border-amber-500/10"
-                            : "bg-card border-border"
+                            : "glass-subtle border-border"
                         )}
                       >
                         <div className="flex items-start gap-2.5">

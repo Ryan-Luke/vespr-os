@@ -249,7 +249,7 @@ export default function ComparePage() {
           {/* Agent cards grid */}
           <div className="grid gap-4" style={{ gridTemplateColumns: `repeat(${compared.length}, minmax(0, 1fr))` }}>
             {compared.map((agent) => (
-              <div key={agent.id} className="bg-card border border-border rounded-md p-4 space-y-4">
+              <div key={agent.id} className="glass-card border border-border rounded-md p-4 space-y-4">
                 {/* Identity */}
                 <div className="flex flex-col items-center text-center gap-2">
                   <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={48} />

@@ -16,6 +16,19 @@ import {
   Legend,
 } from "recharts"
 
+// ── Design tokens (Stripe-inspired) ──────────────────────────
+const TEAL = "#14b8a6"               // Primary data series
+const STONE_600 = "#57534e"          // Secondary data series
+const GRID_STROKE = "rgba(255,255,255,0.04)"
+const AXIS_STYLE = { fill: "#78716c", fontSize: 11 }
+const TOOLTIP_STYLE = {
+  backgroundColor: "#1c1917",
+  border: "1px solid rgba(255,255,255,0.06)",
+  borderRadius: "12px",
+  color: "#e7e5e4",
+  fontSize: "12px",
+}
+
 // ── Agent Activity (Area Chart) ───────────────────────────────
 const activityData = [
   { day: "Mon", tasks: 45 },
@@ -29,51 +42,41 @@ const activityData = [
 
 export function AgentActivityChart() {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={280}>
       <AreaChart data={activityData} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-        <defs>
-          <linearGradient id="colorTasks" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="5%" stopColor="#22c55e" stopOpacity={0.3} />
-            <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
-          </linearGradient>
-        </defs>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-        <XAxis dataKey="day" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} axisLine={false} tickLine={false} />
-        <Tooltip
-          contentStyle={{
-            backgroundColor: "hsl(var(--card))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: "8px",
-            color: "hsl(var(--foreground))",
-          }}
+        <CartesianGrid stroke={GRID_STROKE} strokeDasharray="none" vertical={false} />
+        <XAxis dataKey="day" tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+        <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+        <Tooltip contentStyle={TOOLTIP_STYLE} />
+        <Area
+          type="monotone"
+          dataKey="tasks"
+          stroke={TEAL}
+          strokeWidth={2}
+          fill="none"
+          dot={false}
+          activeDot={{ r: 4, fill: TEAL, stroke: "#1c1917", strokeWidth: 2 }}
         />
-        <Area type="monotone" dataKey="tasks" stroke="#22c55e" fill="url(#colorTasks)" strokeWidth={2} />
       </AreaChart>
     </ResponsiveContainer>
   )
 }
 
 // ── Cost by Team (Bar Chart) ──────────────────────────────────
-const TEAM_COLORS = ["#3b82f6", "#a855f7", "#22c55e", "#f59e0b", "#ef4444"]
+const TEAM_COLORS = [TEAL, STONE_600, "#78716c", "#a8a29e", "#44403c"]
 
 export function CostByTeamChart({ data }: { data: { team: string; cost: number }[] }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={280}>
       <BarChart data={data} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.06)" />
-        <XAxis dataKey="team" tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} axisLine={false} tickLine={false} />
-        <YAxis tick={{ fill: "hsl(var(--muted-foreground))", fontSize: 12 }} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
+        <CartesianGrid stroke={GRID_STROKE} strokeDasharray="none" vertical={false} />
+        <XAxis dataKey="team" tick={AXIS_STYLE} axisLine={false} tickLine={false} />
+        <YAxis tick={AXIS_STYLE} axisLine={false} tickLine={false} tickFormatter={(v) => `$${v}`} />
         <Tooltip
-          contentStyle={{
-            backgroundColor: "hsl(var(--card))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: "8px",
-            color: "hsl(var(--foreground))",
-          }}
+          contentStyle={TOOLTIP_STYLE}
           formatter={(value) => [`$${Number(value).toFixed(2)}`, "Cost"]}
         />
-        <Bar dataKey="cost" radius={[4, 4, 0, 0]}>
+        <Bar dataKey="cost" radius={[6, 6, 0, 0]}>
           {data.map((_, index) => (
             <Cell key={`cell-${index}`} fill={TEAM_COLORS[index % TEAM_COLORS.length]} />
           ))}
@@ -85,11 +88,11 @@ export function CostByTeamChart({ data }: { data: { team: string; cost: number }
 
 // ── Task Status Distribution (Pie/Donut Chart) ───────────────
 const STATUS_COLORS: Record<string, string> = {
-  backlog: "#3b82f6",
-  todo: "#a855f7",
-  in_progress: "#f59e0b",
-  review: "#22c55e",
-  done: "#ef4444",
+  backlog: "#44403c",      // stone-700
+  todo: "#78716c",         // stone-500
+  in_progress: TEAL,       // teal primary
+  review: "#5eead4",       // teal-300
+  done: "#0d9488",         // teal-600
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -102,7 +105,7 @@ const STATUS_LABELS: Record<string, string> = {
 
 export function TaskStatusChart({ data }: { data: { status: string; count: number }[] }) {
   return (
-    <ResponsiveContainer width="100%" height={300}>
+    <ResponsiveContainer width="100%" height={280}>
       <PieChart>
         <Pie
           data={data}
@@ -110,7 +113,7 @@ export function TaskStatusChart({ data }: { data: { status: string; count: numbe
           cy="50%"
           innerRadius={70}
           outerRadius={110}
-          paddingAngle={3}
+          paddingAngle={2}
           dataKey="count"
           nameKey="status"
           label={({ name, value }: any) => {
@@ -120,21 +123,16 @@ export function TaskStatusChart({ data }: { data: { status: string; count: numbe
           labelLine={false}
         >
           {data.map((entry) => (
-            <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? "#6b7280"} />
+            <Cell key={entry.status} fill={STATUS_COLORS[entry.status] ?? "#57534e"} />
           ))}
         </Pie>
         <Tooltip
-          contentStyle={{
-            backgroundColor: "hsl(var(--card))",
-            border: "1px solid hsl(var(--border))",
-            borderRadius: "8px",
-            color: "hsl(var(--foreground))",
-          }}
+          contentStyle={TOOLTIP_STYLE}
           formatter={(value: any, name: any) => [value, STATUS_LABELS[name] ?? name]}
         />
         <Legend
           formatter={(value: string) => STATUS_LABELS[value] ?? value}
-          wrapperStyle={{ color: "hsl(var(--muted-foreground))", fontSize: 12 }}
+          wrapperStyle={{ color: "#78716c", fontSize: 11 }}
         />
       </PieChart>
     </ResponsiveContainer>

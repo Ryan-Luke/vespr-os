@@ -304,7 +304,7 @@ export default function OnboardingWizard() {
                 value={ownerName}
                 onChange={(e) => setOwnerName(e.target.value)}
                 placeholder="Your name"
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
                 autoFocus
                 onKeyDown={(e) => e.key === "Enter" && isStepValid() && goNext()}
               />
@@ -326,7 +326,7 @@ export default function OnboardingWizard() {
                 value={businessName}
                 onChange={(e) => setBusinessName(e.target.value)}
                 placeholder="Acme Inc"
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
               />
             </div>
             <div className="grid grid-cols-2 gap-3 max-w-lg mx-auto">
@@ -337,8 +337,8 @@ export default function OnboardingWizard() {
                   className={cn(
                     "flex flex-col items-start p-4 rounded-lg border transition-all text-left",
                     businessType === bt.id
-                      ? "bg-blue-500/10 border-blue-500/50 ring-1 ring-blue-500/30"
-                      : "bg-zinc-900 border-zinc-700 hover:border-zinc-600"
+                      ? "btn-teal border-teal-500/50 ring-1 ring-teal-500/30"
+                      : "btn-glass"
                   )}
                 >
                   <span className="text-2xl mb-2">{bt.icon}</span>
@@ -365,7 +365,7 @@ export default function OnboardingWizard() {
                   value={industry}
                   onChange={(e) => setIndustry(e.target.value)}
                   placeholder="e.g., AI Services, E-commerce, Fintech"
-                  className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
                 />
               </div>
               {templatePreview?.onboardingQuestions.map((q) => (
@@ -381,7 +381,7 @@ export default function OnboardingWizard() {
                       onChange={(e) =>
                         setProfileAnswers((prev) => ({ ...prev, [q.storageKey]: e.target.value }))
                       }
-                      className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 input-glass rounded-lg text-white focus:outline-none"
                     >
                       <option value="">Select...</option>
                       {q.options.map((o) => (
@@ -426,7 +426,7 @@ export default function OnboardingWizard() {
                       }
                       placeholder={q.placeholder || ""}
                       rows={3}
-                      className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
                     />
                   ) : (
                     <input
@@ -436,7 +436,7 @@ export default function OnboardingWizard() {
                         setProfileAnswers((prev) => ({ ...prev, [q.storageKey]: e.target.value }))
                       }
                       placeholder={q.placeholder || ""}
-                      className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none"
                     />
                   )}
                 </div>
@@ -472,7 +472,7 @@ export default function OnboardingWizard() {
                   setError(null)
                 }}
                 placeholder="sk-ant-..."
-                className="w-full px-4 py-3 bg-zinc-900 border border-zinc-700 rounded-lg text-white placeholder-zinc-500 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono text-sm"
+                className="w-full px-4 py-3 input-glass rounded-lg text-white placeholder-zinc-500 focus:outline-none font-mono text-sm"
                 onKeyDown={(e) => e.key === "Enter" && apiKey.length > 10 && validateApiKey()}
               />
               {apiKeyValid && (
@@ -484,7 +484,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={validateApiKey}
                 disabled={apiKeyValidating || apiKey.length < 10}
-                className="w-full py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
+                className="w-full py-3 btn-teal disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors flex items-center justify-center gap-2"
               >
                 {apiKeyValidating ? (
                   <>
@@ -617,7 +617,7 @@ export default function OnboardingWizard() {
                 </div>
                 <button
                   onClick={launchWorkspace}
-                  className="px-8 py-4 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-bold text-lg transition-colors flex items-center gap-2 mx-auto"
+                  className="px-8 py-4 btn-teal text-white rounded-lg font-bold text-lg transition-colors flex items-center gap-2 mx-auto"
                 >
                   Get started
                 </button>
@@ -629,7 +629,7 @@ export default function OnboardingWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-black flex flex-col">
+    <div className="min-h-screen bg-black bg-ambient flex flex-col">
       {/* Progress bar */}
       <div className="border-b border-zinc-800 px-6 py-4">
         <div className="max-w-2xl mx-auto flex items-center gap-2">
@@ -641,7 +641,7 @@ export default function OnboardingWizard() {
                   i < currentIndex
                     ? "bg-emerald-500/20 border-emerald-500/50 text-emerald-400"
                     : i === currentIndex
-                      ? "bg-blue-500/20 border-blue-500/50 text-blue-400"
+                      ? "bg-teal-500/20 border-teal-500/50 text-teal-400"
                       : "bg-zinc-900 border-zinc-700 text-zinc-600"
                 )}
               >
@@ -665,7 +665,7 @@ export default function OnboardingWizard() {
 
       {/* Step content */}
       <div className="flex-1 flex items-center justify-center px-6 py-12">
-        <div className="w-full max-w-2xl">
+        <div className="w-full max-w-2xl glass-elevated gradient-border rounded-2xl p-8">
           {renderStep()}
 
           {/* Error */}
@@ -694,7 +694,7 @@ export default function OnboardingWizard() {
               <button
                 onClick={goNext}
                 disabled={!isStepValid()}
-                className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors"
+                className="flex items-center gap-2 px-6 py-2 btn-teal disabled:bg-zinc-700 disabled:text-zinc-500 text-white rounded-lg font-medium transition-colors"
               >
                 Continue
                 <ArrowRight className="w-4 h-4" />

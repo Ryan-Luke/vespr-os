@@ -77,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile menu button */}
       <MobileMenuButton onClick={() => setMobileOpen(true)} />
 
-      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden">{children}</main>
+      <main className="flex-1 min-w-0 overflow-y-auto overflow-x-hidden bg-ambient">{children}</main>
       <WelcomeBanner />
       <GlobalSearch />
       <TutorialOverlay />
