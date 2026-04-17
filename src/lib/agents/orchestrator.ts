@@ -10,7 +10,7 @@
 import { db } from "@/lib/db"
 import {
   agents, tasks, channels, agentTasks,
-  collaborationEvents, taskDependencies, workspaces,
+  collaborationEvents, taskDependencies, workspaces, notifications,
 } from "@/lib/db/schema"
 import { eq, and } from "drizzle-orm"
 import { createAnthropic } from "@ai-sdk/anthropic"
@@ -353,4 +353,32 @@ export async function checkStuckTasks(workspaceId: string): Promise<number> {
   }
 
   return escalations
+}
+
+// ── Handle task failure in dependency chain ────────────────────────
+// When a task fails, notify downstream blocked tasks and create
+// notifications so the user knows the chain is stalled.
+export async function handleTaskFailure(workspaceId: string, failedTaskId: string) {
+  try {
+    const deps = await db.select().from(taskDependencies)
+      .where(and(
+        eq(taskDependencies.dependsOnTaskId, failedTaskId),
+        eq(taskDependencies.status, "pending"),
+      ))
+
+    for (const dep of deps) {
+      await db.insert(notifications).values({
+        workspaceId,
+        type: "task_failed",
+        title: "Dependency chain stalled",
+        description: `A task in the dependency chain failed. Downstream tasks are blocked.`,
+        actionUrl: "/tasks",
+        read: false,
+      })
+
+      await db.update(taskDependencies)
+        .set({ status: "canceled" })
+        .where(eq(taskDependencies.id, dep.id))
+    }
+  } catch {} // best-effort
 }

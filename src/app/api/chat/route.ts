@@ -128,6 +128,13 @@ export async function POST(req: Request) {
     threadId?: string
   } = await req.json()
 
+  if (!agentId) {
+    return Response.json({ error: "agentId is required" }, { status: 400 })
+  }
+  if (!messages || !Array.isArray(messages) || messages.length === 0) {
+    return Response.json({ error: "messages array is required" }, { status: 400 })
+  }
+
   // Generate or use the provided threadId for chat persistence
   const threadId = clientThreadId || crypto.randomUUID()
 
@@ -195,7 +202,7 @@ export async function POST(req: Request) {
           const recentHandoffs = await db.select().from(handoffTable)
             .where(eq(handoffTable.workspaceId, auth.workspace.id))
             .orderBy(desc(handoffTable.createdAt))
-            .limit(5)
+            .limit(3)
 
           // Recent agent tasks
           const { agentTasks: tasksTable } = await import("@/lib/db/schema")
@@ -208,7 +215,7 @@ export async function POST(req: Request) {
           const agentDocs = await db.select({ title: knowledgeEntries.title, createdByName: knowledgeEntries.createdByName })
             .from(knowledgeEntries)
             .where(sql`${knowledgeEntries.createdByAgentId} IS NOT NULL AND NOT (${knowledgeEntries.tags} @> '["internal"]'::jsonb)`)
-            .limit(10)
+            .limit(5)
 
           // Department goals
           const { teamGoals: goalsTable } = await import("@/lib/db/schema")
@@ -246,7 +253,12 @@ export async function POST(req: Request) {
           }
 
           if (stateLines.length > 0) {
-            businessState = `\n\nCURRENT BUSINESS STATE (live data):\n${stateLines.join("\n")}`
+            let stateText = stateLines.join("\n")
+            // Cap business state to 2000 chars to reduce system prompt token usage
+            if (stateText.length > 2000) {
+              stateText = stateText.slice(0, 2000) + "\n[truncated]"
+            }
+            businessState = `\n\nCURRENT BUSINESS STATE (live data):\n${stateText}`
           }
         } catch {
           // Best-effort. Nova still works without real-time state.

@@ -26,7 +26,7 @@ import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildWebTools } from "@/lib/agents/web-tools"
 import { consultAgent, startAgentThread } from "@/lib/agents/consultation"
 import { buildAgentContext } from "@/lib/learning/context-builder"
-import { checkDependencies } from "@/lib/agents/orchestrator"
+import { checkDependencies, handleTaskFailure } from "@/lib/agents/orchestrator"
 import { escalate } from "@/lib/agents/escalation"
 
 // ── Department-specific handoff prompts ───────────────────────────────
@@ -948,19 +948,42 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
     if (!apiKey) return { ok: false, error: "No Anthropic API key configured" }
     const anthropic = createAnthropic({ apiKey })
 
-    const result = await generateText({
-      model: anthropic("claude-haiku-4-5"),
-      system: systemPrompt,
-      prompt: input.prompt,
-      tools: allTools,
-      // 8 steps: post to team-leaders + post to dept channel + create doc +
-      // post win + set goals + read context = up to 6 tool calls needed.
-      stopWhen: ({ steps }) => steps.length >= 8,
-      maxOutputTokens: 5000,
-    })
+    // Retry with exponential backoff for rate limit errors (429 / overloaded).
+    // Haiku has a 10K input tokens/min limit — agent tasks hit this often
+    // when multiple handoffs fire in parallel.
+    let retryDelay = 2000 // start at 2 seconds
+    const maxRetries = 3
+    let result!: any
+
+    for (let attempt = 0; attempt <= maxRetries; attempt++) {
+      try {
+        result = await generateText({
+          model: anthropic("claude-haiku-4-5"),
+          system: systemPrompt,
+          prompt: input.prompt,
+          tools: allTools,
+          // 8 steps: post to team-leaders + post to dept channel + create doc +
+          // post win + set goals + read context = up to 6 tool calls needed.
+          stopWhen: ({ steps }) => steps.length >= 8,
+          maxOutputTokens: 5000,
+        })
+        break // success — exit retry loop
+      } catch (err) {
+        const isRateLimit = err instanceof Error &&
+          (err.message.includes("rate") || err.message.includes("429") || err.message.includes("overloaded"))
+
+        if (isRateLimit && attempt < maxRetries) {
+          // Exponential backoff: 2s, 4s, 8s
+          await new Promise(r => setTimeout(r, retryDelay))
+          retryDelay *= 2
+          continue
+        }
+        throw err // non-rate-limit error or max retries exceeded
+      }
+    }
 
     const toolCalls = result.steps.reduce(
-      (sum, step) => sum + (step.toolCalls?.length ?? 0), 0,
+      (sum: number, step: any) => sum + (step.toolCalls?.length ?? 0), 0,
     )
 
     // Mark task completed
@@ -1005,6 +1028,10 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       error: errorMsg,
       updatedAt: new Date(),
     }).where(eq(agentTasks.id, task.id)).catch(() => {})
+
+    // Propagate failure to dependent tasks so the dependency chain
+    // doesn't stall silently waiting for a task that will never complete.
+    await handleTaskFailure(input.workspaceId, task.id).catch(() => {})
 
     return { ok: false, taskId: task.id, error: errorMsg }
   }

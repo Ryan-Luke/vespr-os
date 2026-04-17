@@ -4,6 +4,31 @@ import { eq } from "drizzle-orm"
 import { withAuth } from "@/lib/auth/with-auth"
 import { guardMinRole } from "@/lib/auth/rbac"
 
+export async function GET(
+  req: Request,
+  { params }: { params: Promise<{ workspaceId: string }> }
+) {
+  const auth = await withAuth()
+  const { workspaceId } = await params
+
+  if (workspaceId !== auth.workspace.id) {
+    return Response.json({ error: "Forbidden" }, { status: 403 })
+  }
+
+  const [ws] = await db.select().from(workspaces)
+    .where(eq(workspaces.id, workspaceId)).limit(1)
+
+  if (!ws) return Response.json({ error: "Not found" }, { status: 404 })
+
+  // Strip API key from response
+  const { anthropicApiKey, ...safe } = ws
+  return Response.json({
+    ...safe,
+    hasAnthropicKey: !!anthropicApiKey,
+    anthropicKeyPreview: anthropicApiKey ? anthropicApiKey.slice(0, 10) + "..." : null,
+  })
+}
+
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ workspaceId: string }> }

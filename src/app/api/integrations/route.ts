@@ -15,10 +15,27 @@ export async function POST(req: Request) {
   const forbidden = guardMinRole(auth, "admin")
   if (forbidden) return forbidden
   const body = await req.json()
+
+  // Bug 5: validate required fields
+  if (!body.name || !body.provider || !body.category) {
+    return Response.json({ error: "name, provider, and category are required" }, { status: 400 })
+  }
+
+  // Bug 3: prevent duplicate integration records for the same provider
+  if (body.providerKey) {
+    const existing = await db.select().from(integrations)
+      .where(and(eq(integrations.providerKey, body.providerKey), eq(integrations.workspaceId, auth.workspace.id)))
+      .limit(1)
+    if (existing.length > 0) {
+      return Response.json({ error: "Integration already exists. Use the credentials endpoint to update." }, { status: 409 })
+    }
+  }
+
   const [integration] = await db.insert(integrations).values({
     workspaceId: auth.workspace.id,
     name: body.name,
     provider: body.provider,
+    providerKey: body.providerKey || null,
     category: body.category,
     status: body.status || "connected",
     connectedAt: new Date(),

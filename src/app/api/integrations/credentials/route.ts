@@ -37,10 +37,24 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
+    // Normalize common camelCase → snake_case field variations
+    const normalized = { ...body.credentials }
+    if (normalized.apiKey && !normalized.api_key) {
+      normalized.api_key = normalized.apiKey
+      delete normalized.apiKey
+    }
+    if (normalized.apiToken && !normalized.api_token) {
+      normalized.api_token = normalized.apiToken
+      delete normalized.apiToken
+    }
+    if (normalized.accessToken && !normalized.access_token) {
+      normalized.access_token = normalized.accessToken
+      delete normalized.accessToken
+    }
     const stored = await saveCredentials({
       workspaceId: auth.workspace.id,
       providerKey: body.providerKey,
-      credentials: body.credentials,
+      credentials: normalized,
     })
     return Response.json({ integration: stored })
   } catch (err) {
