@@ -6,6 +6,7 @@ import {
   tasks as tasksTable,
 } from "@/lib/db/schema"
 import { eq, sql, and } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export const maxDuration = 30
 
@@ -39,11 +40,12 @@ function buildStandupMessage(agent: {
 // POST with { agentId } — generate and post standup for one agent
 // POST with no body — generate and post standups for ALL agents
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const body = await req.json().catch(() => ({}))
   const { agentId } = body as { agentId?: string }
 
-  const allAgents = await db.select().from(agentsTable)
-  const allChannels = await db.select().from(channelsTable)
+  const allAgents = await db.select().from(agentsTable).where(eq(agentsTable.workspaceId, auth.workspace.id))
+  const allChannels = await db.select().from(channelsTable).where(eq(channelsTable.workspaceId, auth.workspace.id))
 
   // Determine which agents to process
   const targetAgents = agentId

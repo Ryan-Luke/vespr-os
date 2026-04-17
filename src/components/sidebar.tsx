@@ -20,7 +20,6 @@ import {
   X,
   Shield,
   TrendingUp,
-  GitCompareArrows,
   Trophy,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -78,6 +77,13 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
   const { workspaces, activeWorkspace, setActiveWorkspace, refreshWorkspaces } = useWorkspace()
   const [showNewWs, setShowNewWs] = useState(false)
   const [newWsName, setNewWsName] = useState("")
+  const [currentUser, setCurrentUser] = useState<{ name: string; email: string; avatarEmoji: string | null } | null>(null)
+
+  useEffect(() => {
+    fetch("/api/users/preferences").then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.name) setCurrentUser({ name: data.name, email: data.email, avatarEmoji: data.avatarEmoji })
+    }).catch(() => {})
+  }, [])
 
   async function createWorkspace() {
     if (!newWsName.trim()) return
@@ -140,7 +146,7 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
                 <span className="text-[13px] font-semibold tracking-tight truncate max-w-[100px]">{activeWorkspace.name}</span>
               </>
             ) : (
-              <span className="text-[13px] font-semibold tracking-tight">Business OS</span>
+              <span className="text-[13px] font-semibold tracking-tight">VESPR</span>
             )}
             <ChevronRight className="h-3 w-3 text-muted-foreground rotate-90" />
           </PopoverTrigger>
@@ -263,6 +269,17 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
           <Settings className="h-4 w-4 shrink-0 opacity-60" />
           <span>Settings</span>
         </Link>
+        {currentUser && (
+          <div className="flex items-center gap-2.5 px-2 py-2 border-t border-border mt-1 mb-1">
+            <div className="h-7 w-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary shrink-0">
+              {currentUser.avatarEmoji || currentUser.name.charAt(0).toUpperCase()}
+            </div>
+            <div className="min-w-0">
+              <p className="text-[13px] font-medium text-foreground truncate">{currentUser.name}</p>
+              <p className="text-[11px] text-muted-foreground truncate">{currentUser.email}</p>
+            </div>
+          </div>
+        )}
         <button
           onClick={handleLogout}
           className="flex items-center gap-2.5 rounded-md px-2 py-1.5 text-[13px] text-sidebar-foreground hover:bg-accent hover:text-foreground transition-colors w-full"
@@ -270,9 +287,6 @@ export function Sidebar({ mobileOpen, onMobileClose }: { mobileOpen?: boolean; o
           <LogOut className="h-4 w-4 shrink-0 opacity-60" />
           <span>Log out</span>
         </button>
-        <div className="px-2 pt-2 border-t border-border mt-1">
-          <p className="text-[10px] text-muted-foreground/40">v0.1.0 · 55 commits</p>
-        </div>
       </div>
     </aside>
   )

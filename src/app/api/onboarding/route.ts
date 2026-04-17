@@ -5,6 +5,7 @@ import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 import { getStarterContent } from "@/lib/onboarding-starter-content"
 import { ensureWorkflowInitialized } from "@/lib/workflow-engine"
 import { seedPlaybooks } from "@/lib/seed-playbooks"
+import { withAuth } from "@/lib/auth/with-auth"
 
 interface BusinessTemplate {
   id: string
@@ -189,6 +190,7 @@ const TEMPLATES: BusinessTemplate[] = [
 export const maxDuration = 60
 
 export async function GET() {
+  await withAuth()
   return Response.json({ templates: TEMPLATES.map(({ id, name, description, icon, teams }) => ({
     id, name, description, icon,
     teamCount: teams.length,
@@ -197,6 +199,7 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const body = await req.json() as {
     templateId: string
     businessName?: string
@@ -219,15 +222,6 @@ export async function POST(req: Request) {
 
   const template = TEMPLATES.find((t) => t.id === templateId)
   if (!template) return Response.json({ error: "Template not found" }, { status: 404 })
-
-  // Single-tenant per deploy: if a workspace already exists, wipe everything
-  // and start fresh. This handles the case where a previous onboarding
-  // attempt partially completed. No need to force the user to /reset.
-  const existing = await db.select({ id: workspaces.id }).from(workspaces).limit(1)
-  if (existing.length > 0) {
-    const { wipeBusinessData } = await import("@/lib/db/wipe")
-    await wipeBusinessData()
-  }
 
   // Create a new workspace for this business
   const wsName = businessName?.trim() || template.name
@@ -415,6 +409,7 @@ export async function POST(req: Request) {
 
   // 1. Nova announces in #team-leaders that R&D is starting
   welcomeMessages.push({
+    workspaceId: newWorkspace.id,
     channelId: teamLeadersChannel.id,
     senderAgentId: chiefOfStaff.id,
     senderName: chiefOfStaff.name,
@@ -426,6 +421,7 @@ export async function POST(req: Request) {
   // 2. R&D lead responds in #team-leaders (so user sees the handoff)
   if (rndLead) {
     welcomeMessages.push({
+      workspaceId: newWorkspace.id,
       channelId: teamLeadersChannel.id,
       senderAgentId: rndLead.id,
       senderName: rndLead.name,
@@ -438,6 +434,7 @@ export async function POST(req: Request) {
   // 3. R&D lead reaches out in the R&D channel (creates the notification)
   if (rndLead && rndChannel) {
     welcomeMessages.push({
+      workspaceId: newWorkspace.id,
       channelId: rndChannel.id,
       senderAgentId: rndLead.id,
       senderName: rndLead.name,
@@ -455,6 +452,7 @@ export async function POST(req: Request) {
   if (starter.knowledgeEntries.length > 0) {
     await db.insert(knowledgeEntries).values(
       starter.knowledgeEntries.map((k) => ({
+        workspaceId: newWorkspace.id,
         title: k.title,
         content: k.content,
         category: k.category,
@@ -474,6 +472,7 @@ export async function POST(req: Request) {
       })
       if (!ownerAgent) ownerAgent = insertedAgents.find((a) => a.isTeamLead) || insertedAgents[0]
       return {
+        workspaceId: newWorkspace.id,
         agentId: ownerAgent.id,
         title: sop.title,
         content: sop.content,

@@ -5,10 +5,12 @@ import { agents as agentsTable, agentSops, tasks as tasksTable, teams as teamsTa
 import { eq } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const { agentId, teamId, channelName, recentMessages } = await req.json() as {
     agentId: string
     teamId: string
@@ -16,7 +18,7 @@ export async function POST(req: Request) {
     recentMessages: { name: string; content: string }[]
   }
 
-  const allAgents = await db.select().from(agentsTable)
+  const allAgents = await db.select().from(agentsTable).where(eq(agentsTable.workspaceId, auth.workspace.id))
   const agent = allAgents.find((a) => a.id === agentId)
   if (!agent) return Response.json({ error: "Agent not found" }, { status: 404 })
 

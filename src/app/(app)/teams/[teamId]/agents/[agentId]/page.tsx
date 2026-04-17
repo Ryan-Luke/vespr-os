@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, use } from "react"
-import {} from "@/components/ui/badge"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { PERSONALITY_PRESETS, TRAIT_LABELS, type PersonalityTraits, type CustomPersonalityConfig, TEMPERAMENT_OPTIONS, SOCIAL_OPTIONS, HUMOR_OPTIONS, ENERGY_OPTIONS, QUIRK_OPTIONS } from "@/lib/personality-presets"
@@ -11,7 +10,7 @@ import { getMood, MOOD_EMOJI, MOOD_LABEL, type AgentMood } from "@/lib/agent-moo
 import {
   ArrowLeft, Brain, DollarSign, CheckCircle2, Pause, Play,
   MessageSquare, Cpu, Plus, FileText, Trash2, Save, Loader2,
-  Crown, Edit3, ThumbsUp, ThumbsDown, Shield, Sparkles,
+  Crown, Edit3, ThumbsUp, ThumbsDown, Shield,
   Trophy, Zap, Clock, TrendingUp, Target, X, Copy,
   Globe, Mail, Database, Calendar, Search, BarChart3,
   ShoppingCart, Megaphone, Headphones, Code, Wrench,
@@ -1156,7 +1155,7 @@ export default function AgentProfilePage({ params }: { params: Promise<{ teamId:
 
               {sops.length === 0 && !showNewSop && (
                 <div className="bg-muted/30 border border-dashed border-border rounded-md p-3 text-center">
-                  <Sparkles className="h-4 w-4 text-muted-foreground mx-auto mb-1.5" />
+                  <FileText className="h-4 w-4 text-muted-foreground mx-auto mb-1.5" />
                   <p className="text-xs text-muted-foreground">SOPs auto-generate as <span className="font-medium text-foreground">{agent.name}</span> completes tasks. You can also create them manually.</p>
                 </div>
               )}

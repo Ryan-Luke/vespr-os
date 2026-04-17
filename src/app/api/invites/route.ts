@@ -1,12 +1,17 @@
 import { db } from "@/lib/db"
 import { invites, users } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, and, desc } from "drizzle-orm"
 import { randomBytes } from "node:crypto"
-import { getCurrentUser } from "@/lib/auth/current-user"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
+import { checkLimit } from "@/lib/billing/plan-limits"
 
 // GET /api/invites - List all invites (owner/admin only)
 export async function GET() {
-  const allInvites = await db.select().from(invites).orderBy(desc(invites.createdAt))
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+  const allInvites = await db.select().from(invites).where(eq(invites.workspaceId, auth.workspace.id)).orderBy(desc(invites.createdAt))
   return Response.json({ invites: allInvites })
 }
 
@@ -14,9 +19,19 @@ export async function GET() {
 // Body: { email, role? }
 // Returns the invite with a signup link the owner can share.
 export async function POST(req: Request) {
-  const user = await getCurrentUser()
-  if (!user || (user.role !== "owner" && user.role !== "admin")) {
-    return Response.json({ error: "Only owners and admins can invite team members" }, { status: 403 })
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+
+  // Check plan limits before inviting a member
+  const limitCheck = await checkLimit(auth.workspace.id, "invite_member")
+  if (!limitCheck.allowed) {
+    return Response.json({
+      error: limitCheck.reason,
+      upgradeRequired: limitCheck.upgradeRequired,
+      currentCount: limitCheck.currentCount,
+      limit: limitCheck.limit,
+    }, { status: 403 })
   }
 
   const { email, role } = await req.json() as { email?: string; role?: string }
@@ -42,10 +57,11 @@ export async function POST(req: Request) {
   const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 days
 
   const [invite] = await db.insert(invites).values({
+    workspaceId: auth.workspace.id,
     email: email.toLowerCase(),
     role: role === "admin" ? "admin" : "member",
     token,
-    invitedBy: user.id,
+    invitedBy: auth.user.id,
     expiresAt,
   }).returning()
 
@@ -66,8 +82,11 @@ export async function POST(req: Request) {
 
 // DELETE /api/invites - Revoke an invite
 export async function DELETE(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { id } = await req.json() as { id?: string }
   if (!id) return Response.json({ error: "id required" }, { status: 400 })
-  await db.delete(invites).where(eq(invites.id, id))
+  await db.delete(invites).where(and(eq(invites.id, id), eq(invites.workspaceId, auth.workspace.id)))
   return Response.json({ ok: true })
 }

@@ -1,6 +1,7 @@
 import { db } from "@/lib/db"
 import { agents, teams, channels, messages, workspaces } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 // Returns a handoff PLAN that the client executes step-by-step.
 // This allows real-time staggered messages with typing indicators per PVD Stage 4.
@@ -21,16 +22,12 @@ export interface HandoffStep {
 }
 
 export async function POST(req: Request) {
-  const { workspaceId } = await req.json() as { workspaceId: string }
+  const auth = await withAuth()
 
-  if (!workspaceId) {
-    return Response.json({ error: "workspaceId required" }, { status: 400 })
-  }
-
-  const [workspace] = await db.select().from(workspaces).where(eq(workspaces.id, workspaceId)).limit(1)
+  const [workspace] = await db.select().from(workspaces).where(eq(workspaces.id, auth.workspace.id)).limit(1)
   if (!workspace) return Response.json({ error: "Workspace not found" }, { status: 404 })
 
-  const wsTeams = await db.select().from(teams).where(eq(teams.workspaceId, workspaceId))
+  const wsTeams = await db.select().from(teams).where(eq(teams.workspaceId, auth.workspace.id))
   const teamIds = wsTeams.map((t) => t.id)
 
   const wsChannels = await db.select().from(channels)

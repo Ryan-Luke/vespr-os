@@ -11,18 +11,21 @@
 // client stream to write to. The agent works in the background.
 
 import { generateText, tool, jsonSchema } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
 import {
   agents, messages, channels, knowledgeEntries, trophyEvents,
   teamGoals, teams, agentSops, agentMemories, companyMemories,
-  agentTasks, handoffEvents, agentSchedules, activityLog,
+  agentTasks, handoffEvents, agentSchedules, activityLog, workspaces,
+  agentBonds, tasks, notifications,
 } from "@/lib/db/schema"
 import { eq, desc, ilike, or, and } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildWebTools } from "@/lib/agents/web-tools"
+import { consultAgent } from "@/lib/agents/consultation"
+import { buildAgentContext } from "@/lib/learning/context-builder"
 
 // ── Department-specific handoff prompts ───────────────────────────────
 // When one department hands off to another, the receiving agent needs
@@ -136,6 +139,7 @@ export async function postAgentMessage(
   if (!agent) throw new Error(`Agent not found: ${agentId}`)
 
   const [msg] = await db.insert(messages).values({
+    workspaceId: agent.workspaceId,
     channelId,
     senderAgentId: agent.id,
     senderName: agent.name,
@@ -244,6 +248,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
         try {
           const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
           const [entry] = await db.insert(knowledgeEntries).values({
+            workspaceId,
             title,
             content,
             category,
@@ -253,6 +258,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           }).returning()
           // Log to activity feed so it shows on the dashboard
           await db.insert(activityLog).values({
+            workspaceId,
             agentId,
             agentName: agent?.name ?? "Agent",
             action: "created_document",
@@ -284,14 +290,25 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           // Create trophy event
           await db.insert(trophyEvents).values({
             agentId,
+            workspaceId,
             agentName: agent?.name ?? "Agent",
             type: "milestone",
             title,
             description,
             icon: icon ?? "🏆",
           })
+          // Create notification for trophy earned
+          await db.insert(notifications).values({
+            workspaceId,
+            type: "trophy_earned",
+            title: `${agent?.name ?? "Agent"} earned: ${title}`,
+            description,
+            actionUrl: "/feed",
+            read: false,
+          }).catch(() => {}) // best-effort
           // Log to activity feed
           await db.insert(activityLog).values({
+            workspaceId,
             agentId,
             agentName: agent?.name ?? "Agent",
             action: "milestone",
@@ -353,6 +370,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
 
           // Log to activity feed
           await db.insert(activityLog).values({
+            workspaceId,
             agentId,
             agentName: agent?.name ?? "Agent",
             action: "handoff",
@@ -372,6 +390,30 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
               nextSteps,
               context: {}, // will be enriched below if we have handoff chain context
             }).catch(() => {})
+
+            // Track agent bond — handoffs create/strengthen bonds between agents
+            try {
+              const existingBond = await db.select().from(agentBonds)
+                .where(and(
+                  eq(agentBonds.agentAId, agentId),
+                  eq(agentBonds.agentBId, targetLead.id),
+                  eq(agentBonds.workspaceId, workspaceId)
+                )).limit(1)
+
+              if (existingBond.length > 0) {
+                await db.update(agentBonds).set({
+                  workflowCount: existingBond[0].workflowCount + 1,
+                  updatedAt: new Date(),
+                }).where(eq(agentBonds.id, existingBond[0].id))
+              } else {
+                await db.insert(agentBonds).values({
+                  workspaceId,
+                  agentAId: agentId,
+                  agentBId: targetLead.id,
+                  workflowCount: 1,
+                })
+              }
+            } catch {} // bond tracking is best-effort
           }
 
           // Trigger the target lead with structured context from the chain.
@@ -467,6 +509,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
         try {
           const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
           const [sched] = await db.insert(agentSchedules).values({
+            workspaceId,
             agentId,
             name,
             description: description ?? null,
@@ -475,6 +518,7 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
             enabled: true,
           }).returning()
           await db.insert(activityLog).values({
+            workspaceId,
             agentId,
             agentName: agent?.name ?? "Agent",
             action: "created_schedule",
@@ -511,12 +555,14 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
           if (!agent?.teamId) return { ok: false, error: "Agent has no team" }
           const [goal] = await db.insert(teamGoals).values({
+            workspaceId,
             teamId: agent.teamId,
             title,
             target,
             unit,
           }).returning()
           await db.insert(activityLog).values({
+            workspaceId,
             agentId,
             agentName: agent.name,
             action: "set_goal",
@@ -525,6 +571,42 @@ function buildAutonomousTools(agentId: string, workspaceId: string) {
           return { ok: true, goalId: goal.id, title }
         } catch (err) {
           return { ok: false, error: err instanceof Error ? err.message : "Failed to set goal" }
+        }
+      },
+    }),
+
+    consult_agent: tool({
+      description:
+        "Ask another agent a question and get their expert response. Use this when you need input from a specialist in another department. For example, ask the Finance lead about pricing feasibility, or the Marketing lead about positioning. The consulted agent has access to their SOPs, memories, and company knowledge.",
+      inputSchema: jsonSchema<{ targetAgentName: string; question: string }>({
+        type: "object",
+        properties: {
+          targetAgentName: {
+            type: "string",
+            description: "The name of the agent to consult (e.g. 'Nova', 'Kira', 'Max')",
+          },
+          question: {
+            type: "string",
+            description: "The question to ask. Be specific about what you need.",
+            minLength: 5,
+            maxLength: 2000,
+          },
+        },
+        required: ["targetAgentName", "question"],
+        additionalProperties: false,
+      }),
+      execute: async ({ targetAgentName, question }) => {
+        try {
+          const result = await consultAgent({
+            fromAgentId: agentId,
+            targetAgentName,
+            question,
+            workspaceId,
+            _consultationDepth: 0,
+          })
+          return result
+        } catch (err) {
+          return { ok: false, error: err instanceof Error ? err.message : "Consultation failed" }
         }
       },
     }),
@@ -542,22 +624,13 @@ export function buildAutonomousToolsForChat(agentId: string, workspaceId: string
 
 // ── Build the agent system prompt for autonomous work ────────────────
 
-async function buildAgentSystemPrompt(agentId: string): Promise<string> {
+async function buildAgentSystemPrompt(agentId: string, taskPrompt?: string): Promise<string> {
   const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
   if (!agent) throw new Error(`Agent not found: ${agentId}`)
 
   const sops = await db.select().from(agentSops)
     .where(eq(agentSops.agentId, agentId))
     .orderBy(agentSops.sortOrder)
-
-  const memories = await db.select().from(agentMemories)
-    .where(eq(agentMemories.agentId, agentId))
-    .orderBy(desc(agentMemories.importance))
-    .limit(10)
-
-  const sharedMemories = await db.select().from(companyMemories)
-    .orderBy(desc(companyMemories.importance))
-    .limit(8)
 
   const personalityStyle = traitsToPromptStyle(
     agent.personality as PersonalityTraits,
@@ -583,11 +656,23 @@ RULES:
   if (sops.length > 0) {
     prompt += `\n\nYour SOPs:\n${sops.map((s) => `### ${s.title}\n${s.content}`).join("\n\n")}`
   }
-  if (memories.length > 0) {
-    prompt += `\n\nYour memories:\n${memories.map((m) => `- [${m.memoryType}] ${m.content}`).join("\n")}`
-  }
-  if (sharedMemories.length > 0) {
-    prompt += `\n\nCompany knowledge:\n${sharedMemories.map((m) => `- [${m.category}] ${m.title}: ${m.content}`).join("\n")}`
+
+  // Load learning context (memories, entities, skills, reflexions) via
+  // the enhanced tiered retrieval system. Falls back gracefully.
+  try {
+    const workspaceId = agent.workspaceId
+    if (workspaceId) {
+      const briefing = await buildAgentContext({
+        workspaceId,
+        agentId,
+        taskPrompt,
+      })
+      if (briefing.full) {
+        prompt += briefing.full
+      }
+    }
+  } catch {
+    // Learning context is best-effort. Agent still works without it.
   }
 
   return prompt
@@ -642,7 +727,7 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
     // 1. Working memory: the context object from the handoff chain
     // 2. Episodic memory: agent's own memories from past tasks
     // 3. Semantic memory: company knowledge + playbooks
-    let systemPrompt = await buildAgentSystemPrompt(input.agentId)
+    let systemPrompt = await buildAgentSystemPrompt(input.agentId, input.prompt)
 
     // Inject handoff context so the agent knows what upstream agents collected
     if (input.context && Object.keys(input.context).length > 0) {
@@ -675,6 +760,13 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
 
     const allTools = { ...autonomousTools, ...integrationTools, ...webTools }
 
+    // BYOK: use workspace's Anthropic API key, fall back to env var
+    const [ws] = await db.select({ anthropicApiKey: workspaces.anthropicApiKey })
+      .from(workspaces).where(eq(workspaces.id, input.workspaceId)).limit(1)
+    const apiKey = ws?.anthropicApiKey || process.env.ANTHROPIC_API_KEY
+    if (!apiKey) return { ok: false, error: "No Anthropic API key configured" }
+    const anthropic = createAnthropic({ apiKey })
+
     const result = await generateText({
       model: anthropic("claude-haiku-4-5"),
       system: systemPrompt,
@@ -683,7 +775,7 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       // 8 steps: post to team-leaders + post to dept channel + create doc +
       // post win + set goals + read context = up to 6 tool calls needed.
       stopWhen: ({ steps }) => steps.length >= 8,
-      maxOutputTokens: 2000,
+      maxOutputTokens: 5000,
     })
 
     const toolCalls = result.steps.reduce(
@@ -698,6 +790,28 @@ export async function runAgentTask(input: AgentTaskInput): Promise<AgentTaskResu
       completedAt: new Date(),
       updatedAt: new Date(),
     }).where(eq(agentTasks.id, task.id))
+
+    // After marking agent task as completed, update any matching parent tasks
+    // in the tasks table that are currently "in_progress" for this agent.
+    try {
+      const inProgressTasks = await db.select().from(tasks)
+        .where(and(
+          eq(tasks.assignedAgentId, input.agentId),
+          eq(tasks.status, "in_progress"),
+          eq(tasks.workspaceId, input.workspaceId)
+        ))
+
+      for (const parentTask of inProgressTasks) {
+        // Match by checking if the agent task prompt references the parent task title
+        if (input.prompt.toLowerCase().includes(parentTask.title.toLowerCase())) {
+          await db.update(tasks).set({
+            status: "done",
+            completedAt: new Date()
+          }).where(eq(tasks.id, parentTask.id))
+          break // only complete the most relevant task
+        }
+      }
+    } catch {} // best-effort — don't fail the agent task result over this
 
     return { ok: true, taskId: task.id, agentName: agent.name, toolCalls }
   } catch (err) {

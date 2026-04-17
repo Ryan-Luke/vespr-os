@@ -1,40 +1,46 @@
 import { db } from "@/lib/db"
 import { agentTasks } from "@/lib/db/schema"
-import { eq, desc, and } from "drizzle-orm"
+import { eq, desc, and, sql } from "drizzle-orm"
 import { runAgentTask } from "@/lib/agents/autonomous"
+import { withAuth } from "@/lib/auth/with-auth"
 
-// GET /api/agent-tasks?workspaceId=XXX&status=failed
-// List tasks for a workspace, optionally filtered by status.
+// GET /api/agent-tasks?status=failed
+// List tasks for the authenticated workspace, optionally filtered by status.
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const url = new URL(req.url)
-  const workspaceId = url.searchParams.get("workspaceId")
   const status = url.searchParams.get("status")
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
+  const offset = parseInt(url.searchParams.get("offset") || "0")
 
-  if (!workspaceId) {
-    return Response.json({ error: "workspaceId required" }, { status: 400 })
-  }
-
-  const conditions = [eq(agentTasks.workspaceId, workspaceId)]
+  const conditions = [eq(agentTasks.workspaceId, auth.workspace.id)]
   if (status) conditions.push(eq(agentTasks.status, status))
 
   const tasks = await db.select().from(agentTasks)
     .where(and(...conditions))
     .orderBy(desc(agentTasks.createdAt))
-    .limit(50)
+    .limit(limit)
+    .offset(offset)
 
-  return Response.json({ tasks })
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(agentTasks)
+    .where(and(...conditions))
+
+  return Response.json({ tasks, total: count, limit, offset })
 }
 
 // POST /api/agent-tasks/retry
 // Retry a failed or stuck task by its ID.
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const { taskId } = await req.json() as { taskId?: string }
   if (!taskId) {
     return Response.json({ error: "taskId required" }, { status: 400 })
   }
 
   const [task] = await db.select().from(agentTasks)
-    .where(eq(agentTasks.id, taskId))
+    .where(and(eq(agentTasks.id, taskId), eq(agentTasks.workspaceId, auth.workspace.id)))
     .limit(1)
 
   if (!task) {
@@ -55,7 +61,7 @@ export async function POST(req: Request) {
   const result = await runAgentTask({
     agentId: task.agentId,
     channelId: task.channelId ?? "",
-    workspaceId: task.workspaceId ?? "",
+    workspaceId: auth.workspace.id,
     prompt: task.prompt,
     context: (task.context ?? {}) as Record<string, unknown>,
   })

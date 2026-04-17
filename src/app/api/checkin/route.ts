@@ -1,14 +1,16 @@
 import { db } from "@/lib/db"
 import { agents, messages, tasks } from "@/lib/db/schema"
-import { desc, sql } from "drizzle-orm"
+import { eq, desc, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function GET() {
+  const auth = await withAuth()
   const [allAgents, recentMessages, allTasks] = await Promise.all([
-    db.select().from(agents),
+    db.select().from(agents).where(eq(agents.workspaceId, auth.workspace.id)),
     // Count messages from the last 24 hours
     db.select({ count: sql<number>`count(*)` }).from(messages)
-      .where(sql`${messages.createdAt} > now() - interval '24 hours'`),
-    db.select().from(tasks),
+      .where(sql`${messages.createdAt} > now() - interval '24 hours' AND ${messages.workspaceId} = ${auth.workspace.id}`),
+    db.select().from(tasks).where(eq(tasks.workspaceId, auth.workspace.id)),
   ])
 
   const agentsWorking = allAgents.filter((a) => a.status === "working").length

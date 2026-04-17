@@ -1,34 +1,56 @@
+import { db } from "@/lib/db"
+import { agents, channels } from "@/lib/db/schema"
+import { eq, and } from "drizzle-orm"
 import { runAgentTask } from "@/lib/agents/autonomous"
+import { withAuth } from "@/lib/auth/with-auth"
 
-// POST /api/agent-tasks/run
-// Trigger an autonomous agent task. The agent runs with its full context
-// (personality, SOPs, memories) plus tools for posting to channels,
-// creating documents, posting wins, handing off, and calling integrations.
-//
-// This endpoint is called by:
-//   - Onboarding completion (kick off R&D)
-//   - Handoff protocol (one agent triggers the next)
-//   - Cron jobs
-//   - Manual trigger from UI
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const body = await req.json() as {
     agentId?: string
     channelId?: string
-    workspaceId?: string
     prompt?: string
   }
 
-  if (!body.agentId || !body.channelId || !body.workspaceId || !body.prompt) {
+  if (!body.agentId || !body.prompt) {
     return Response.json(
-      { error: "agentId, channelId, workspaceId, and prompt are required" },
+      { error: "agentId and prompt are required" },
       { status: 400 },
     )
   }
 
+  // Auto-resolve channelId if not provided
+  let channelId = body.channelId
+  if (!channelId) {
+    const [agent] = await db.select().from(agents)
+      .where(and(eq(agents.id, body.agentId), eq(agents.workspaceId, auth.workspace.id)))
+      .limit(1)
+
+    if (agent?.teamId) {
+      // Find the team's channel
+      const [teamChannel] = await db.select().from(channels)
+        .where(and(eq(channels.teamId, agent.teamId), eq(channels.workspaceId, auth.workspace.id)))
+        .limit(1)
+      channelId = teamChannel?.id
+    }
+
+    // Fall back to general channel
+    if (!channelId) {
+      const [general] = await db.select().from(channels)
+        .where(and(eq(channels.name, "general"), eq(channels.workspaceId, auth.workspace.id)))
+        .limit(1)
+      channelId = general?.id
+    }
+  }
+
+  if (!channelId) {
+    return Response.json({ error: "Could not resolve a channel for this agent" }, { status: 400 })
+  }
+
   const result = await runAgentTask({
     agentId: body.agentId,
-    channelId: body.channelId,
-    workspaceId: body.workspaceId,
+    channelId,
+    workspaceId: auth.workspace.id,
     prompt: body.prompt,
   })
 

@@ -1,11 +1,11 @@
 import { streamText, tool, jsonSchema, UIMessage, convertToModelMessages } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
-import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries, approvalRequests, messages as messages_table } from "@/lib/db/schema"
-import { eq, desc, sql } from "drizzle-orm"
+import { agents, agentSops, teams, agentMemories, companyMemories, knowledgeEntries, approvalRequests, messages as messages_table, entities as entitiesTable, entityObservations as entityObsTable } from "@/lib/db/schema"
+import { eq, and, desc, sql } from "drizzle-orm"
 import { traitsToPromptStyle } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
-import { getActiveWorkspace } from "@/lib/workspace-server"
+import { withAuth } from "@/lib/auth/with-auth"
 import {
   getPhaseGuidanceForAgent,
   renderPhaseGuidancePrompt,
@@ -17,16 +17,128 @@ import {
 import { buildIntegrationTools } from "@/lib/integrations/tools"
 import { buildAutonomousToolsForChat } from "@/lib/agents/autonomous"
 import { buildWebTools } from "@/lib/agents/web-tools"
+import { buildAgentContext } from "@/lib/learning/context-builder"
+import { recordDailyEntry, recordUserInteraction } from "@/lib/learning/memory-writer"
+import { extractEntitiesFromText } from "@/lib/learning/entity-extractor"
+import { pruneAgentMemories } from "@/lib/learning/memory-manager"
+import type { ConversationExtraction } from "@/lib/learning/types"
+
+// ── Conversation Data Extraction (pattern-based, no LLM) ─────────
+// Extracts structured data from user and agent text using regex patterns.
+// Runs in onFinish — fast, no network calls.
+
+function extractConversationData(userText: string, agentText: string): ConversationExtraction {
+  const data: ConversationExtraction = {
+    topics: [],
+    decisions: [],
+    preferences: [],
+    actionItems: [],
+    people: [],
+    numbers: [],
+    dates: [],
+  }
+
+  const fullText = userText + " " + agentText
+
+  // Decisions: "let's go with", "decided", "going with", "we'll do", "approved"
+  const decisionPatterns = /(?:let'?s\s+go\s+with|decided\s+(?:to|on)|going\s+with|we'?ll\s+do|approved|agreed\s+(?:to|on)|chosen|picking|selected)\s+(.{5,80})/gi
+  for (const match of fullText.matchAll(decisionPatterns)) {
+    data.decisions.push(match[1].trim().replace(/[.!?,;]+$/, ""))
+  }
+
+  // Preferences: "I prefer", "I like", "I want", "I don't want", "always", "never"
+  const preferencePatterns = /(?:I\s+prefer|I\s+like|I\s+want|I\s+don'?t\s+(?:want|like)|always\s+|never\s+|please\s+(?:don'?t|always))\s*(.{5,80})/gi
+  for (const match of userText.matchAll(preferencePatterns)) {
+    data.preferences.push(match[1].trim().replace(/[.!?,;]+$/, ""))
+  }
+
+  // Action items: "need to", "should", "will", "make sure", "follow up", "reminder"
+  const actionPatterns = /(?:need\s+to|should\s+|I'?ll\s+|we\s+need\s+to|make\s+sure\s+(?:to\s+)?|follow\s+up|reminder\s+to|todo|next\s+step|action\s+item)\s*(.{5,80})/gi
+  for (const match of fullText.matchAll(actionPatterns)) {
+    data.actionItems.push(match[1].trim().replace(/[.!?,;]+$/, ""))
+  }
+
+  // Numbers/metrics: $amounts, percentages, counts
+  const numberPatterns = /\$[\d,.]+[kKmMbB]?|\d+%|\d+\s*(?:users|customers|clients|deals|leads|MRR|ARR|revenue)/gi
+  for (const match of fullText.matchAll(numberPatterns)) {
+    data.numbers.push(match[0].trim())
+  }
+
+  // Dates/deadlines
+  const datePatterns = /(?:by|before|until|deadline|due)\s+((?:Monday|Tuesday|Wednesday|Thursday|Friday|Saturday|Sunday|tomorrow|next\s+week|end\s+of\s+(?:week|month|quarter|year)|Q[1-4]|\d{1,2}\/\d{1,2}(?:\/\d{2,4})?))/gi
+  for (const match of fullText.matchAll(datePatterns)) {
+    data.dates.push(match[1].trim())
+  }
+
+  // People mentioned: @mentions or "talk to X", "ask X", "check with X", "loop in X"
+  const peoplePatterns = /(?:@(\w+)|(?:talk\s+to|ask|check\s+with|loop\s+in|cc|ping|reach\s+out\s+to)\s+(\w+))/gi
+  for (const match of fullText.matchAll(peoplePatterns)) {
+    const person = (match[1] || match[2]).trim()
+    if (person.length > 1 && !data.people.includes(person)) {
+      data.people.push(person)
+    }
+  }
+
+  // Extract topics from significant nouns/phrases (capitalized multi-word or key business terms)
+  const topicPatterns = /(?:about|regarding|discussing|working\s+on|focus(?:ing)?\s+on|looking\s+(?:at|into))\s+(.{3,60})/gi
+  for (const match of fullText.matchAll(topicPatterns)) {
+    const topic = match[1].trim().replace(/[.!?,;]+$/, "")
+    if (topic.length >= 3 && !data.topics.includes(topic)) {
+      data.topics.push(topic)
+    }
+  }
+
+  // Also extract standalone business terms as topics
+  const businessTerms = /\b(pricing|marketing|sales|revenue|budget|strategy|competitor|customer|product|launch|campaign|roadmap|pipeline|funnel|onboarding|retention|churn|growth|hiring|staffing|branding|SEO|content|social\s+media|analytics)\b/gi
+  for (const match of fullText.matchAll(businessTerms)) {
+    const term = match[1].trim().toLowerCase()
+    if (!data.topics.includes(term)) {
+      data.topics.push(term)
+    }
+  }
+
+  // Deduplicate all arrays
+  data.topics = [...new Set(data.topics)].slice(0, 10)
+  data.decisions = [...new Set(data.decisions)].slice(0, 5)
+  data.preferences = [...new Set(data.preferences)].slice(0, 5)
+  data.actionItems = [...new Set(data.actionItems)].slice(0, 5)
+  data.people = [...new Set(data.people)].slice(0, 5)
+  data.numbers = [...new Set(data.numbers)].slice(0, 5)
+  data.dates = [...new Set(data.dates)].slice(0, 5)
+
+  return data
+}
 
 export const maxDuration = 60
 
 export async function POST(req: Request) {
-  const { messages, agentId, channelId }: { messages: UIMessage[]; agentId: string; channelId?: string } =
-    await req.json()
+  const auth = await withAuth()
+
+  // Rate limit: 30 requests per minute per user
+  const { rateLimit } = await import("@/lib/rate-limit")
+  const { allowed } = rateLimit(`chat:${auth.user.id}`, 30, 60000)
+  if (!allowed) {
+    return Response.json({ error: "Too many requests. Try again in a minute." }, { status: 429 })
+  }
+
+  const { messages, agentId, channelId, threadId: clientThreadId }: {
+    messages: UIMessage[]
+    agentId: string
+    channelId?: string
+    threadId?: string
+  } = await req.json()
+
+  // Generate or use the provided threadId for chat persistence
+  const threadId = clientThreadId || crypto.randomUUID()
 
   let systemPrompt = "You are a helpful AI team member. Be concise and casual like on Slack."
 
   const [agent] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
+
+  // ── User message is saved client-side before calling /api/chat ────
+  // Do NOT save it again here — the client already POSTed it to
+  // /api/messages in handleChannelSend(). Saving here caused every
+  // user message to appear twice in the DB.
   if (agent) {
     // Load SOPs for this agent
     const sops = await db.select().from(agentSops).where(eq(agentSops.agentId, agentId)).orderBy(agentSops.sortOrder)
@@ -36,25 +148,25 @@ export async function POST(req: Request) {
       sopContext = `\n\nYour Standard Operating Procedures (follow these closely):\n${sops.map((s) => `### ${s.title}\n${s.content}`).join("\n\n")}`
     }
 
-    // Load memories for context
-    const memories = await db.select().from(agentMemories)
-      .where(eq(agentMemories.agentId, agentId))
-      .orderBy(desc(agentMemories.importance))
-      .limit(10)
+    // Load learning context (memories, entities, skills, reflexions)
+    // via the enhanced tiered retrieval system. Falls back to empty
+    // string if the learning system has no data yet.
+    const lastUserMsg = messages[messages.length - 1]
+    const lastUserTextPart = lastUserMsg?.parts?.find((p: any) => p.type === "text") as any
+    const lastUserText: string = lastUserTextPart?.text || ""
 
-    let memoryContext = ""
-    if (memories.length > 0) {
-      memoryContext = `\n\nYour memories (things you've learned and observed):\n${memories.map((m) => `- [${m.memoryType}] ${m.content}`).join("\n")}`
-    }
-
-    // Load company-wide shared memories for emotional continuity
-    const sharedMemories = await db.select().from(companyMemories)
-      .orderBy(desc(companyMemories.importance))
-      .limit(8)
-
-    let companyContext = ""
-    if (sharedMemories.length > 0) {
-      companyContext = `\n\nCompany knowledge (shared across all agents. reference naturally when relevant):\n${sharedMemories.map((m) => `- [${m.category}] ${m.title}: ${m.content}`).join("\n")}`
+    let learningContext = ""
+    try {
+      const briefing = await buildAgentContext({
+        workspaceId: auth.workspace.id,
+        agentId,
+        taskPrompt: lastUserText,
+        userId: auth.user.id,
+        userName: auth.user.name,
+      })
+      learningContext = briefing.full
+    } catch {
+      // Fallback: learning context is best-effort. Chat works without it.
     }
 
     const personalityStyle = traitsToPromptStyle(
@@ -70,26 +182,25 @@ export async function POST(req: Request) {
       const teamLeads = allAgents.filter((a) => a.isTeamLead)
 
       // Pull real-time business state so Nova knows what's actually happening
-      const activeWsForNova = await getActiveWorkspace()
       let businessState = ""
-      if (activeWsForNova) {
+      {
         try {
           const { getWorkflowState, getPhase, PHASES } = await import("@/lib/workflow-engine")
-          const wfState = await getWorkflowState(activeWsForNova.id)
+          const wfState = await getWorkflowState(auth.workspace.id)
           const currentPhase = wfState.currentPhaseKey ? getPhase(wfState.currentPhaseKey as any) : null
           const completedPhases = wfState.phases.filter((p) => p.status === "completed" || p.status === "skipped")
 
           // Recent handoffs
           const { handoffEvents: handoffTable } = await import("@/lib/db/schema")
           const recentHandoffs = await db.select().from(handoffTable)
-            .where(eq(handoffTable.workspaceId, activeWsForNova.id))
+            .where(eq(handoffTable.workspaceId, auth.workspace.id))
             .orderBy(desc(handoffTable.createdAt))
             .limit(5)
 
           // Recent agent tasks
           const { agentTasks: tasksTable } = await import("@/lib/db/schema")
           const recentTasks = await db.select().from(tasksTable)
-            .where(eq(tasksTable.workspaceId, activeWsForNova.id))
+            .where(eq(tasksTable.workspaceId, auth.workspace.id))
             .orderBy(desc(tasksTable.createdAt))
             .limit(5)
 
@@ -151,25 +262,30 @@ Your responsibilities:
 - Surface blockers, resolve cross-team dependencies, and keep the business owner informed
 - Prepare executive summaries and prioritize work across teams
 - You report directly to the business owner (CEO)
-${sopContext}${memoryContext}${companyContext}${businessState}
+${sopContext}${learningContext}${businessState}
 ${personalityStyle}
 
 RULES:
 - You are talking to the business owner. They know you well. NEVER introduce yourself.
 - Think like a Chief of Staff: strategic, concise, always connecting dots across teams.
-- No em dashes. Short human sentences. Direct.
 - When asked for status, give a cross-functional view using the CURRENT BUSINESS STATE data above. Reference specific phases, documents, handoffs, and goals by name. Don't make things up.
 - Flag blockers, dependencies, and decisions that need the boss's input.
 - Keep responses short (1-3 sentences) unless giving an executive summary.
-- Be proactive. If you see something concerning in the business state (failed tasks, stalled phases, empty goals), bring it up.
-- Use the autonomous tools (create_document, post_win, handoff_to_department, set_department_goal) when action is needed. You're not just a reporter. You make things happen.
+- Be proactive. If you see something concerning in the business state, bring it up.
+- Use the autonomous tools when action is needed. You make things happen.
 - Reference your memories and company knowledge naturally when relevant.
-- You can use emojis sparingly like a real person would on Slack.`
+
+WRITING RULES (strict):
+- Write in plain English only. No markdown. No bold. No asterisks. No bullet points. No headers.
+- Write like a normal person texting on Slack. Short sentences. Casual. Direct.
+- Never use em dashes. Never use formatting symbols like **, ##, or -.
+- Just talk normally. If you need to list things, write them in a sentence or use line breaks.
+- No corporate jargon. No buzzwords. Say it like a human would say it out loud.`
     } else {
       systemPrompt = `You are ${agent.name}, ${agent.role}.${agent.systemPrompt ? " " + agent.systemPrompt : ""}
 ${agent.currentTask ? `You're currently working on: ${agent.currentTask}` : ""}
 Your skills: ${(agent.skills as string[]).join(", ")}
-${sopContext}${memoryContext}${companyContext}
+${sopContext}${learningContext}
 ${personalityStyle}
 
 CORE IDENTITY:
@@ -186,12 +302,14 @@ HOW YOU OPERATE:
 - Post wins when milestones are hit. Set department goals to track progress.
 - Keep the user informed about what you're doing and what comes next.
 
-COMMUNICATION STYLE:
-- No em dashes. Short human sentences.
-- Talk like a sharp team member on Slack. Casual but competent.
+WRITING RULES (strict):
+- Write in plain English only. No markdown. No bold. No asterisks. No bullet points. No headers.
+- Write like a normal person texting on Slack. Short sentences. Casual. Direct.
+- Never use em dashes. Never use formatting symbols like **, ##, or -.
+- Just talk normally. If you need to list things, write them in a sentence or use line breaks.
+- No corporate jargon. No buzzwords. Say it like a human would say it out loud.
 - Reference specific numbers, names, and details. Not generic fluff.
-- 1-3 sentences per response unless producing a detailed report or analysis.
-- Reference company knowledge and your memories when relevant.`
+- 1-3 sentences per response unless producing a detailed report.`
 
       // Role-specific guidance layered on top of the generic rules.
       // Marketing agents need to know their specific playbook.
@@ -239,9 +357,8 @@ FINANCE-SPECIFIC:
   // lead, inject phase context into the system prompt and expose the
   // record_phase_output tool so the agent can capture answers as company
   // memories while conversing naturally.
-  const activeWs = await getActiveWorkspace()
-  const phaseCtx = agent && activeWs
-    ? await getPhaseGuidanceForAgent(activeWs.id, agent.id)
+  const phaseCtx = agent
+    ? await getPhaseGuidanceForAgent(auth.workspace.id, agent.id)
     : null
 
   if (phaseCtx) {
@@ -380,15 +497,13 @@ FINANCE-SPECIFIC:
   // if Linear is connected, the agent gets `linear_create_issue`. Tools
   // are keyed by provider + action, and the LLM decides when to call them
   // based on the tool descriptions. Empty object when nothing is connected.
-  const integrationTools = activeWs
-    ? await buildIntegrationTools({ workspaceId: activeWs.id, agentId: agent?.id })
-    : {}
+  const integrationTools = await buildIntegrationTools({ workspaceId: auth.workspace.id, agentId: agent?.id })
 
   // Autonomous tools let agents produce real artifacts mid-conversation:
   // create documents, post wins, hand off to other departments, set goals.
   // These are available to ALL agents, not just phase leads.
-  const autonomousTools = agent && activeWs
-    ? buildAutonomousToolsForChat(agent.id, activeWs.id)
+  const autonomousTools = agent
+    ? buildAutonomousToolsForChat(agent.id, auth.workspace.id)
     : {}
 
   // Web tools let agents search the web and fetch URLs for research.
@@ -399,11 +514,22 @@ FINANCE-SPECIFIC:
       ? { ...(phaseTools ?? {}), ...integrationTools, ...autonomousTools, ...webTools }
       : undefined
 
+  // Phase leads get higher token budget for producing strategy docs
+  const isPhaseLeadChat = !!phaseCtx
+  const outputTokenLimit = isPhaseLeadChat ? 8000 : 5000
+
+  // BYOK: use workspace's Anthropic API key, fall back to env var
+  const apiKey = auth.workspace.anthropicApiKey || process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return Response.json({ error: "No Anthropic API key configured. Add one in Settings." }, { status: 400 })
+  }
+  const anthropic = createAnthropic({ apiKey })
+
   const result = streamText({
     model: anthropic("claude-haiku-4-5"),
     system: systemPrompt,
     messages: await convertToModelMessages(messages),
-    maxOutputTokens: 500,
+    maxOutputTokens: outputTokenLimit,
     tools: mergedTools,
     // 8 steps gives agents room to: respond + record_phase_output +
     // create_document + post_win + handoff_to_department + final response.
@@ -414,7 +540,9 @@ FINANCE-SPECIFIC:
       if (agent && text && channelId) {
         try {
           await db.insert(messages_table).values({
+            workspaceId: auth.workspace.id,
             channelId,
+            threadId,
             senderAgentId: agent.id,
             senderName: agent.name,
             senderAvatar: agent.avatar,
@@ -423,56 +551,133 @@ FINANCE-SPECIFIC:
           })
         } catch {}
       }
-      // Auto-save conversation memories for emotional continuity
+
+      // ── Comprehensive Memory Pipeline ──────────────────────────
+      // 1. Extract structured data (topics, decisions, preferences, actions, numbers)
+      // 2. Record user interaction memory (tagged with userId)
+      // 3. Create/update user entity + observations
+      // 4. If decision detected, create company memory (handled by recordUserInteraction)
+      // 5. Prune if over budget
       if (!agent || !text) return
       const lastUserMsg = messages[messages.length - 1]
       const textPart = lastUserMsg?.parts?.find((p: any) => p.type === "text") as any
       const userText: string = textPart?.text || ""
 
-      // Detect memory-worthy moments
-      const memoryTriggers = [
-        { pattern: /prefer|like|want|always|never|don't like/i, type: "preference", importance: 0.8 },
-        { pattern: /decided|decision|going with|chose|picking/i, type: "observation", importance: 0.7 },
-        { pattern: /deadline|by\s+(monday|tuesday|wednesday|thursday|friday|tomorrow|next week)/i, type: "observation", importance: 0.9 },
-        { pattern: /client|customer|partner|vendor/i, type: "relationship", importance: 0.6 },
-        { pattern: /learned|realized|turns out|discovered/i, type: "learning", importance: 0.8 },
-      ]
+      try {
+        // Step 1: Extract structured data from conversation
+        const extracted = extractConversationData(userText, text)
 
-      for (const trigger of memoryTriggers) {
-        if (trigger.pattern.test(userText) || trigger.pattern.test(text)) {
-          const content = `[${new Date().toLocaleDateString()}] User said: "${userText.slice(0, 100)}${userText.length > 100 ? "..." : ""}". Agent responded about: ${text.slice(0, 80)}...`
+        // Step 2: Record user interaction memory (tagged with userId)
+        // This also creates company memories for decisions and
+        // separate entries for preferences and action items.
+        await recordUserInteraction({
+          workspaceId: auth.workspace.id,
+          agentId: agent.id,
+          userId: auth.user.id,
+          userName: auth.user.name,
+          userMessage: userText,
+          agentResponse: text,
+          topics: extracted.topics,
+          decisions: extracted.decisions,
+          preferences: extracted.preferences,
+          actionItems: extracted.actionItems,
+          people: extracted.people,
+          numbers: extracted.numbers,
+          dates: extracted.dates,
+        })
+
+        // Step 3: Create/update user entity in knowledge graph
+        try {
+          const [existingEntity] = await db
+            .select()
+            .from(entitiesTable)
+            .where(
+              and(
+                eq(entitiesTable.workspaceId, auth.workspace.id),
+                sql`LOWER(${entitiesTable.name}) = LOWER(${auth.user.name})`,
+              ),
+            )
+            .limit(1)
+
+          let userEntityId: string
+
+          if (existingEntity) {
+            userEntityId = existingEntity.id
+            // Update timestamp to keep entity fresh
+            await db
+              .update(entitiesTable)
+              .set({ updatedAt: new Date() })
+              .where(eq(entitiesTable.id, userEntityId))
+          } else {
+            // First interaction — create user entity
+            const [created] = await db
+              .insert(entitiesTable)
+              .values({
+                workspaceId: auth.workspace.id,
+                name: auth.user.name,
+                entityType: "person",
+                metadata: {
+                  userId: auth.user.id,
+                  email: auth.user.email,
+                  isWorkspaceUser: true,
+                },
+              })
+              .returning()
+            userEntityId = created.id
+          }
+
+          // Add observations from this conversation
+          const observationParts: string[] = []
+          if (extracted.topics.length > 0) {
+            observationParts.push(`Discussed: ${extracted.topics.join(", ")}`)
+          }
+          if (extracted.decisions.length > 0) {
+            observationParts.push(`Decided: ${extracted.decisions.join("; ")}`)
+          }
+          if (extracted.preferences.length > 0) {
+            observationParts.push(`Prefers: ${extracted.preferences.join("; ")}`)
+          }
+          if (extracted.numbers.length > 0) {
+            observationParts.push(`Mentioned: ${extracted.numbers.join(", ")}`)
+          }
+
+          if (observationParts.length > 0) {
+            const obsImportance = extracted.decisions.length > 0 ? 4 : 3
+            await db.insert(entityObsTable).values({
+              entityId: userEntityId,
+              content: observationParts.join(". "),
+              source: "conversation",
+              sourceAgentId: agent.id,
+              importance: obsImportance,
+            })
+          }
+        } catch { /* entity creation is best-effort */ }
+
+        // Step 4: Legacy agentMemories backward compat
+        let importance = 2
+        if (extracted.decisions.length > 0) importance = 4
+        else if (extracted.preferences.length > 0 || extracted.actionItems.length > 0) importance = 3
+        else if (extracted.numbers.length > 0 || extracted.dates.length > 0) importance = 3
+
+        if (importance >= 3) {
           try {
+            const memoryType = importance >= 4 ? "observation" : "preference"
+            const legacyContent = `[${new Date().toLocaleDateString()}] ${auth.user.name} said: "${userText.slice(0, 100)}${userText.length > 100 ? "..." : ""}". Agent responded about: ${text.slice(0, 80)}...`
             await db.insert(agentMemories).values({
               agentId: agent.id,
-              memoryType: trigger.type,
-              content,
-              importance: trigger.importance,
+              memoryType,
+              content: legacyContent,
+              importance: importance / 5,
               source: "conversation",
             })
-
-            // For "learning" type memories, also create a knowledge entry
-            if (trigger.type === "learning") {
-              const topicMatch = userText.match(/(?:learned|realized|turns out|discovered)\s+(?:that\s+)?(.{10,80})/i)
-                || text.match(/(?:learned|realized|turns out|discovered)\s+(?:that\s+)?(.{10,80})/i)
-              const knowledgeTitle = topicMatch
-                ? topicMatch[1].replace(/[.!?,;]+$/, "").trim()
-                : userText.slice(0, 60).trim() || "Insight from conversation"
-              const isProcessRelated = /process|workflow|sop|step|procedure|how to|setup|config/i.test(userText + " " + text)
-
-              await db.insert(knowledgeEntries).values({
-                title: knowledgeTitle,
-                content: `${userText.slice(0, 200)}\n\n**Agent insight:** ${text.slice(0, 300)}`,
-                category: isProcessRelated ? "processes" : "business",
-                tags: ["agent-contributed", agent.name],
-                linkedEntries: [],
-                createdByName: agent.name,
-                createdByAgentId: agent.id,
-              })
-            }
-          } catch { /* silent. memory saving is best-effort */ }
-          break // one memory per exchange
+          } catch { /* legacy compat is best-effort */ }
         }
-      }
+
+        // Step 5: Prune agent memories if over budget
+        try {
+          await pruneAgentMemories(agent.id, auth.workspace.id)
+        } catch { /* pruning is best-effort */ }
+      } catch { /* silent — memory saving is best-effort */ }
     },
   })
 

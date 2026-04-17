@@ -4,7 +4,7 @@ import { workspaces, teams, agents as agentsTable, trophyEvents, agentBonds } fr
 import { eq, inArray, or, isNull, desc } from "drizzle-orm"
 import { ARCHETYPES, TIER_STYLES, type ArchetypeId, type Tier } from "@/lib/archetypes"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { Trophy, TrendingUp, Users, Zap, ExternalLink, Sparkles } from "lucide-react"
+import { Trophy, TrendingUp, Users, Zap, ExternalLink } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 export const dynamic = "force-dynamic"
@@ -12,13 +12,13 @@ export const dynamic = "force-dynamic"
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params
   const [workspace] = await db.select().from(workspaces).where(eq(workspaces.slug, slug)).limit(1)
-  if (!workspace || !workspace.isPublic) return { title: "Trainer Profile — Business OS" }
+  if (!workspace || !workspace.isPublic) return { title: "Trainer Profile — VESPR" }
 
   return {
-    title: `${workspace.name} — Business OS Trainer Profile`,
-    description: workspace.publicTagline || workspace.description || `${workspace.name}'s AI team roster on Business OS`,
+    title: `${workspace.name} — VESPR Trainer Profile`,
+    description: workspace.publicTagline || workspace.description || `${workspace.name}'s team roster on VESPR`,
     openGraph: {
-      title: `${workspace.name} on Business OS`,
+      title: `${workspace.name} on VESPR`,
       description: workspace.publicTagline || workspace.description || undefined,
       type: "profile",
     },
@@ -164,7 +164,7 @@ export default async function PublicTrainerPage({ params }: { params: Promise<{ 
         {wsBonds.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold mb-4 uppercase tracking-wider text-muted-foreground flex items-center gap-2">
-              <Sparkles className="h-3 w-3 text-purple-400" />
+              <Users className="h-3 w-3 text-purple-400" />
               Team Chemistry
             </h2>
             <div className="space-y-2">
@@ -193,9 +193,9 @@ export default async function PublicTrainerPage({ params }: { params: Promise<{ 
         <footer className="pt-12 pb-6 text-center space-y-2 border-t border-border">
           <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Powered by</p>
           <a href="/" className="inline-flex items-center gap-1 text-sm font-bold hover:underline">
-            Business OS
+            VESPR
           </a>
-          <p className="text-[10px] text-muted-foreground/60">The operating system for building businesses with AI agents.</p>
+          <p className="text-[10px] text-muted-foreground/60">The operating system for building businesses with automated agents.</p>
         </footer>
       </div>
     </div>

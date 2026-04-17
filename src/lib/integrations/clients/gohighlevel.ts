@@ -10,7 +10,16 @@
 // Docs: https://highlevel.stoplight.io/docs/integrations
 
 import { getCredentials } from "@/lib/integrations/credentials"
-import type { CRMClient, CRMContact, CRMContactInput } from "@/lib/integrations/capabilities/crm"
+import type {
+  CRMClient,
+  CRMContact,
+  CRMContactInput,
+  CRMContactUpdateInput,
+  CRMDealInput,
+  CRMDeal,
+  CRMNote,
+  CRMPipelineStage,
+} from "@/lib/integrations/capabilities/crm"
 import type {
   MessagingClient,
   MessagingConversation,
@@ -145,12 +154,203 @@ async function addTags(
   return { ok: true, tags }
 }
 
+// ── Contact Updates ────��─────────────────────────────────
+
+async function updateContact(
+  workspaceId: string,
+  contactId: string,
+  input: CRMContactUpdateInput,
+): Promise<CRMContact> {
+  const { apiKey } = await loadGHLCreds(workspaceId)
+  const body: Record<string, unknown> = {}
+  if (input.firstName !== undefined) body.firstName = input.firstName
+  if (input.lastName !== undefined) body.lastName = input.lastName
+  if (input.phone !== undefined) body.phone = input.phone
+  if (input.email !== undefined) body.email = input.email
+  if (input.tags !== undefined) body.tags = input.tags
+  if (input.customFields !== undefined) body.customField = input.customFields
+  const data = await callGHL<{ contact: GHLContactRaw }>(
+    apiKey,
+    `/contacts/${encodeURIComponent(contactId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify(body),
+    },
+  )
+  return toCRMContact(data.contact)
+}
+
+// ── Deals / Opportunities ────────���───────────────────────
+
+interface GHLOpportunityRaw {
+  id: string
+  name?: string
+  contactId?: string | null
+  pipelineId?: string | null
+  pipelineStageId?: string | null
+  stageName?: string | null
+  monetaryValue?: number | null
+  currency?: string | null
+  status?: string
+  dateAdded?: string | null
+}
+
+function toCRMDeal(raw: GHLOpportunityRaw): CRMDeal {
+  const value = raw.monetaryValue ?? null
+  const currency = raw.currency ?? "USD"
+  return {
+    id: raw.id,
+    title: raw.name ?? "Untitled",
+    contactId: raw.contactId ?? null,
+    pipelineId: raw.pipelineId ?? null,
+    stageId: raw.pipelineStageId ?? null,
+    stageName: raw.stageName ?? null,
+    value,
+    valueFormatted: value !== null ? `$${(value / 100).toFixed(2)} ${currency.toUpperCase()}` : null,
+    status: raw.status ?? "open",
+    createdAt: raw.dateAdded ?? null,
+    url: raw.id ? `https://app.gohighlevel.com/opportunities/${raw.id}` : null,
+  }
+}
+
+async function createDeal(workspaceId: string, input: CRMDealInput): Promise<CRMDeal> {
+  const { apiKey, locationId } = await loadGHLCreds(workspaceId)
+
+  // If no pipelineId, fetch default pipeline
+  let pipelineId = input.pipelineId
+  let stageId = input.stageId
+  if (!pipelineId) {
+    const pipelines = await callGHL<{ pipelines: { id: string; stages: { id: string }[] }[] }>(
+      apiKey,
+      `/opportunities/pipelines?locationId=${encodeURIComponent(locationId)}`,
+    )
+    const firstPipeline = pipelines.pipelines?.[0]
+    if (!firstPipeline) {
+      throw new Error("No pipelines found in GoHighLevel. Create a pipeline first.")
+    }
+    pipelineId = firstPipeline.id
+    if (!stageId && firstPipeline.stages?.length > 0) {
+      stageId = firstPipeline.stages[0].id
+    }
+  }
+
+  const data = await callGHL<{ opportunity: GHLOpportunityRaw }>(
+    apiKey,
+    "/opportunities/",
+    {
+      method: "POST",
+      body: JSON.stringify({
+        locationId,
+        name: input.title,
+        contactId: input.contactId,
+        pipelineId,
+        pipelineStageId: stageId,
+        monetaryValue: input.value,
+        currency: input.currency ?? "USD",
+        status: "open",
+      }),
+    },
+  )
+  return toCRMDeal(data.opportunity)
+}
+
+async function updateDealStage(
+  workspaceId: string,
+  dealId: string,
+  stageId: string,
+): Promise<CRMDeal> {
+  const { apiKey } = await loadGHLCreds(workspaceId)
+  const data = await callGHL<{ opportunity: GHLOpportunityRaw }>(
+    apiKey,
+    `/opportunities/${encodeURIComponent(dealId)}`,
+    {
+      method: "PUT",
+      body: JSON.stringify({ pipelineStageId: stageId }),
+    },
+  )
+  return toCRMDeal(data.opportunity)
+}
+
+async function listDeals(workspaceId: string, limit: number): Promise<CRMDeal[]> {
+  const { apiKey, locationId } = await loadGHLCreds(workspaceId)
+  const clamped = Math.min(Math.max(limit, 1), 100)
+  const data = await callGHL<{ opportunities: GHLOpportunityRaw[] }>(
+    apiKey,
+    `/opportunities/search?locationId=${encodeURIComponent(locationId)}&limit=${clamped}`,
+  )
+  return (data.opportunities ?? []).map(toCRMDeal)
+}
+
+// ── Notes ────────────────────────────────────────────────
+
+interface GHLNoteRaw {
+  id: string
+  contactId?: string
+  body?: string
+  dateAdded?: string | null
+}
+
+async function addNote(
+  workspaceId: string,
+  contactId: string,
+  body: string,
+): Promise<CRMNote> {
+  const { apiKey } = await loadGHLCreds(workspaceId)
+  const data = await callGHL<{ note: GHLNoteRaw }>(
+    apiKey,
+    `/contacts/${encodeURIComponent(contactId)}/notes`,
+    {
+      method: "POST",
+      body: JSON.stringify({ body }),
+    },
+  )
+  return {
+    id: data.note.id,
+    contactId,
+    body: data.note.body ?? body,
+    createdAt: data.note.dateAdded ?? null,
+  }
+}
+
+// ── Pipeline Stages ──────────────────────────────────────
+
+async function listPipelineStages(workspaceId: string): Promise<CRMPipelineStage[]> {
+  const { apiKey, locationId } = await loadGHLCreds(workspaceId)
+  const data = await callGHL<{
+    pipelines: {
+      id: string
+      name: string
+      stages: { id: string; name: string; position: number }[]
+    }[]
+  }>(apiKey, `/opportunities/pipelines?locationId=${encodeURIComponent(locationId)}`)
+
+  const stages: CRMPipelineStage[] = []
+  for (const pipeline of data.pipelines ?? []) {
+    for (const stage of pipeline.stages ?? []) {
+      stages.push({
+        id: stage.id,
+        name: stage.name,
+        pipelineId: pipeline.id,
+        pipelineName: pipeline.name,
+        position: stage.position,
+      })
+    }
+  }
+  return stages
+}
+
 export const gohighlevelClient: CRMClient = {
   providerKey: "gohighlevel",
   createContact,
   listRecentContacts,
   findContactByEmail,
   addTags,
+  updateContact,
+  createDeal,
+  updateDealStage,
+  listDeals,
+  addNote,
+  listPipelineStages,
 }
 
 // ── Messaging capability ──────────────────────────────────

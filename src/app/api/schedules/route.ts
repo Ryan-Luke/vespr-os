@@ -1,10 +1,13 @@
 import { db } from "@/lib/db"
 import { agentSchedules, agents } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, and } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
 
 // GET /api/schedules
 // List all agent schedules with agent names.
 export async function GET() {
+  const auth = await withAuth()
   const schedules = await db
     .select({
       id: agentSchedules.id,
@@ -19,6 +22,7 @@ export async function GET() {
       createdAt: agentSchedules.createdAt,
     })
     .from(agentSchedules)
+    .where(eq(agentSchedules.workspaceId, auth.workspace.id))
     .orderBy(desc(agentSchedules.createdAt))
 
   // Attach agent names
@@ -37,9 +41,29 @@ export async function GET() {
   return Response.json({ schedules: result })
 }
 
+// POST /api/schedules
+// Create a new agent schedule.
+export async function POST(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+  const body = await req.json()
+  if (!body.agentId || !body.name || !body.cronExpression || !body.taskPrompt) {
+    return Response.json({ error: "agentId, name, cronExpression, and taskPrompt are required" }, { status: 400 })
+  }
+  const [schedule] = await db.insert(agentSchedules).values({
+    ...body,
+    workspaceId: auth.workspace.id,
+  }).returning()
+  return Response.json(schedule, { status: 201 })
+}
+
 // PATCH /api/schedules
 // Toggle enabled/disabled or update a schedule.
 export async function PATCH(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { id, enabled } = await req.json() as { id: string; enabled?: boolean }
   if (!id) return Response.json({ error: "id required" }, { status: 400 })
 
@@ -48,7 +72,7 @@ export async function PATCH(req: Request) {
 
   const [updated] = await db.update(agentSchedules)
     .set(updates)
-    .where(eq(agentSchedules.id, id))
+    .where(and(eq(agentSchedules.id, id), eq(agentSchedules.workspaceId, auth.workspace.id)))
     .returning()
 
   if (!updated) return Response.json({ error: "Schedule not found" }, { status: 404 })
@@ -58,8 +82,11 @@ export async function PATCH(req: Request) {
 // DELETE /api/schedules
 // Remove a schedule entirely.
 export async function DELETE(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { id } = await req.json() as { id: string }
   if (!id) return Response.json({ error: "id required" }, { status: 400 })
-  await db.delete(agentSchedules).where(eq(agentSchedules.id, id))
+  await db.delete(agentSchedules).where(and(eq(agentSchedules.id, id), eq(agentSchedules.workspaceId, auth.workspace.id)))
   return Response.json({ ok: true })
 }

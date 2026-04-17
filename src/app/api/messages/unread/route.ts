@@ -1,8 +1,10 @@
 import { db } from "@/lib/db"
 import { messages } from "@/lib/db/schema"
-import { gte, sql } from "drizzle-orm"
+import { gte, sql, eq, and } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const url = new URL(req.url)
   const since = url.searchParams.get("since")
 
@@ -16,7 +18,7 @@ export async function GET(req: Request) {
       count: sql<number>`count(*)::int`,
     })
     .from(messages)
-    .where(gte(messages.createdAt, sinceDate))
+    .where(and(eq(messages.workspaceId, auth.workspace.id), gte(messages.createdAt, sinceDate)))
     .groupBy(messages.channelId)
 
   // Total count

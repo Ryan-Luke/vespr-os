@@ -3,25 +3,42 @@ import {
   listIntegrations,
   disconnectIntegration,
 } from "@/lib/integrations/credentials"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
+import { checkLimit } from "@/lib/billing/plan-limits"
 
 // POST /api/integrations/credentials
-// Body: { workspaceId, providerKey, credentials: { [field]: value } }
+// Body: { providerKey, credentials: { [field]: value } }
 // Encrypts and stores credentials. Response never includes the plaintext.
 export async function POST(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+
+  // Check plan limits before connecting integration
+  const limitCheck = await checkLimit(auth.workspace.id, "connect_integration")
+  if (!limitCheck.allowed) {
+    return Response.json({
+      error: limitCheck.reason,
+      upgradeRequired: limitCheck.upgradeRequired,
+      currentCount: limitCheck.currentCount,
+      limit: limitCheck.limit,
+    }, { status: 403 })
+  }
+
   try {
     const body = await req.json() as {
-      workspaceId?: string
       providerKey?: string
       credentials?: Record<string, string>
     }
-    if (!body.workspaceId || !body.providerKey || !body.credentials) {
+    if (!body.providerKey || !body.credentials) {
       return Response.json(
-        { error: "workspaceId, providerKey, and credentials are required" },
+        { error: "providerKey and credentials are required" },
         { status: 400 },
       )
     }
     const stored = await saveCredentials({
-      workspaceId: body.workspaceId,
+      workspaceId: auth.workspace.id,
       providerKey: body.providerKey,
       credentials: body.credentials,
     })
@@ -34,28 +51,27 @@ export async function POST(req: Request) {
   }
 }
 
-// GET /api/integrations/credentials?workspaceId=XXX
-// Lists connected integrations for a workspace. Never returns credentials.
-export async function GET(req: Request) {
-  const url = new URL(req.url)
-  const workspaceId = url.searchParams.get("workspaceId")
-  if (!workspaceId) {
-    return Response.json({ error: "workspaceId required" }, { status: 400 })
-  }
-  const list = await listIntegrations(workspaceId)
+// GET /api/integrations/credentials
+// Lists connected integrations for the workspace. Never returns credentials.
+export async function GET() {
+  const auth = await withAuth()
+  const list = await listIntegrations(auth.workspace.id)
   return Response.json({ integrations: list })
 }
 
 // DELETE /api/integrations/credentials
-// Body: { workspaceId, providerKey }
+// Body: { providerKey }
 export async function DELETE(req: Request) {
-  const body = await req.json() as { workspaceId?: string; providerKey?: string }
-  if (!body.workspaceId || !body.providerKey) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+  const body = await req.json() as { providerKey?: string }
+  if (!body.providerKey) {
     return Response.json(
-      { error: "workspaceId and providerKey are required" },
+      { error: "providerKey is required" },
       { status: 400 },
     )
   }
-  await disconnectIntegration(body.workspaceId, body.providerKey)
+  await disconnectIntegration(auth.workspace.id, body.providerKey)
   return Response.json({ ok: true })
 }

@@ -30,7 +30,8 @@ export function ActivityTicker() {
     fetch("/api/activity?limit=20")
       .then((r) => r.json())
       .then((data) => {
-        setEntries(Array.isArray(data) ? data : [])
+        const items = data.entries ?? (Array.isArray(data) ? data : [])
+        setEntries(items)
         setLoaded(true)
       })
       .catch(() => setLoaded(true))
@@ -40,7 +41,8 @@ export function ActivityTicker() {
       fetch("/api/activity?limit=20")
         .then((r) => r.json())
         .then((data) => {
-          if (Array.isArray(data)) setEntries(data)
+          const items = data.entries ?? (Array.isArray(data) ? data : [])
+          setEntries(items)
         })
         .catch(() => {})
     }, 30000)

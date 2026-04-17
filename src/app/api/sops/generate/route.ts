@@ -1,12 +1,17 @@
 import { generateText } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
 import { agentSops, agents, tasks } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
 
 export const maxDuration = 30
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { taskId } = await req.json() as { taskId: string }
 
   // Load the task and assigned agent
@@ -24,6 +29,16 @@ export async function POST(req: Request) {
   const similarSop = existingSops.find((s) =>
     s.title.toLowerCase().includes(task.title.toLowerCase().split(" ").slice(0, 3).join(" "))
   )
+
+  // BYOK: use workspace's Anthropic API key, fall back to env var
+  const apiKey = auth.workspace.anthropicApiKey || process.env.ANTHROPIC_API_KEY
+  if (!apiKey) {
+    return Response.json(
+      { error: "Anthropic API key not configured. Set one in workspace settings or ANTHROPIC_API_KEY env var." },
+      { status: 400 },
+    )
+  }
+  const anthropic = createAnthropic({ apiKey })
 
   // Generate or update the SOP
   const result = await generateText({
@@ -62,6 +77,7 @@ Keep it practical and specific. Use markdown formatting. Be concise — no fluff
   } else {
     // Create new SOP
     const [newSop] = await db.insert(agentSops).values({
+      workspaceId: auth.workspace.id,
       agentId: agent.id,
       title: `SOP: ${task.title}`,
       content: result.text,

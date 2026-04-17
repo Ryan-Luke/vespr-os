@@ -4,6 +4,7 @@
 import { generateText, tool, jsonSchema } from "ai"
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { anthropic as defaultAnthropic } from "@ai-sdk/anthropic"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export const maxDuration = 30
 
@@ -36,6 +37,7 @@ interface ChatMessage {
 }
 
 export async function POST(req: Request) {
+  await withAuth()
   const { messages, validatedApiKey } = await req.json() as {
     messages: ChatMessage[]
     validatedApiKey?: string

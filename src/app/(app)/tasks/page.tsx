@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect, useCallback, useMemo, useRef } from "react"
-import {} from "@/components/ui/badge"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
@@ -14,6 +13,7 @@ import {
   Play, Square, CalendarDays, Columns3,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { TaskDetailModal } from "@/components/task-detail-modal"
 
 // --- Dependency helpers ---
 type DepsMap = Record<string, string[]> // taskId → array of taskIds that block it
@@ -167,9 +167,11 @@ interface TaskCardProps {
   subtasks: Subtask[]
   onAddSubtask: (taskId: string, title: string) => void
   onToggleSubtask: (taskId: string, subtaskId: string) => void
+  // detail modal
+  onOpenDetail: (task: DBTask) => void
 }
 
-function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds, timerData, isTimerRunning, onToggleTimer, now, subtasks, onAddSubtask, onToggleSubtask }: TaskCardProps) {
+function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, onStartLink, onCompleteLink, onRemoveDep, hoveredTaskId, onHover, highlightedIds, timerData, isTimerRunning, onToggleTimer, now, subtasks, onAddSubtask, onToggleSubtask, onOpenDetail }: TaskCardProps) {
   const agent = task.assignedAgentId ? agents.find((a) => a.id === task.assignedAgentId) : null
   const colIndex = columns.findIndex((c) => c.id === task.status)
 
@@ -208,17 +210,20 @@ function TaskCard({ task, agents, teams, allTasks, onMove, deps, linkingFrom, on
   return (
     <div
       data-task-id={task.id}
+      draggable
+      onDragStart={(e) => { e.dataTransfer.setData("taskId", task.id); e.dataTransfer.effectAllowed = "move" }}
       className={cn(
-        "bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-all relative",
+        "bg-card border border-border rounded-md p-3 group hover:border-muted-foreground/20 transition-all relative cursor-grab active:cursor-grabbing",
         task.assignedToUser && !isBlocked && "border-l-2 border-l-amber-500",
         isBlocked && "border-l-2 border-l-red-500 opacity-60",
         isLinkSource && "ring-2 ring-blue-500",
         linkingFrom && !isLinkSource && "cursor-pointer",
         isHighlighted && "ring-1 ring-blue-400/60 shadow-[0_0_8px_rgba(96,165,250,0.25)]",
       )}
-      onClick={() => { if (linkingFrom && linkingFrom !== task.id) onCompleteLink(task.id) }}
+      onClick={() => { if (linkingFrom && linkingFrom !== task.id) { onCompleteLink(task.id) } else if (!linkingFrom) { onOpenDetail(task) } }}
       onMouseEnter={() => onHover(task.id)}
       onMouseLeave={() => onHover(null)}
+      style={{ cursor: linkingFrom ? undefined : undefined }}
     >
       <div className="flex items-start gap-2">
         <span className={cn("h-1.5 w-1.5 rounded-full mt-1.5 shrink-0", priorityDots[task.priority] || "bg-zinc-500")} />
@@ -685,6 +690,7 @@ export default function TasksPage() {
   const [newRecurrence, setNewRecurrence] = useState<"none" | "daily" | "weekly" | "monthly">("none")
   const [templateLoading, setTemplateLoading] = useState<string | null>(null)
   const [viewMode, setViewMode] = useState<"board" | "calendar">("board")
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
   // --- Dependency state ---
   const [deps, setDeps] = useState<DepsMap>({})
@@ -694,6 +700,9 @@ export default function TasksPage() {
   // --- Timer state ---
   const [timers, setTimers] = useState<TimerMap>({})
   const [now, setNow] = useState(Date.now())
+
+  // --- Task detail modal state ---
+  const [selectedTask, setSelectedTask] = useState<DBTask | null>(null)
 
   // --- Subtask state ---
   const [subtasksMap, setSubtasksMap] = useState<SubtasksMap>({})
@@ -826,10 +835,10 @@ export default function TasksPage() {
     const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
     const chatUrl = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
     const [tasksRes, chatData] = await Promise.all([
-      fetch("/api/tasks").then((r) => r.json()),
+      fetch("/api/tasks?limit=100").then((r) => r.json()),
       fetch(chatUrl).then((r) => r.json()),
     ])
-    setTasks(tasksRes)
+    setTasks(tasksRes.tasks ?? tasksRes)
     setDbAgents(chatData.agents)
     setDbTeams(chatData.channels ? [] : []) // teams come from chat-data agents
     // Extract unique teams from agents
@@ -949,6 +958,34 @@ export default function TasksPage() {
       body: JSON.stringify({ id: taskId, requirement: updatedReq }),
     })
     setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, requirement: updatedReq } : t))
+  }
+
+  async function handleTaskUpdate(taskId: string, updates: Partial<DBTask>) {
+    // Optimistic update
+    setTasks((prev) => prev.map((t) => t.id === taskId ? { ...t, ...updates } : t))
+    // Update selected task in modal too
+    setSelectedTask((prev) => prev && prev.id === taskId ? { ...prev, ...updates } : prev)
+
+    await fetch("/api/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: taskId, ...updates }),
+    })
+
+    // Fire XP award if moved to done
+    if (updates.status === "done") {
+      const task = tasks.find((t) => t.id === taskId)
+      if (task?.assignedAgentId) {
+        await fetch("/api/gamification", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ agentId: task.assignedAgentId, reason: "task_shipped" }),
+        }).catch(() => {})
+      }
+    }
+
+    // Refresh data to pick up server-side changes (SOP gen, etc.)
+    fetchData()
   }
 
   if (loading) return <div className="flex items-center justify-center h-full text-muted-foreground"><Loader2 className="h-5 w-5 animate-spin mr-2" />Loading...</div>
@@ -1146,7 +1183,16 @@ export default function TasksPage() {
               {columns.map((col) => {
                 const colTasks = filteredTasks.filter((t) => t.status === col.id)
                 return (
-                  <div key={col.id} className="w-60 flex flex-col shrink-0 bg-background">
+                  <div
+                    key={col.id}
+                    className={cn(
+                      "w-60 flex flex-col shrink-0 bg-background transition-colors",
+                      dragOverColumn === col.id && "bg-primary/5 ring-1 ring-inset ring-primary/30",
+                    )}
+                    onDragOver={(e) => { e.preventDefault(); e.dataTransfer.dropEffect = "move"; setDragOverColumn(col.id) }}
+                    onDragLeave={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node)) setDragOverColumn(null) }}
+                    onDrop={(e) => { e.preventDefault(); setDragOverColumn(null); const taskId = e.dataTransfer.getData("taskId"); if (taskId) moveTask(taskId, col.id) }}
+                  >
                     <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-muted/30">
                       <span className="section-label">{col.label}</span>
                       <span className="text-[10px] text-muted-foreground tabular-nums bg-muted rounded-sm px-1 py-0.5">{colTasks.length}</span>
@@ -1175,6 +1221,7 @@ export default function TasksPage() {
                           subtasks={subtasksMap[task.id] ?? []}
                           onAddSubtask={handleAddSubtask}
                           onToggleSubtask={handleToggleSubtask}
+                          onOpenDetail={setSelectedTask}
                         />
                       ))}
                       {colTasks.length === 0 && (
@@ -1192,6 +1239,20 @@ export default function TasksPage() {
           <CalendarView tasks={filteredTasks} agents={dbAgents} priorityDots={priorityDots} />
         )}
       </div>
+
+      {/* Task Detail Modal */}
+      {selectedTask && (
+        <TaskDetailModal
+          task={selectedTask}
+          agents={dbAgents}
+          onClose={() => setSelectedTask(null)}
+          onUpdate={async (taskId, updates) => {
+            await handleTaskUpdate(taskId, updates)
+            // Update the modal's task reference with fresh data
+            setSelectedTask((prev) => prev && prev.id === taskId ? { ...prev, ...updates } : prev)
+          }}
+        />
+      )}
     </div>
   )
 }

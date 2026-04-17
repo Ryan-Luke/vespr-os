@@ -1,9 +1,29 @@
 // Validates an Anthropic API key by making a cheap test call.
-// Used during onboarding to confirm the user's key works before saving it.
+// Accepts an explicit apiKey in the body, or falls back to the workspace's stored key.
+
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function POST(req: Request) {
-  const { apiKey } = await req.json() as { apiKey: string }
-  if (!apiKey || !apiKey.startsWith("sk-ant-")) {
+  const auth = await withAuth()
+
+  let apiKey: string | null = null
+  try {
+    const body = await req.json()
+    apiKey = body.apiKey || null
+  } catch {
+    // No body or invalid JSON — fall back to workspace key
+  }
+
+  // Fall back to workspace-stored key if none provided
+  if (!apiKey) {
+    apiKey = auth.workspace.anthropicApiKey
+  }
+
+  if (!apiKey) {
+    return Response.json({ valid: false, error: "No API key configured" })
+  }
+
+  if (!apiKey.startsWith("sk-ant-")) {
     return Response.json({ valid: false, error: "Key must start with sk-ant-" })
   }
 

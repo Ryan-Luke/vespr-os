@@ -107,7 +107,7 @@ export async function createLinearIssue(
 // Exposes Linear as a drop-in PMClient so agents can call `pm_create_task`
 // without caring which project management tool is connected.
 
-import type { PMClient, PMTask, PMTaskInput } from "@/lib/integrations/capabilities/pm"
+import type { PMClient, PMTask, PMTaskInput, PMTaskUpdateInput, PMComment, PMTaskDetail } from "@/lib/integrations/capabilities/pm"
 
 async function pmCreateTask(workspaceId: string, input: PMTaskInput): Promise<PMTask> {
   const issue = await createLinearIssue(workspaceId, {
@@ -123,9 +123,166 @@ async function pmCreateTask(workspaceId: string, input: PMTaskInput): Promise<PM
   }
 }
 
+async function pmUpdateTask(workspaceId: string, taskId: string, input: PMTaskUpdateInput): Promise<PMTask> {
+  const creds = await getCredentials(workspaceId, "linear")
+  if (!creds?.api_key) throw new Error("Linear is not connected for this workspace.")
+  const apiKey = creds.api_key
+
+  const issueInput: Record<string, unknown> = {}
+  if (input.title !== undefined) issueInput.title = input.title
+  if (input.description !== undefined) issueInput.description = input.description
+  if (input.priority !== undefined) issueInput.priority = input.priority
+  if (input.stateId !== undefined) issueInput.stateId = input.stateId
+  if (input.assigneeId !== undefined) issueInput.assigneeId = input.assigneeId
+
+  const data = await callLinear<{
+    issueUpdate: {
+      success: boolean
+      issue: { id: string; identifier: string; title: string; url: string } | null
+    }
+  }>(
+    apiKey,
+    `mutation($id: String!, $input: IssueUpdateInput!) {
+      issueUpdate(id: $id, input: $input) {
+        success
+        issue { id identifier title url }
+      }
+    }`,
+    { id: taskId, input: issueInput },
+  )
+
+  if (!data.issueUpdate.success || !data.issueUpdate.issue) {
+    throw new Error("Linear rejected the issue update")
+  }
+  return data.issueUpdate.issue
+}
+
+async function pmAddComment(workspaceId: string, taskId: string, body: string): Promise<PMComment> {
+  const creds = await getCredentials(workspaceId, "linear")
+  if (!creds?.api_key) throw new Error("Linear is not connected for this workspace.")
+  const apiKey = creds.api_key
+
+  const data = await callLinear<{
+    commentCreate: {
+      success: boolean
+      comment: { id: string; body: string; user: { name: string } | null; createdAt: string } | null
+    }
+  }>(
+    apiKey,
+    `mutation($input: CommentCreateInput!) {
+      commentCreate(input: $input) {
+        success
+        comment { id body user { name } createdAt }
+      }
+    }`,
+    { input: { issueId: taskId, body } },
+  )
+
+  if (!data.commentCreate.success || !data.commentCreate.comment) {
+    throw new Error("Linear rejected the comment create")
+  }
+  const c = data.commentCreate.comment
+  return {
+    id: c.id,
+    body: c.body,
+    authorName: c.user?.name ?? null,
+    createdAt: c.createdAt,
+  }
+}
+
+async function pmListTasks(workspaceId: string, limit: number): Promise<PMTask[]> {
+  const creds = await getCredentials(workspaceId, "linear")
+  if (!creds?.api_key) throw new Error("Linear is not connected for this workspace.")
+  const apiKey = creds.api_key
+  const clamped = Math.min(Math.max(limit, 1), 50)
+
+  const data = await callLinear<{
+    issues: {
+      nodes: { id: string; identifier: string; title: string; url: string }[]
+    }
+  }>(
+    apiKey,
+    `query($first: Int!) {
+      issues(first: $first, orderBy: createdAt) {
+        nodes { id identifier title url }
+      }
+    }`,
+    { first: clamped },
+  )
+
+  return data.issues.nodes.map((i) => ({
+    id: i.id,
+    identifier: i.identifier,
+    title: i.title,
+    url: i.url,
+  }))
+}
+
+async function pmGetTask(workspaceId: string, taskId: string): Promise<PMTaskDetail> {
+  const creds = await getCredentials(workspaceId, "linear")
+  if (!creds?.api_key) throw new Error("Linear is not connected for this workspace.")
+  const apiKey = creds.api_key
+
+  const data = await callLinear<{
+    issue: {
+      id: string
+      identifier: string
+      title: string
+      description: string | null
+      url: string
+      priority: number | null
+      state: { name: string } | null
+      assignee: { name: string } | null
+      createdAt: string
+      updatedAt: string
+      comments: {
+        nodes: { id: string; body: string; user: { name: string } | null; createdAt: string }[]
+      }
+    }
+  }>(
+    apiKey,
+    `query($id: String!) {
+      issue(id: $id) {
+        id identifier title description url priority
+        state { name }
+        assignee { name }
+        createdAt updatedAt
+        comments(first: 20) {
+          nodes { id body user { name } createdAt }
+        }
+      }
+    }`,
+    { id: taskId },
+  )
+
+  const i = data.issue
+  return {
+    id: i.id,
+    identifier: i.identifier,
+    title: i.title,
+    url: i.url,
+    description: i.description,
+    status: i.state?.name ?? null,
+    priority: i.priority,
+    assigneeName: i.assignee?.name ?? null,
+    createdAt: i.createdAt,
+    updatedAt: i.updatedAt,
+    comments: i.comments.nodes.map((c) => ({
+      id: c.id,
+      body: c.body,
+      authorName: c.user?.name ?? null,
+      createdAt: c.createdAt,
+    })),
+  }
+}
+
 export const linearPMClient: PMClient = {
   providerKey: "linear",
   createTask: pmCreateTask,
+  updateTask: pmUpdateTask,
+  addComment: pmAddComment,
+  listTasks: pmListTasks,
+  getTask: pmGetTask,
 }
 
 /** Delete a Linear issue by its ID. Used for cleanup in smoke tests. */

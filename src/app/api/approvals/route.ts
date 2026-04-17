@@ -1,11 +1,13 @@
 import { db } from "@/lib/db"
 import { approvalLog, autoApprovals } from "@/lib/db/schema"
 import { eq, and, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 const AUTO_APPROVE_THRESHOLD = 5
 
 // Log an approval decision and check if we should offer auto-approval
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const { agentId, actionType, description, decision, reasoning } = await req.json() as {
     agentId: string
     actionType: string
@@ -16,6 +18,7 @@ export async function POST(req: Request) {
 
   // Log the approval
   await db.insert(approvalLog).values({
+    workspaceId: auth.workspace.id,
     agentId, actionType, description, decision, reasoning: reasoning || null,
   })
 
@@ -54,6 +57,7 @@ export async function POST(req: Request) {
 
 // Enable auto-approval for an action type
 export async function PUT(req: Request) {
+  const auth = await withAuth()
   const { agentId, actionType, enable } = await req.json() as {
     agentId: string
     actionType: string
@@ -72,6 +76,7 @@ export async function PUT(req: Request) {
       ))
 
     await db.insert(autoApprovals).values({
+      workspaceId: auth.workspace.id,
       agentId,
       actionType,
       approvalCount: Number(approvals[0]?.count ?? 0),
@@ -87,16 +92,17 @@ export async function PUT(req: Request) {
 
 // Get auto-approvals for an agent
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const url = new URL(req.url)
   const agentId = url.searchParams.get("agentId")
 
   if (agentId) {
     const autos = await db.select().from(autoApprovals)
-      .where(eq(autoApprovals.agentId, agentId))
+      .where(and(eq(autoApprovals.agentId, agentId), eq(autoApprovals.workspaceId, auth.workspace.id)))
     return Response.json(autos)
   }
 
-  // All auto-approvals
-  const autos = await db.select().from(autoApprovals)
+  // All auto-approvals for this workspace
+  const autos = await db.select().from(autoApprovals).where(eq(autoApprovals.workspaceId, auth.workspace.id))
   return Response.json(autos)
 }

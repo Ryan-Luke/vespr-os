@@ -12,7 +12,7 @@
 // Per-workspace progress lives in the `workflow_phase_runs` table.
 
 import { db } from "@/lib/db"
-import { workspaces, workflowPhaseRuns, agents, teams, knowledgeEntries } from "@/lib/db/schema"
+import { workspaces, workflowPhaseRuns, agents, teams, knowledgeEntries, notifications } from "@/lib/db/schema"
 import { and, eq, ilike, or, sql } from "drizzle-orm"
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -26,7 +26,7 @@ export type PhaseKey =
   | "delivery"
   | "operations"
 
-export type PhaseStatus = "pending" | "active" | "completed" | "skipped"
+export type PhaseStatus = "pending" | "active" | "gate_ready" | "completed" | "skipped"
 
 export type OutputKind =
   | "decision"      // a strategic decision captured as a company memory
@@ -459,6 +459,59 @@ export async function upsertPhaseOutput(
     .update(workflowPhaseRuns)
     .set({ outputs: nextOutputs, updatedAt: now })
     .where(eq(workflowPhaseRuns.id, existing.id))
+
+  // Auto-check if all outputs are now provided — if so, mark gate_ready
+  await checkPhaseCompletion(workspaceId, phaseKey)
+}
+
+// ── Auto-phase-advancement check ──────────────────────────────────────
+// Returns true if ALL required outputs for the phase are "provided" or
+// "confirmed". When true, updates phase status to "gate_ready" and
+// inserts a notification so the user knows they can approve advancement.
+
+export async function checkPhaseCompletion(
+  workspaceId: string,
+  phaseKey: PhaseKey,
+): Promise<boolean> {
+  const phase = getPhase(phaseKey)
+
+  const [run] = await db
+    .select()
+    .from(workflowPhaseRuns)
+    .where(and(
+      eq(workflowPhaseRuns.workspaceId, workspaceId),
+      eq(workflowPhaseRuns.phaseKey, phaseKey),
+    ))
+    .limit(1)
+
+  if (!run) return false
+
+  const outputs = (run.outputs ?? {}) as PhaseRunState["outputs"]
+  const allComplete = phase.requiredOutputs.every((spec) => {
+    const out = outputs[spec.key]
+    return out && (out.status === "provided" || out.status === "confirmed")
+  })
+
+  if (!allComplete) return false
+
+  // Only transition to gate_ready if currently active (not already completed/skipped)
+  if (run.status === "active") {
+    await db
+      .update(workflowPhaseRuns)
+      .set({ status: "gate_ready", updatedAt: new Date() })
+      .where(eq(workflowPhaseRuns.id, run.id))
+
+    // Insert notification for the workspace owner
+    await db.insert(notifications).values({
+      workspaceId,
+      type: "gate_ready",
+      title: `${phase.label} phase is ready for review`,
+      description: `All ${phase.requiredOutputs.length} required outputs have been captured. Review and approve to advance to the next phase.`,
+      actionUrl: `/workflow`,
+    }).catch(() => {}) // best-effort
+  }
+
+  return true
 }
 
 export async function recordPhaseGate(

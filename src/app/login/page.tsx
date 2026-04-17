@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { Lock, Mail, User, Loader2, Sparkles } from "lucide-react"
+import { Lock, Mail, User, Loader2 } from "lucide-react"
 
 export default function LoginPage() {
   const router = useRouter()
@@ -12,6 +12,7 @@ export default function LoginPage() {
   const [name, setName] = useState("")
   const [error, setError] = useState("")
   const [submitting, setSubmitting] = useState(false)
+  const [forgotMsg, setForgotMsg] = useState("")
 
   // On mount, ask the server whether any user exists. If not, this is a
   // fresh deploy — show the first-run owner signup form instead of sign-in.
@@ -21,6 +22,25 @@ export default function LoginPage() {
       .then((data: { hasUsers: boolean }) => setMode(data.hasUsers ? "signin" : "signup"))
       .catch(() => setMode("signin"))
   }, [])
+
+  async function handleForgotPassword() {
+    if (!email) {
+      setError("Enter your email first, then click Forgot password")
+      return
+    }
+    setForgotMsg("")
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      })
+      const data = await res.json().catch(() => ({}))
+      setForgotMsg(data.message || "If an account with that email exists, a reset link has been sent.")
+    } catch {
+      setForgotMsg("Something went wrong. Try again.")
+    }
+  }
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -64,17 +84,12 @@ export default function LoginPage() {
     <div className="min-h-dvh flex items-center justify-center bg-background p-4">
       <div className="w-full max-w-[320px] space-y-5">
         <div className="text-center">
-          {isSignup && (
-            <div className="inline-flex items-center justify-center h-10 w-10 rounded-full bg-primary/10 mb-3">
-              <Sparkles className="h-4 w-4 text-primary" />
-            </div>
-          )}
           <p className="text-[14px] font-semibold tracking-tight">
-            {isSignup ? "Create your owner account" : "Sign in"}
+            {isSignup ? "Create your account" : "Sign in to VESPR"}
           </p>
           <p className="text-[12px] text-muted-foreground mt-1 leading-relaxed">
             {isSignup
-              ? "You're the first user on this deploy. You'll be the owner of the workspace."
+              ? "Create your account to get started."
               : "Sign in to continue"}
           </p>
         </div>
@@ -120,6 +135,7 @@ export default function LoginPage() {
           </div>
 
           {error && <p className="text-[11px] text-red-400">{error}</p>}
+          {forgotMsg && <p className="text-[11px] text-green-400">{forgotMsg}</p>}
 
           <button
             type="submit"
@@ -132,9 +148,16 @@ export default function LoginPage() {
         </form>
 
         {!isSignup && (
-          <p className="text-[11px] text-muted-foreground text-center leading-relaxed">
-            Need an account? Ask your workspace owner to invite you.
-          </p>
+          <div className="text-center space-y-1.5">
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Need an account? Ask your workspace owner to invite you.
+            </p>
+            <p className="text-[11px]">
+              <a href="/forgot-password" className="text-primary hover:underline cursor-pointer">
+                Forgot your password?
+              </a>
+            </p>
+          </div>
         )}
       </div>
     </div>

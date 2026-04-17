@@ -46,9 +46,10 @@ export function OvernightSummary() {
       return
     }
 
-    fetch("/api/activity")
+    fetch("/api/activity?limit=100")
       .then((r) => r.json())
-      .then((data: ActivityEntry[]) => {
+      .then((raw) => {
+        const data: ActivityEntry[] = raw.entries ?? (Array.isArray(raw) ? raw : [])
         const filtered = data.filter((e) => new Date(e.createdAt).getTime() > sinceMs)
         setEntries(filtered)
         setLoaded(true)

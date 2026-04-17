@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react"
 import { Key, Eye, EyeOff, Check, Trash2, RefreshCw } from "lucide-react"
 import { cn } from "@/lib/utils"
 
-const STORAGE_KEY = "bos-api-keys"
+const LOCAL_STORAGE_KEY = "bos-api-keys"
 
 interface ProviderConfig {
   id: string
@@ -12,22 +12,21 @@ interface ProviderConfig {
   envVar: string
   icon: string
   prefix: string
+  persisted: "database" | "local" // Where this key is stored
 }
 
 const PROVIDERS: ProviderConfig[] = [
-  { id: "anthropic", name: "Anthropic (Claude)", envVar: "ANTHROPIC_API_KEY", icon: "🟣", prefix: "sk-ant-" },
-  { id: "openai", name: "OpenAI", envVar: "OPENAI_API_KEY", icon: "🟢", prefix: "sk-" },
-  { id: "google", name: "Google (Gemini)", envVar: "GOOGLE_API_KEY", icon: "🔵", prefix: "AIza" },
+  { id: "anthropic", name: "Anthropic (Claude)", envVar: "ANTHROPIC_API_KEY", icon: "🟣", prefix: "sk-ant-", persisted: "database" },
+  { id: "openai", name: "OpenAI", envVar: "OPENAI_API_KEY", icon: "🟢", prefix: "sk-", persisted: "local" },
+  { id: "google", name: "Google (Gemini)", envVar: "GOOGLE_API_KEY", icon: "🔵", prefix: "AIza", persisted: "local" },
 ]
 
-// Simulated usage stats per provider
-const SIMULATED_USAGE: Record<string, { tokens: string; cost: string }> = {
-  anthropic: { tokens: "1,247,830", cost: "$62.39" },
-  openai: { tokens: "834,210", cost: "$41.71" },
-  google: { tokens: "0", cost: "$0.00" },
-}
-
 type StoredKeys = Record<string, string>
+
+function getWorkspaceId(): string | null {
+  if (typeof window === "undefined") return null
+  return localStorage.getItem("vespr-active-workspace")
+}
 
 function maskKey(key: string): string {
   if (!key || key.length < 8) return "Not configured"
@@ -35,51 +34,74 @@ function maskKey(key: string): string {
   return `${key.slice(0, 4)}...${"•".repeat(8)}${last4}`
 }
 
-function ProviderCard({ provider }: { provider: ProviderConfig }) {
+function ProviderCard({ provider, workspaceKeyInfo }: { provider: ProviderConfig; workspaceKeyInfo?: { hasKey: boolean; preview: string | null } }) {
   const [storedKey, setStoredKey] = useState("")
   const [editing, setEditing] = useState(false)
   const [inputValue, setInputValue] = useState("")
   const [showKey, setShowKey] = useState(false)
   const [testing, setTesting] = useState(false)
-  const [testResult, setTestResult] = useState<"success" | "idle">("idle")
+  const [testResult, setTestResult] = useState<"connected" | "failed" | "idle">("idle")
 
-  // Load from localStorage on mount
+  // Load key on mount: from workspace data (DB) for anthropic, localStorage for others
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY)
-      if (raw) {
-        const keys: StoredKeys = JSON.parse(raw)
-        if (keys[provider.id]) {
-          setStoredKey(keys[provider.id])
-        }
+    if (provider.persisted === "database") {
+      // For DB-persisted keys, we only have a boolean + masked preview — not the full key
+      if (workspaceKeyInfo?.hasKey && workspaceKeyInfo.preview) {
+        setStoredKey(workspaceKeyInfo.preview)
       }
-    } catch {
-      // ignore
-    }
-  }, [provider.id])
-
-  const saveKey = useCallback(
-    (key: string) => {
+    } else {
       try {
-        const raw = localStorage.getItem(STORAGE_KEY)
-        const keys: StoredKeys = raw ? JSON.parse(raw) : {}
-        if (key) {
-          keys[provider.id] = key
-        } else {
-          delete keys[provider.id]
+        const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
+        if (raw) {
+          const keys: StoredKeys = JSON.parse(raw)
+          if (keys[provider.id]) {
+            setStoredKey(keys[provider.id])
+          }
         }
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(keys))
       } catch {
         // ignore
       }
+    }
+  }, [provider.id, provider.persisted, workspaceKeyInfo])
+
+  const saveKey = useCallback(
+    async (key: string) => {
+      if (provider.persisted === "database") {
+        const workspaceId = getWorkspaceId()
+        if (!workspaceId) return
+        await fetch(`/api/workspaces/${workspaceId}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ anthropicApiKey: key || null }),
+        })
+      } else {
+        try {
+          const raw = localStorage.getItem(LOCAL_STORAGE_KEY)
+          const keys: StoredKeys = raw ? JSON.parse(raw) : {}
+          if (key) {
+            keys[provider.id] = key
+          } else {
+            delete keys[provider.id]
+          }
+          localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(keys))
+        } catch {
+          // ignore
+        }
+      }
     },
-    [provider.id]
+    [provider.id, provider.persisted]
   )
 
   const handleSave = () => {
     if (inputValue.trim()) {
-      setStoredKey(inputValue.trim())
-      saveKey(inputValue.trim())
+      const key = inputValue.trim()
+      saveKey(key)
+      // For DB-persisted keys, only store a masked preview locally — never the full key
+      if (provider.persisted === "database") {
+        setStoredKey(key.length >= 11 ? `${key.slice(0, 7)}...${key.slice(-4)}` : maskKey(key))
+      } else {
+        setStoredKey(key)
+      }
     }
     setInputValue("")
     setEditing(false)
@@ -95,18 +117,31 @@ function ProviderCard({ provider }: { provider: ProviderConfig }) {
     setShowKey(false)
   }
 
-  const handleTest = () => {
+  const handleTest = async () => {
     if (!storedKey || testing) return
     setTesting(true)
     setTestResult("idle")
-    setTimeout(() => {
+    try {
+      // For DB-persisted keys (Anthropic), the server reads the key from the workspace.
+      // For local-stored keys, send the key in the body.
+      const body = provider.persisted === "database"
+        ? JSON.stringify({})
+        : JSON.stringify({ apiKey: storedKey })
+      const res = await fetch("/api/validate-anthropic", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body,
+      })
+      const data = await res.json()
+      setTestResult(data.valid ? "connected" : "failed")
+    } catch {
+      setTestResult("failed")
+    } finally {
       setTesting(false)
-      setTestResult("success")
-    }, 2000)
+    }
   }
 
   const isConfigured = storedKey.length > 0
-  const usage = SIMULATED_USAGE[provider.id]
 
   return (
     <div className="bg-card border border-border rounded-md p-4 space-y-3">
@@ -132,13 +167,15 @@ function ProviderCard({ provider }: { provider: ProviderConfig }) {
         <div className="flex-1 min-w-0">
           <p className={cn("font-mono text-xs text-muted-foreground truncate", !isConfigured && "italic")}>
             {isConfigured
-              ? showKey
-                ? storedKey
-                : maskKey(storedKey)
+              ? provider.persisted === "database"
+                ? storedKey // Already a masked preview from server
+                : showKey
+                  ? storedKey
+                  : maskKey(storedKey)
               : "Not configured"}
           </p>
         </div>
-        {isConfigured && (
+        {isConfigured && provider.persisted !== "database" && (
           <button
             type="button"
             onClick={() => setShowKey((v) => !v)}
@@ -216,38 +253,55 @@ function ProviderCard({ provider }: { provider: ProviderConfig }) {
           </>
         )}
 
-        {testResult === "success" && (
+        {testResult === "connected" && (
           <span className="text-xs text-emerald-400 inline-flex items-center gap-1 ml-1">
             <Check className="h-3 w-3" />
             Connected
           </span>
         )}
+        {testResult === "failed" && (
+          <span className="text-xs text-red-400 inline-flex items-center gap-1 ml-1">
+            Invalid or unreachable
+          </span>
+        )}
       </div>
 
-      {/* Usage stats */}
-      {isConfigured && usage && (
-        <div className="pt-2 border-t border-border/50 flex gap-6">
-          <p className="text-[11px] text-muted-foreground">
-            Tokens used this month: <span className="text-foreground tabular-nums">{usage.tokens}</span>
-          </p>
-          <p className="text-[11px] text-muted-foreground">
-            Estimated cost: <span className="text-foreground tabular-nums">{usage.cost}</span>
-          </p>
-        </div>
-      )}
     </div>
   )
 }
 
 export default function ApiKeyManager() {
+  const [workspaceKeyInfo, setWorkspaceKeyInfo] = useState<{ hasKey: boolean; preview: string | null } | undefined>(undefined)
+
+  useEffect(() => {
+    // Fetch workspace data to check if an Anthropic API key is configured (key itself is never returned)
+    fetch("/api/workspaces")
+      .then((r) => r.json())
+      .then((workspaces: Array<{ id: string; hasAnthropicKey?: boolean; anthropicKeyPreview?: string | null }>) => {
+        const wsId = getWorkspaceId()
+        const ws = workspaces.find((w) => w.id === wsId) || workspaces[0]
+        if (ws) {
+          setWorkspaceKeyInfo({
+            hasKey: !!ws.hasAnthropicKey,
+            preview: ws.anthropicKeyPreview ?? null,
+          })
+        }
+      })
+      .catch(() => {})
+  }, [])
+
   return (
     <div className="space-y-3">
       <p className="section-label">AI Provider Keys</p>
       <p className="text-xs text-muted-foreground -mt-1">
-        Configure API keys for AI providers. Keys are stored locally in your browser for demo purposes.
+        Configure API keys for AI providers. The Anthropic key is stored securely in your workspace database.
       </p>
       {PROVIDERS.map((provider) => (
-        <ProviderCard key={provider.id} provider={provider} />
+        <ProviderCard
+          key={provider.id}
+          provider={provider}
+          workspaceKeyInfo={provider.id === "anthropic" ? workspaceKeyInfo : undefined}
+        />
       ))}
     </div>
   )

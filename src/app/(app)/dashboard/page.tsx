@@ -87,19 +87,19 @@ export default async function DashboardPage() {
         {/* ── PRIMARY ZONE: KPIs + Activity ────────────────── */}
         <div className="grid gap-5 lg:grid-cols-[1fr_1fr_1fr_1fr_minmax(320px,1.2fr)]">
           {/* 4 KPI cells */}
-          {[
-            { label: "Tasks", value: totalTasks.toLocaleString(), change: 12.5 },
-            { label: "Hours Saved", value: Math.round(totalTasks * 0.15).toLocaleString(), change: 18.3 },
-            { label: "Agents", value: String(allAgents.length), change: 0, sub: `${workingAgents} active` },
-            { label: "Cost", value: `$${totalCost.toFixed(0)}`, change: -8.2 },
-          ].map((kpi) => (
+          {([
+            { label: "Tasks", value: totalTasks.toLocaleString(), change: null },
+            { label: "Hours Saved", value: Math.round(totalTasks * 0.15).toLocaleString(), change: null },
+            { label: "Agents", value: String(allAgents.length), change: null, sub: `${workingAgents} active` },
+            { label: "Cost", value: `$${totalCost.toFixed(0)}`, change: null },
+          ] as { label: string; value: string; change: number | null; sub?: string }[]).map((kpi) => (
             <div key={kpi.label} className="bg-card border border-border rounded-md p-4">
               <p className="section-label">{kpi.label}</p>
               <p className="text-2xl font-semibold tabular-nums mt-2">{kpi.value}</p>
               <div className="flex items-center gap-1 mt-1">
-                {kpi.change > 0 && <ArrowUpRight className="h-3 w-3 text-emerald-500" />}
-                {kpi.change < 0 && <ArrowDownRight className="h-3 w-3 text-emerald-500" />}
-                {kpi.change !== 0 && <span className="text-[11px] text-emerald-500 font-medium tabular-nums">{Math.abs(kpi.change)}%</span>}
+                {kpi.change != null && kpi.change > 0 && <ArrowUpRight className="h-3 w-3 text-emerald-500" />}
+                {kpi.change != null && kpi.change < 0 && <ArrowDownRight className="h-3 w-3 text-red-500" />}
+                {kpi.change != null ? <span className={cn("text-[11px] font-medium tabular-nums", kpi.change >= 0 ? "text-emerald-500" : "text-red-500")}>{Math.abs(kpi.change)}%</span> : <span className="text-[11px] text-muted-foreground tabular-nums">&mdash;</span>}
                 {kpi.sub && <span className="text-[11px] text-muted-foreground">{kpi.sub}</span>}
               </div>
             </div>
@@ -259,7 +259,7 @@ export default async function DashboardPage() {
               return (
                 <Link
                   key={agent.id}
-                  href={`/teams/${agent.teamId}/agents/${agent.id}`}
+                  href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`}
                   className="bg-card border border-border rounded-md p-3 hover:border-muted-foreground/20 transition-colors"
                 >
                   <div className="flex items-center gap-2">

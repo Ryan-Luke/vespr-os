@@ -36,6 +36,7 @@ async function seed() {
   await db.delete(schema.agents)
   await db.delete(schema.channels)
   await db.delete(schema.teams)
+  await db.delete(schema.workspaceMembers)
   await db.delete(schema.workspaces)
 
   // Insert workspace
@@ -123,7 +124,9 @@ async function seed() {
     },
   ]
 
-  const insertedAgents = await db.insert(schema.agents).values(agentData).returning()
+  // Add workspaceId to all agents
+  const agentDataWithWorkspace = agentData.map((a) => ({ ...a, workspaceId: vespr.id }))
+  const insertedAgents = await db.insert(schema.agents).values(agentDataWithWorkspace).returning()
 
   // Insert Chief of Staff — system-level agent, no team
   const [chiefOfStaff] = await db.insert(schema.agents).values([{
@@ -134,6 +137,7 @@ async function seed() {
     provider: "anthropic",
     model: "Claude Sonnet",
     status: "working",
+    workspaceId: vespr.id,
     teamId: null,
     currentTask: "Coordinating cross-team priorities for Q2 planning",
     skills: ["Cross-Team Coordination", "Priority Management", "Executive Summaries", "Conflict Resolution", "Resource Allocation"],
@@ -156,6 +160,7 @@ async function seed() {
     provider: "anthropic",
     model: "Claude Sonnet",
     status: "working",
+    workspaceId: vespr.id,
     teamId: null,
     currentTask: "Reviewing Q1 agent performance metrics across all teams",
     skills: ["performance-reviews", "quality-assurance", "team-health"],
@@ -234,14 +239,14 @@ async function seed() {
 
   // Insert channels
   const channelData = [
-    { name: "wins", type: "system" },
-    { name: "watercooler", type: "system" },
-    { name: "team-leaders", type: "system" },
-    { name: "marketing", type: "team", teamId: marketing.id },
-    { name: "sales", type: "team", teamId: sales.id },
-    { name: "operations", type: "team", teamId: operations.id },
-    { name: "finance", type: "team", teamId: finance.id },
-    { name: "fulfillment", type: "team", teamId: fulfillment.id },
+    { name: "wins", type: "system", workspaceId: vespr.id },
+    { name: "watercooler", type: "system", workspaceId: vespr.id },
+    { name: "team-leaders", type: "system", workspaceId: vespr.id },
+    { name: "marketing", type: "team", teamId: marketing.id, workspaceId: vespr.id },
+    { name: "sales", type: "team", teamId: sales.id, workspaceId: vespr.id },
+    { name: "operations", type: "team", teamId: operations.id, workspaceId: vespr.id },
+    { name: "finance", type: "team", teamId: finance.id, workspaceId: vespr.id },
+    { name: "fulfillment", type: "team", teamId: fulfillment.id, workspaceId: vespr.id },
   ]
 
   const insertedChannels = await db.insert(schema.channels).values(channelData).returning()

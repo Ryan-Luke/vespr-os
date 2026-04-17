@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react"
 
-const STORAGE_KEY = "bos-theme"
+const STORAGE_KEY = "vespr-theme"
 
 const ACCENT_COLORS = [
   { name: "Blue", primary: "#2563eb", foreground: "#ffffff", ring: "#2563eb" },

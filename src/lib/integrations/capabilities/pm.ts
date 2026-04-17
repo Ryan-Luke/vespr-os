@@ -17,9 +17,42 @@ export interface PMTask {
   url: string | null
 }
 
+export interface PMTaskUpdateInput {
+  title?: string
+  description?: string
+  priority?: 0 | 1 | 2 | 3 | 4
+  stateId?: string       // status/state ID (e.g., Linear state UUID, Asana section GID)
+  assigneeId?: string
+}
+
+export interface PMComment {
+  id: string
+  body: string
+  authorName: string | null
+  createdAt: string | null
+}
+
+export interface PMTaskDetail extends PMTask {
+  description: string | null
+  status: string | null
+  priority: number | null
+  assigneeName: string | null
+  createdAt: string | null
+  updatedAt: string | null
+  comments: PMComment[]
+}
+
 export interface PMClient {
   providerKey: string
+
+  // Existing
   createTask(workspaceId: string, input: PMTaskInput): Promise<PMTask>
+
+  // NEW
+  updateTask(workspaceId: string, taskId: string, input: PMTaskUpdateInput): Promise<PMTask>
+  addComment(workspaceId: string, taskId: string, body: string): Promise<PMComment>
+  listTasks(workspaceId: string, limit: number): Promise<PMTask[]>
+  getTask(workspaceId: string, taskId: string): Promise<PMTaskDetail>
 }
 
 const PM_PROVIDER_KEYS = ["linear", "clickup", "asana", "trello", "notion"] as const
@@ -42,11 +75,12 @@ export async function getPMClient(workspaceId: string): Promise<PMClient | null>
   switch (key) {
     case "linear":
       return (await import("@/lib/integrations/clients/linear")).linearPMClient
-    case "clickup":
     case "asana":
+      return (await import("@/lib/integrations/clients/asana")).asanaPMClient
+    case "clickup":
     case "trello":
     case "notion":
-      return null // clients not built yet
+      return null
     default:
       return null
   }

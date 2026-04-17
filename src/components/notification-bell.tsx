@@ -97,9 +97,10 @@ export function NotificationBell() {
   // ── Fetch activity ──
   const fetchActivity = useCallback(async () => {
     try {
-      const res = await fetch("/api/activity")
+      const res = await fetch("/api/activity?limit=20")
       if (!res.ok) return
-      const data: ActivityEntry[] = await res.json()
+      const raw = await res.json()
+      const data: ActivityEntry[] = raw.entries ?? (Array.isArray(raw) ? raw : [])
       setEntries(data.slice(0, 20))
     } catch {
       /* silent */

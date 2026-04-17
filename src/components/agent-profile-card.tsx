@@ -91,7 +91,7 @@ export function AgentProfileCard({ agent, children, onDM }: { agent: Agent; chil
                 <MessageSquare className="h-3 w-3" />Message
               </button>
             )}
-            <Link href={`/teams/${agent.teamId}/agents/${agent.id}`} className="flex-1 h-6 rounded text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center justify-center">
+            <Link href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`} className="flex-1 h-6 rounded text-[11px] text-muted-foreground hover:bg-accent hover:text-foreground transition-colors flex items-center justify-center">
               Profile
             </Link>
           </div>

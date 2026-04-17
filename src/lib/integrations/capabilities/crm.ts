@@ -25,12 +25,77 @@ export interface CRMContact {
   url: string | null   // link into the provider's UI when available
 }
 
+export interface CRMContactUpdateInput {
+  firstName?: string
+  lastName?: string
+  phone?: string
+  email?: string
+  tags?: string[]
+  notes?: string
+  customFields?: Record<string, string>
+}
+
+export interface CRMDealInput {
+  title: string
+  contactId: string
+  pipelineId?: string   // if omitted, uses default pipeline
+  stageId?: string      // if omitted, uses first stage
+  value?: number        // monetary value in cents
+  currency?: string     // defaults to "USD"
+  notes?: string
+}
+
+export interface CRMDeal {
+  id: string
+  title: string
+  contactId: string | null
+  pipelineId: string | null
+  stageId: string | null
+  stageName: string | null
+  value: number | null        // cents
+  valueFormatted: string | null
+  status: "open" | "won" | "lost" | "abandoned" | string
+  createdAt: string | null
+  url: string | null
+}
+
+export interface CRMNote {
+  id: string
+  contactId: string
+  body: string
+  createdAt: string | null
+}
+
+export interface CRMPipelineStage {
+  id: string
+  name: string
+  pipelineId: string
+  pipelineName: string
+  position: number
+}
+
 export interface CRMClient {
   providerKey: string
+
+  // Existing
   createContact(workspaceId: string, input: CRMContactInput): Promise<CRMContact>
   listRecentContacts(workspaceId: string, limit: number): Promise<CRMContact[]>
   findContactByEmail(workspaceId: string, email: string): Promise<CRMContact | null>
   addTags(workspaceId: string, contactId: string, tags: string[]): Promise<{ ok: true; tags: string[] }>
+
+  // Contact updates
+  updateContact(workspaceId: string, contactId: string, input: CRMContactUpdateInput): Promise<CRMContact>
+
+  // Deals / Opportunities
+  createDeal(workspaceId: string, input: CRMDealInput): Promise<CRMDeal>
+  updateDealStage(workspaceId: string, dealId: string, stageId: string): Promise<CRMDeal>
+  listDeals(workspaceId: string, limit: number): Promise<CRMDeal[]>
+
+  // Notes
+  addNote(workspaceId: string, contactId: string, body: string): Promise<CRMNote>
+
+  // Pipeline structure
+  listPipelineStages(workspaceId: string): Promise<CRMPipelineStage[]>
 }
 
 /** CRM providers supported by the capability layer. Ordered by Luke's preference. */
@@ -65,10 +130,7 @@ export async function getCRMClient(workspaceId: string): Promise<CRMClient | nul
     case "gohighlevel":
       return (await import("@/lib/integrations/clients/gohighlevel")).gohighlevelClient
     case "hubspot":
-      // Not implemented yet. Client stub will throw with a clear message
-      // until someone builds it. Tool factory checks this so the tool only
-      // appears when an IMPLEMENTED CRM is connected.
-      return null
+      return (await import("@/lib/integrations/clients/hubspot")).hubspotClient
     case "pipedrive":
       return null
     case "attio":

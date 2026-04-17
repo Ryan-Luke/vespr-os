@@ -5,6 +5,8 @@ import { DataExport } from "@/components/data-export"
 import ApiKeyManager from "@/components/api-key-manager"
 import { ThemeSettings } from "@/components/theme-settings"
 import { TeamInvites } from "@/components/team-invites"
+import { WorkspaceNameEditor } from "@/components/workspace-name-editor"
+import { BillingUsage } from "@/components/billing-usage"
 import Link from "next/link"
 
 export default function SettingsPage() {
@@ -23,6 +25,7 @@ export default function SettingsPage() {
         </TabsList>
 
         <TabsContent value="general" className="space-y-4 mt-4">
+          <WorkspaceNameEditor />
           <ThemeSettings />
 
           <Link href="/business" className="block bg-card border border-border rounded-md p-4 hover:border-muted-foreground/30 transition-colors group">
@@ -45,24 +48,24 @@ export default function SettingsPage() {
             <div className="space-y-4 divide-y divide-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[13px] font-medium">Require approval for external actions</p>
+                  <p className="text-[13px] font-medium">Require approval for external actions <span className="text-[11px] text-muted-foreground font-normal">(per-agent — set in agent settings)</span></p>
                   <p className="text-xs text-muted-foreground">Agents ask before sending emails, posting content, etc.</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled />
               </div>
               <div className="flex items-center justify-between pt-4">
                 <div>
-                  <p className="text-[13px] font-medium">Monthly budget cap</p>
+                  <p className="text-[13px] font-medium">Monthly budget cap <span className="text-[11px] text-muted-foreground font-normal">(coming soon)</span></p>
                   <p className="text-xs text-muted-foreground">Pause agents if costs exceed this amount</p>
                 </div>
-                <input defaultValue="$500" className="w-20 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] text-right outline-none focus:border-muted-foreground/30 transition-colors tabular-nums" />
+                <input defaultValue="$500" disabled className="w-20 h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] text-right outline-none focus:border-muted-foreground/30 transition-colors tabular-nums opacity-50" />
               </div>
               <div className="flex items-center justify-between pt-4">
                 <div>
-                  <p className="text-[13px] font-medium">Auto-pause on errors</p>
+                  <p className="text-[13px] font-medium">Auto-pause on errors <span className="text-[11px] text-muted-foreground font-normal">(coming soon)</span></p>
                   <p className="text-xs text-muted-foreground">Pause after 3 consecutive errors</p>
                 </div>
-                <Switch defaultChecked />
+                <Switch defaultChecked disabled />
               </div>
             </div>
           </div>
@@ -88,10 +91,10 @@ export default function SettingsPage() {
               ].map((pref, i) => (
                 <div key={pref.label} className={`flex items-center justify-between ${i > 0 ? "pt-4" : ""}`}>
                   <div>
-                    <p className="text-[13px] font-medium">{pref.label}</p>
+                    <p className="text-[13px] font-medium">{pref.label} <span className="text-[11px] text-muted-foreground font-normal">(coming soon)</span></p>
                     <p className="text-xs text-muted-foreground">{pref.desc}</p>
                   </div>
-                  <Switch defaultChecked={pref.on} />
+                  <Switch defaultChecked={pref.on} disabled />
                 </div>
               ))}
             </div>
@@ -99,21 +102,7 @@ export default function SettingsPage() {
         </TabsContent>
 
         <TabsContent value="billing" className="space-y-4 mt-4">
-          <div className="bg-card border border-border rounded-md p-4">
-            <p className="section-label mb-4">Usage</p>
-            <div className="grid gap-px bg-border rounded-md overflow-hidden md:grid-cols-3">
-              {[
-                { label: "This Month", value: "$174.90" },
-                { label: "Budget Left", value: "$325.10", color: "text-emerald-500" },
-                { label: "Last Month", value: "$190.40" },
-              ].map((s) => (
-                <div key={s.label} className="bg-card p-4">
-                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{s.label}</p>
-                  <p className={`text-xl font-semibold tabular-nums mt-0.5 ${s.color || ""}`}>{s.value}</p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <BillingUsage />
         </TabsContent>
 
         <TabsContent value="data" className="space-y-4 mt-4">

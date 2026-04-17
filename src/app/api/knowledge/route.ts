@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server"
 import { db } from "@/lib/db"
 import { knowledgeEntries } from "@/lib/db/schema"
 import { eq, and, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 // Entries tagged with `internal` are agent-only reference material (seeded
 // business-building playbooks). They must NOT appear in the user-facing
@@ -9,41 +10,63 @@ import { eq, and, sql } from "drizzle-orm"
 const USER_VISIBLE = sql`NOT (${knowledgeEntries.tags} @> '["internal"]'::jsonb)`
 
 export async function GET(req: NextRequest) {
+  const auth = await withAuth()
   const url = new URL(req.url)
   const category = url.searchParams.get("category")
   const agentOnly = url.searchParams.get("agentOnly") === "true"
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
+  const offset = parseInt(url.searchParams.get("offset") || "0")
 
   // agentOnly=true returns agent-generated docs for the My Business page.
   // These are NOT internal playbooks (those have the `internal` tag).
   // They're real deliverables created by agents during the workflow.
   if (agentOnly && category) {
+    const conditions = and(
+      eq(knowledgeEntries.workspaceId, auth.workspace.id),
+      eq(knowledgeEntries.category, category),
+      sql`${knowledgeEntries.createdByAgentId} IS NOT NULL`,
+      USER_VISIBLE,
+    )
     const entries = await db
       .select()
       .from(knowledgeEntries)
-      .where(
-        and(
-          eq(knowledgeEntries.category, category),
-          sql`${knowledgeEntries.createdByAgentId} IS NOT NULL`,
-          USER_VISIBLE,
-        ),
-      )
+      .where(conditions)
       .orderBy(knowledgeEntries.updatedAt)
-    return NextResponse.json(entries)
+      .limit(limit)
+      .offset(offset)
+
+    const [{ count }] = await db
+      .select({ count: sql<number>`count(*)::int` })
+      .from(knowledgeEntries)
+      .where(conditions)
+
+    return NextResponse.json({ entries, total: count, limit, offset })
   }
 
+  const conditions = and(eq(knowledgeEntries.workspaceId, auth.workspace.id), USER_VISIBLE)
   const entries = await db
     .select()
     .from(knowledgeEntries)
-    .where(USER_VISIBLE)
+    .where(conditions)
     .orderBy(knowledgeEntries.updatedAt)
-  return NextResponse.json(entries)
+    .limit(limit)
+    .offset(offset)
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(knowledgeEntries)
+    .where(conditions)
+
+  return NextResponse.json({ entries, total: count, limit, offset })
 }
 
 export async function POST(req: NextRequest) {
+  const auth = await withAuth()
   const body = await req.json()
   const [entry] = await db
     .insert(knowledgeEntries)
     .values({
+      workspaceId: auth.workspace.id,
       title: body.title,
       content: body.content,
       category: body.category || "business",
@@ -57,6 +80,7 @@ export async function POST(req: NextRequest) {
 }
 
 export async function PATCH(req: NextRequest) {
+  const auth = await withAuth()
   const body = await req.json()
   const { id, ...updates } = body
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 })
@@ -73,17 +97,18 @@ export async function PATCH(req: NextRequest) {
   const [entry] = await db
     .update(knowledgeEntries)
     .set(values)
-    .where(eq(knowledgeEntries.id, id))
+    .where(and(eq(knowledgeEntries.id, id), eq(knowledgeEntries.workspaceId, auth.workspace.id)))
     .returning()
   if (!entry) return NextResponse.json({ error: "not found" }, { status: 404 })
   return NextResponse.json(entry)
 }
 
 export async function DELETE(req: NextRequest) {
+  const auth = await withAuth()
   const body = await req.json()
   const id = body.id
   if (!id) return NextResponse.json({ error: "id is required" }, { status: 400 })
 
-  await db.delete(knowledgeEntries).where(eq(knowledgeEntries.id, id))
+  await db.delete(knowledgeEntries).where(and(eq(knowledgeEntries.id, id), eq(knowledgeEntries.workspaceId, auth.workspace.id)))
   return NextResponse.json({ ok: true })
 }

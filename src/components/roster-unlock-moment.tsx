@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react"
 import { ARCHETYPES, TIER_STYLES, UNLOCK_LADDER, type ArchetypeId, type Tier } from "@/lib/archetypes"
 import { cn } from "@/lib/utils"
-import { Lock, Unlock, Sparkles, X } from "lucide-react"
+import { Lock, Unlock, Award, X } from "lucide-react"
 
 interface RosterUnlock {
   id: string
@@ -97,7 +97,7 @@ export function RosterUnlockMoment() {
               ) : (
                 <Lock className="h-12 w-12 text-muted-foreground" />
               )}
-              <Sparkles className={cn("absolute -top-1 -right-1 h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
+              <Award className={cn("absolute -top-1 -right-1 h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
             </div>
           </div>
 

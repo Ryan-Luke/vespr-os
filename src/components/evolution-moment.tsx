@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { ARCHETYPES, TIER_STYLES, type ArchetypeId, type Tier } from "@/lib/archetypes"
 import { cn } from "@/lib/utils"
-import { Sparkles, ArrowRight, Zap, X, Share2 } from "lucide-react"
+import { TrendingUp, ArrowRight, Zap, X, Share2 } from "lucide-react"
 
 interface EvolutionEvent {
   id: string
@@ -136,9 +136,9 @@ export function EvolutionMoment() {
           {/* Header with sparkle */}
           <div className="text-center mb-6">
             <div className="inline-flex items-center gap-2 mb-2">
-              <Sparkles className={cn("h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
+              <TrendingUp className={cn("h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
               <p className={cn("text-[11px] uppercase tracking-widest font-bold", tierStyle.text)}>Evolution</p>
-              <Sparkles className={cn("h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
+              <TrendingUp className={cn("h-4 w-4", tierStyle.text, animating && "animate-pulse")} />
             </div>
             <h2 className="text-xl font-bold">{displayName} evolved!</h2>
           </div>

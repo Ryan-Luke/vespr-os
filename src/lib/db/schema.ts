@@ -8,12 +8,12 @@ import {
   real,
   jsonb,
   unique,
+  index,
 } from "drizzle-orm/pg-core"
 
 // ── Users ─────────────────────────────────────────────────
-// Per-user identity inside a single company's Business OS deploy.
-// NOT multi-tenant: all users in this table belong to the same company
-// (the company that deployed this instance). See project_deployment_model memory.
+// Global user identity. Multi-tenant: users can belong to multiple
+// workspaces via the workspace_members join table.
 export const users = pgTable("users", {
   id: uuid("id").primaryKey().defaultRandom(),
   email: text("email").notNull().unique(),
@@ -21,13 +21,17 @@ export const users = pgTable("users", {
   passwordHash: text("password_hash").notNull(),
   role: text("role").notNull().default("member"), // "owner" | "admin" | "member"
   avatarEmoji: text("avatar_emoji").default("👤"),
+  powerMode: boolean("power_mode").notNull().default(false),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   lastLoginAt: timestamp("last_login_at"),
+  resetToken: text("reset_token"),
+  resetTokenExpiry: timestamp("reset_token_expiry"),
 })
 
-// ── Invites ───────────────────────────────────────────────
+// ── Invites ──────���────────────────────────────────────���───
 export const invites = pgTable("invites", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id"), // set after workspaces table is created; FK added below
   email: text("email").notNull(),
   role: text("role").notNull().default("member"),
   token: text("token").notNull().unique(),
@@ -75,6 +79,37 @@ export const workspaces = pgTable("workspaces", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
+// ── Subscriptions (Stripe Billing) ───────────────────────────
+// One subscription per workspace. Free tier has no Stripe subscription
+// (row exists with plan="free" and null Stripe IDs).
+export const subscriptions = pgTable("subscriptions", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id")
+    .references(() => workspaces.id)
+    .notNull()
+    .unique(),
+  stripeCustomerId: text("stripe_customer_id"), // null for free tier
+  stripeSubscriptionId: text("stripe_subscription_id"), // null for free tier
+  plan: text("plan").notNull().default("free"), // "free" | "pro" | "team"
+  status: text("status").notNull().default("active"), // "active" | "trialing" | "past_due" | "canceled" | "unpaid"
+  currentPeriodEnd: timestamp("current_period_end"), // null for free tier
+  cancelAtPeriodEnd: boolean("cancel_at_period_end").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+})
+
+// ── Workspace Members ─────────────────────────────────────
+// Join table for multi-tenant user-workspace role assignments.
+export const workspaceMembers = pgTable("workspace_members", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: uuid("user_id").references(() => users.id).notNull(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  role: text("role").notNull().default("member"), // "owner" | "admin" | "member"
+  joinedAt: timestamp("joined_at").defaultNow().notNull(),
+}, (t) => ({
+  userWorkspaceUnique: unique("workspace_members_user_workspace_unique").on(t.userId, t.workspaceId),
+}))
+
 // ── Teams ──────────────────────────────────────────────────
 export const teams = pgTable("teams", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -89,6 +124,7 @@ export const teams = pgTable("teams", {
 // ── Team Goals ─────────────────────────────────────────────
 export const teamGoals = pgTable("team_goals", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   teamId: uuid("team_id").references(() => teams.id).notNull(),
   title: text("title").notNull(),
   target: integer("target").notNull(), // target number
@@ -101,6 +137,7 @@ export const teamGoals = pgTable("team_goals", {
 // ── Agents ─────────────────────────────────────────────────
 export const agents = pgTable("agents", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   role: text("role").notNull(),
   avatar: text("avatar").notNull(), // 2-letter fallback
@@ -156,11 +193,14 @@ export const agents = pgTable("agents", {
   evolvedFromForm: text("evolved_from_form"), // previous form name, if evolved
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
+}, (t) => ({
+  workspaceIdx: index("agents_workspace_id_idx").on(t.workspaceId),
+}))
 
 // ── Evolution Events ──────────────────────────────────────
 export const evolutionEvents = pgTable("evolution_events", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   fromForm: text("from_form").notNull(),
   toForm: text("to_form").notNull(),
@@ -189,6 +229,7 @@ export const rosterUnlocks = pgTable("roster_unlocks", {
 // Tracks collaboration between agents and their outcome lift (spec Section 10)
 export const agentBonds = pgTable("agent_bonds", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentAId: uuid("agent_a_id").notNull(),
   agentBId: uuid("agent_b_id").notNull(),
   workflowCount: integer("workflow_count").notNull().default(0),
@@ -203,6 +244,7 @@ export const agentBonds = pgTable("agent_bonds", {
 // Derived from performance data — descriptive, never judgmental (spec Section 9)
 export const agentTraits = pgTable("agent_traits", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   trait: text("trait").notNull(), // "Follows up within 2 hours"
   sourceMetric: text("source_metric").notNull(), // traceable back to data
@@ -230,6 +272,7 @@ export const trophyEvents = pgTable("trophy_events", {
 // ── Channels ───────────────────────────────────────────────
 export const channels = pgTable("channels", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   type: text("type").notNull().default("team"), // team, agent, project, direct, system
   teamId: uuid("team_id").references(() => teams.id),
@@ -239,6 +282,7 @@ export const channels = pgTable("channels", {
 // ── Messages ───────────────────────────────────────────────
 export const messages = pgTable("messages", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   channelId: uuid("channel_id").references(() => channels.id).notNull(),
   threadId: uuid("thread_id"),
   senderAgentId: uuid("sender_agent_id").references(() => agents.id),
@@ -251,11 +295,15 @@ export const messages = pgTable("messages", {
   reactions: jsonb("reactions").$type<{ emoji: string; count: number; agentNames: string[] }[]>().notNull().default([]),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-})
+}, (t) => ({
+  channelIdx: index("messages_channel_id_idx").on(t.channelId),
+  workspaceIdx: index("messages_workspace_id_idx").on(t.workspaceId),
+}))
 
 // ── Tasks ──────────────────────────────────────────────────
 export const tasks = pgTable("tasks", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   title: text("title").notNull(),
   description: text("description"),
   assignedAgentId: uuid("assigned_agent_id").references(() => agents.id),
@@ -280,11 +328,15 @@ export const tasks = pgTable("tasks", {
   result: jsonb("result").$type<Record<string, unknown>>(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   completedAt: timestamp("completed_at"),
-})
+}, (t) => ({
+  workspaceIdx: index("tasks_workspace_id_idx").on(t.workspaceId),
+  statusIdx: index("tasks_status_idx").on(t.status),
+}))
 
 // ── Automations ────────────────────────────────────────────
 export const automations = pgTable("automations", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   name: text("name").notNull(),
   description: text("description"),
   schedule: text("schedule").notNull(), // cron expression
@@ -299,6 +351,7 @@ export const automations = pgTable("automations", {
 // ── Agent SOPs ─────────────────────────────────────────────
 export const agentSops = pgTable("agent_sops", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   title: text("title").notNull(),
   content: text("content").notNull(), // rich text / markdown
@@ -316,6 +369,7 @@ export const agentSops = pgTable("agent_sops", {
 // ── Knowledge Entries ─────────────────────────────────────
 export const knowledgeEntries = pgTable("knowledge_entries", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   title: text("title").notNull(),
   content: text("content").notNull(), // markdown
   category: text("category").notNull().default("business"),
@@ -330,6 +384,7 @@ export const knowledgeEntries = pgTable("knowledge_entries", {
 // ── Agent Schedules (Cron Jobs) ────────────────────────────
 export const agentSchedules = pgTable("agent_schedules", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   name: text("name").notNull(),
   description: text("description"),
@@ -344,6 +399,7 @@ export const agentSchedules = pgTable("agent_schedules", {
 // ── Approval Requests (Human-in-the-Loop Queue) ──────────
 export const approvalRequests = pgTable("approval_requests", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   agentName: text("agent_name").notNull(),
   actionType: text("action_type").notNull(), // "send_email", "publish_content", "approve_spend", "launch_campaign", "external_action"
@@ -362,11 +418,15 @@ export const approvalRequests = pgTable("approval_requests", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   resolvedAt: timestamp("resolved_at"),
   executedAt: timestamp("executed_at"),
-})
+}, (t) => ({
+  workspaceIdx: index("approval_requests_workspace_id_idx").on(t.workspaceId),
+  statusIdx: index("approval_requests_status_idx").on(t.status),
+}))
 
 // ── Approval Log & Progressive Autonomy ───────────────────
 export const approvalLog = pgTable("approval_log", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   actionType: text("action_type").notNull(), // e.g. "send_email", "publish_content", "approve_spend", "launch_campaign"
   description: text("description").notNull(),
@@ -377,6 +437,7 @@ export const approvalLog = pgTable("approval_log", {
 
 export const autoApprovals = pgTable("auto_approvals", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   actionType: text("action_type").notNull(), // auto-approved action type
   approvalCount: integer("approval_count").notNull().default(0), // how many times approved before auto
@@ -387,6 +448,7 @@ export const autoApprovals = pgTable("auto_approvals", {
 // ── Decision Log (Audit Trail) ────────────────────────────
 export const decisionLog = pgTable("decision_log", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id),
   agentName: text("agent_name").notNull(),
   actionType: text("action_type").notNull(), // "task_completed", "sop_updated", "message_sent", "integration_call", "approval_requested", "decision_made"
@@ -401,6 +463,7 @@ export const decisionLog = pgTable("decision_log", {
 // ── Agent Feedback ────────────────────────────────────────
 export const agentFeedback = pgTable("agent_feedback", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   messageId: uuid("message_id").references(() => messages.id),
   rating: text("rating").notNull(), // "positive" | "negative"
@@ -438,6 +501,7 @@ export const integrations = pgTable("integrations", {
 // ── Agent Memory ──────────────────────────────────────────
 export const agentMemories = pgTable("agent_memories", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id).notNull(),
   memoryType: text("memory_type").notNull(), // "observation" | "preference" | "learning" | "relationship" | "skill"
   content: text("content").notNull(),
@@ -450,6 +514,7 @@ export const agentMemories = pgTable("agent_memories", {
 // ── Company Memory (shared across all agents) ────────────
 export const companyMemories = pgTable("company_memories", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   category: text("category").notNull(), // "client" | "process" | "preference" | "lesson" | "fact"
   title: text("title").notNull(),
   content: text("content").notNull(),
@@ -464,6 +529,7 @@ export const companyMemories = pgTable("company_memories", {
 // ── Gamification ──────────────────────────────────────────
 export const milestones = pgTable("milestones", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id),
   type: text("type").notNull(), // "agent" | "team" | "company"
   name: text("name").notNull(), // e.g. "First Task", "Century Club", "Revenue Milestone"
@@ -540,12 +606,17 @@ export const agentTasks = pgTable("agent_tasks", {
   }>(),
   result: jsonb("result").$type<Record<string, unknown>>(),
   toolCallsMade: integer("tool_calls_made").notNull().default(0),
+  retryCount: integer("retry_count").notNull().default(0),
+  maxRetries: integer("max_retries").notNull().default(3),
   error: text("error"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   startedAt: timestamp("started_at"),
   completedAt: timestamp("completed_at"),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-})
+}, (t) => ({
+  workspaceIdx: index("agent_tasks_workspace_id_idx").on(t.workspaceId),
+  statusIdx: index("agent_tasks_status_idx").on(t.status),
+}))
 
 // ── Handoff Events (audit trail for the department chain) ──
 // Every handoff between departments is logged so any agent can trace
@@ -566,13 +637,129 @@ export const handoffEvents = pgTable("handoff_events", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 })
 
+// ── Notifications ─────────���───────────────────────────────
+export const notifications = pgTable("notifications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
+  type: text("type").notNull(), // "gate_ready" | "task_failed" | "phase_complete" | "info"
+  title: text("title").notNull(),
+  description: text("description"),
+  actionUrl: text("action_url"),
+  read: boolean("read").notNull().default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  workspaceIdx: index("notifications_workspace_id_idx").on(t.workspaceId),
+  readIdx: index("notifications_read_idx").on(t.read),
+}))
+
 // ── Activity Log ──────────────────────────────────────────
 export const activityLog = pgTable("activity_log", {
   id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id),
   agentId: uuid("agent_id").references(() => agents.id),
   agentName: text("agent_name").notNull(),
   action: text("action").notNull(), // e.g., "completed_task", "sent_message", "updated_knowledge", "created_sop"
   description: text("description").notNull(),
   metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-})
+}, (t) => ({
+  workspaceIdx: index("activity_log_workspace_id_idx").on(t.workspaceId),
+}))
+
+// ── Memory Entries (Enhanced Memory System) ──────────────
+// Enhanced memory storage replacing the basic agentMemories table for
+// new entries. Supports daily/weekly/monthly consolidation, skills,
+// reflexions, and insights with dedup and supersession tracking.
+export const memoryEntries = pgTable("memory_entries", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  agentId: uuid("agent_id").references(() => agents.id), // null = shared memory
+  entryType: text("entry_type").notNull(), // "daily" | "weekly" | "monthly" | "skill" | "reflexion" | "insight"
+  title: text("title").notNull(),
+  content: text("content").notNull(),
+  importance: integer("importance").notNull().default(3), // 1-5
+  tags: jsonb("tags").$type<string[]>().notNull().default([]),
+  contentHash: text("content_hash"), // SHA-256 for dedup
+  supersededBy: uuid("superseded_by"), // points to consolidation summary that replaced this
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  workspaceIdx: index("memory_entries_workspace_id_idx").on(t.workspaceId),
+  agentIdx: index("memory_entries_agent_id_idx").on(t.agentId),
+  entryTypeIdx: index("memory_entries_entry_type_idx").on(t.entryType),
+  contentHashIdx: index("memory_entries_content_hash_idx").on(t.contentHash),
+}))
+
+// ── Entities (Knowledge Graph Nodes) ──────────────────────
+// Named entities extracted from conversations and tasks. Forms the
+// nodes of the knowledge graph for relationship tracking.
+export const entities = pgTable("entities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  name: text("name").notNull(),
+  entityType: text("entity_type").notNull(), // "person" | "company" | "project" | "tool" | "concept" | "agent"
+  aliases: jsonb("aliases").$type<string[]>().notNull().default([]),
+  summary: text("summary"), // LLM-generated entity summary
+  metadata: jsonb("metadata").$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  workspaceIdx: index("entities_workspace_id_idx").on(t.workspaceId),
+  nameIdx: index("entities_name_idx").on(t.name),
+}))
+
+// ── Entity Observations ──────────────────────────────────
+// Facts observed about entities. Each observation is a discrete piece
+// of knowledge attached to an entity node.
+export const entityObservations = pgTable("entity_observations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  entityId: uuid("entity_id").references(() => entities.id).notNull(),
+  content: text("content").notNull(), // the observation
+  source: text("source").notNull(), // "conversation" | "task" | "consolidation"
+  sourceAgentId: uuid("source_agent_id").references(() => agents.id),
+  importance: integer("importance").notNull().default(3), // 1-5
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ({
+  entityIdx: index("entity_observations_entity_id_idx").on(t.entityId),
+}))
+
+// ── Entity Relations ──────────────────────────────────────
+// Edges in the knowledge graph connecting two entities.
+export const entityRelations = pgTable("entity_relations", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  fromEntityId: uuid("from_entity_id").references(() => entities.id).notNull(),
+  toEntityId: uuid("to_entity_id").references(() => entities.id).notNull(),
+  relationType: text("relation_type").notNull(), // "works_with" | "manages" | "uses" | "part_of" | "related_to"
+  context: text("context"), // human-readable context for the relation
+  strength: real("strength").notNull().default(0.5), // 0-1
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  workspaceIdx: index("entity_relations_workspace_id_idx").on(t.workspaceId),
+  fromIdx: index("entity_relations_from_entity_id_idx").on(t.fromEntityId),
+  toIdx: index("entity_relations_to_entity_id_idx").on(t.toEntityId),
+}))
+
+// ── Skills (Voyager-style Extracted Procedures) ───────────
+// Reusable patterns extracted from successful task completions.
+// Inspired by Voyager's skill library for procedural memory.
+export const skills = pgTable("skills", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  workspaceId: uuid("workspace_id").references(() => workspaces.id).notNull(),
+  agentId: uuid("agent_id").references(() => agents.id), // null = shared skill
+  name: text("name").notNull(),
+  description: text("description").notNull(),
+  pattern: text("pattern").notNull(), // the reusable procedure
+  triggerConditions: jsonb("trigger_conditions").$type<string[]>().notNull().default([]),
+  successCount: integer("success_count").notNull().default(0),
+  failureCount: integer("failure_count").notNull().default(0),
+  lastUsedAt: timestamp("last_used_at"),
+  importance: integer("importance").notNull().default(3), // 1-5
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => ({
+  workspaceIdx: index("skills_workspace_id_idx").on(t.workspaceId),
+  agentIdx: index("skills_agent_id_idx").on(t.agentId),
+}))

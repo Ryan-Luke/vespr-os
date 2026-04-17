@@ -1,5 +1,5 @@
 import Link from "next/link"
-import { Check, Circle, Sparkles } from "lucide-react"
+import { Check, Circle, CheckCircle } from "lucide-react"
 import { cn } from "@/lib/utils"
 import { getActiveWorkspace } from "@/lib/workspace-server"
 import {
@@ -89,7 +89,7 @@ export async function WorkflowPhaseWidget() {
     return (
       <div className="bg-card border border-border rounded-md p-4">
         <div className="flex items-center gap-2">
-          <Sparkles className="h-3.5 w-3.5 text-muted-foreground/50" />
+          <CheckCircle className="h-3.5 w-3.5 text-muted-foreground/50" />
           <span className="section-label">Workflow</span>
         </div>
         <p className="text-sm mt-2">All {completedCount} phases complete — running in steady state.</p>
@@ -257,10 +257,10 @@ export async function WorkflowPhaseWidget() {
           {leads.chiefOfStaff?.name ?? "Your team"} is ready when you are.
         </p>
         <Link
-          href="/chat"
+          href="/"
           className="text-[11px] font-medium text-foreground/70 hover:text-foreground transition-colors"
         >
-          Continue in chat →
+          Go to Chat →
         </Link>
       </div>
     </div>

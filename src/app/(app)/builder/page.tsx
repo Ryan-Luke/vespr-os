@@ -11,7 +11,6 @@ import {
 } from "@/components/ui/select"
 import {
   PlusCircle,
-  Bot,
   Brain,
   Globe,
   Mail,
@@ -27,8 +26,8 @@ import {
   Code,
   Wrench,
   Loader2,
-  Sparkles,
   SlidersHorizontal,
+  Settings,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
 import {
@@ -280,7 +279,7 @@ function BuilderPageInner() {
               onClick={() => selectTemplate(template.id)}
             >
               <div className="flex items-center gap-1.5 mb-1">
-                {template.id === "custom" ? <Wrench className="h-3.5 w-3.5 text-muted-foreground" /> : <Bot className="h-3.5 w-3.5 text-muted-foreground" />}
+                {template.id === "custom" ? <Wrench className="h-3.5 w-3.5 text-muted-foreground" /> : <Wrench className="h-3.5 w-3.5 text-muted-foreground" />}
                 <span className="text-[13px] font-medium">{template.name}</span>
               </div>
               <p className="text-xs text-muted-foreground">{template.description}</p>
@@ -356,7 +355,7 @@ function BuilderPageInner() {
         <div className="space-y-4">
           {/* Mode Toggle: Preset / Sliders / Full Custom */}
           <div className="flex gap-1">
-            <button onClick={() => { setPersonalityMode("preset"); }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "preset" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><Sparkles className="h-3.5 w-3.5" />Preset</button>
+            <button onClick={() => { setPersonalityMode("preset"); }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "preset" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><Settings className="h-3.5 w-3.5" />Preset</button>
             <button onClick={() => { setPersonalityMode("sliders"); setSelectedPreset(null) }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "sliders" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><SlidersHorizontal className="h-3.5 w-3.5" />Sliders</button>
             <button onClick={() => { setPersonalityMode("custom"); setSelectedPreset(null) }} className={cn("h-7 px-2.5 rounded-md text-xs font-medium flex items-center gap-1.5 transition-colors", personalityMode === "custom" ? "bg-accent text-foreground" : "text-muted-foreground hover:text-foreground")}><Brain className="h-3.5 w-3.5" />Full Custom</button>
           </div>
@@ -366,7 +365,7 @@ function BuilderPageInner() {
             <div className="bg-card border border-border rounded-md">
               <div>
                 <p className="section-label mb-2">
-                  <Sparkles className="h-4 w-4" />
+                  <Settings className="h-4 w-4" />
                   Character Library
                 </p>
                 <p className="text-xs text-muted-foreground">

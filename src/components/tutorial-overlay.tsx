@@ -3,16 +3,15 @@
 import { useState, useEffect, useCallback, useRef } from "react"
 import { cn } from "@/lib/utils"
 import {
-  Rocket,
+  CheckCircle,
   MessageSquare,
   Users,
   BarChart3,
   ClipboardList,
   Brain,
-  Sparkles,
 } from "lucide-react"
 
-const STORAGE_KEY = "bos-tutorial-completed"
+const STORAGE_KEY = "vespr-tutorial-completed"
 
 interface TutorialStep {
   title: string
@@ -25,7 +24,7 @@ const steps: TutorialStep[] = [
   {
     title: "Your team is live",
     description: "Nova and the department leads are ready. Let me show you around — it takes about 30 seconds.",
-    icon: Rocket,
+    icon: CheckCircle,
     target: null,
   },
   {
@@ -61,7 +60,7 @@ const steps: TutorialStep[] = [
   {
     title: "You're set",
     description: "Head to the R&D channel — Rory is waiting to walk you through your first product. Everything else will unfold from there.",
-    icon: Sparkles,
+    icon: CheckCircle,
     target: null,
   },
 ]

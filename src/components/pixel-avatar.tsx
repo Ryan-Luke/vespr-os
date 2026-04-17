@@ -29,7 +29,9 @@ export function PixelAvatar({
 
     const img = new Image()
     img.crossOrigin = "anonymous"
-    img.src = `/assets/characters/char_${characterIndex}.png`
+    // Cap to valid sprite range (char_0.png through char_5.png)
+    const safeIndex = ((characterIndex % 6) + 6) % 6
+    img.src = `/assets/characters/char_${safeIndex}.png`
 
     img.onload = () => {
       // Sprite frame: 16x32, first frame of first row (front-facing idle)

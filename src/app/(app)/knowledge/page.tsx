@@ -9,7 +9,7 @@ import {
   Brain, Search, Plus, Network, List, Clock,
   Link2, FileText, X, ChevronRight, Save, Edit3,
   Loader2, ArrowLeft, Tag, Building2, User, Target,
-  DollarSign, Megaphone, Database, Trash2, Sparkles,
+  DollarSign, Megaphone, Database, Trash2, AlignLeft, Lightbulb, ArrowUpRight,
   Upload,
 } from "lucide-react"
 import { cn } from "@/lib/utils"
@@ -485,10 +485,10 @@ export default function KnowledgePage() {
   // Fetch entries from API
   const fetchEntries = useCallback(async () => {
     try {
-      const res = await fetch("/api/knowledge")
+      const res = await fetch("/api/knowledge?limit=100")
       if (res.ok) {
         const data = await res.json()
-        setEntries(data)
+        setEntries(data.entries ?? (Array.isArray(data) ? data : []))
       }
     } catch (err) {
       console.error("Failed to fetch knowledge entries:", err)
@@ -779,7 +779,7 @@ export default function KnowledgePage() {
                 setSummaries((prev) => ({ ...prev, [selected.id]: summary }))
                 setSummarizing(false)
               }} title="Generate summary">
-                {summarizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
+                {summarizing ? <Loader2 className="h-3 w-3 animate-spin" /> : <AlignLeft className="h-3 w-3" />}
               </button>
               <button className="h-7 px-2.5 rounded-md text-xs font-medium text-muted-foreground hover:text-foreground hover:bg-accent inline-flex items-center gap-1" onClick={() => setShowVersionHistory(!showVersionHistory)} title="Version history">
                 <Clock className="h-3 w-3" />
@@ -809,7 +809,7 @@ export default function KnowledgePage() {
             {selected && summaries[selected.id] && (
               <div className="bg-purple-500/5 border border-purple-500/10 rounded-md p-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <Sparkles className="h-3 w-3 text-purple-400" />
+                  <Lightbulb className="h-3 w-3 text-purple-400" />
                   <span className="text-[11px] text-purple-400 uppercase tracking-wider font-medium">Summary</span>
                 </div>
                 <p className="text-xs text-foreground/80 leading-relaxed">{summaries[selected.id]}</p>
@@ -902,7 +902,7 @@ export default function KnowledgePage() {
               if (suggestions.length === 0) return null
               return (
                 <div className="border-t border-border pt-4">
-                  <p className="section-label mb-2 flex items-center gap-1"><Sparkles className="h-3 w-3 text-amber-400" /> Suggested Links</p>
+                  <p className="section-label mb-2 flex items-center gap-1"><ArrowUpRight className="h-3 w-3 text-amber-400" /> Suggested Links</p>
                   <p className="text-[11px] text-muted-foreground mb-2">These entries are mentioned in the content but not linked yet.</p>
                   {suggestions.slice(0, 5).map((s) => (
                     <button key={s.id} onClick={() => setSelectedEntry(s.id)} className="flex items-center gap-2 w-full text-left rounded-md p-2 hover:bg-accent transition-colors">

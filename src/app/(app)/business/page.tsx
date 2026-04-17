@@ -43,7 +43,7 @@ const BUSINESS_TYPES = [
 ]
 
 export default function BusinessPage() {
-  const { activeWorkspace, refreshWorkspaces } = useWorkspace()
+  const { activeWorkspace, refreshWorkspaces, loading: wsLoading } = useWorkspace()
   const [workspace, setWorkspace] = useState<Workspace | null>(null)
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState(false)
@@ -59,8 +59,8 @@ export default function BusinessPage() {
       setWorkspace(activeWorkspace as unknown as Workspace)
       setForm(activeWorkspace as unknown as Workspace)
       setLoading(false)
-    } else {
-      // Still loading from context
+    } else if (!wsLoading) {
+      // Context finished loading but no active workspace — fetch as fallback
       fetch("/api/workspaces").then((r) => r.json()).then((ws: Workspace[]) => {
         if (ws.length > 0) {
           setWorkspace(ws[0])
@@ -69,7 +69,7 @@ export default function BusinessPage() {
         setLoading(false)
       })
     }
-  }, [activeWorkspace])
+  }, [activeWorkspace, wsLoading])
 
   async function save() {
     if (!form) return
@@ -144,10 +144,11 @@ export default function BusinessPage() {
 
   // Fetch agent-generated business documents
   useEffect(() => {
-    fetch("/api/knowledge?category=business&agentOnly=true")
+    fetch("/api/knowledge?category=business&agentOnly=true&limit=100")
       .then((r) => r.json())
-      .then((docs: BusinessDocument[]) => {
-        setBusinessDocs(Array.isArray(docs) ? docs : [])
+      .then((raw) => {
+        const docs: BusinessDocument[] = raw.entries ?? (Array.isArray(raw) ? raw : [])
+        setBusinessDocs(docs)
         setDocsLoading(false)
       })
       .catch(() => setDocsLoading(false))

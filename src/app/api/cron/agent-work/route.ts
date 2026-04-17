@@ -1,5 +1,5 @@
 import { generateText } from "ai"
-import { anthropic } from "@ai-sdk/anthropic"
+import { createAnthropic } from "@ai-sdk/anthropic"
 import { db } from "@/lib/db"
 import {
   agents as agentsTable,
@@ -8,8 +8,13 @@ import {
   agentSops,
   tasks as tasksTable,
   knowledgeEntries,
+  agentTasks,
+  notifications,
+  workspaces,
 } from "@/lib/db/schema"
-import { eq, desc, and } from "drizzle-orm"
+import { eq, desc, and, lt } from "drizzle-orm"
+import { evaluateTaskRetry } from "@/lib/agents/task-retry"
+import { awardXp } from "@/lib/gamification-core"
 
 export const maxDuration = 60
 
@@ -23,11 +28,82 @@ function verifyCron(req: Request): boolean {
 export async function GET(req: Request) {
   if (!verifyCron(req)) return Response.json({ error: "Unauthorized" }, { status: 401 })
 
+  // ── Stuck task recovery ──────────────────────────────────────────
+  // Detect agent_tasks stuck in "running" state for > 2 minutes and
+  // either requeue or permanently fail them based on retry budget.
+  const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000)
+  const stuckTasks = await db
+    .select()
+    .from(agentTasks)
+    .where(
+      and(
+        eq(agentTasks.status, "running"),
+        lt(agentTasks.updatedAt, twoMinutesAgo),
+      ),
+    )
+    .limit(20)
+
+  const retryResults: { taskId: string; decision: string }[] = []
+  for (const task of stuckTasks) {
+    const decision = evaluateTaskRetry({
+      id: task.id,
+      status: task.status,
+      retryCount: task.retryCount,
+      maxRetries: task.maxRetries,
+      updatedAt: task.updatedAt,
+      error: task.error,
+    })
+
+    if (decision === "requeue") {
+      await db
+        .update(agentTasks)
+        .set({
+          status: "queued",
+          retryCount: task.retryCount + 1,
+          updatedAt: new Date(),
+          error: null,
+        })
+        .where(eq(agentTasks.id, task.id))
+      retryResults.push({ taskId: task.id, decision: "requeue" })
+    } else if (decision === "fail") {
+      await db
+        .update(agentTasks)
+        .set({
+          status: "failed",
+          error: `Permanently failed after ${task.maxRetries} retries (stuck in running state)`,
+          updatedAt: new Date(),
+        })
+        .where(eq(agentTasks.id, task.id))
+
+      // Insert notification for permanent failure
+      if (task.workspaceId) {
+        await db.insert(notifications).values({
+          workspaceId: task.workspaceId,
+          type: "task_failed",
+          title: "Agent task permanently failed",
+          description: `Task "${task.prompt.slice(0, 80)}..." failed after ${task.maxRetries} retries.`,
+          actionUrl: "/",
+        }).catch(() => {})
+      }
+      retryResults.push({ taskId: task.id, decision: "fail" })
+    }
+  }
+
   const allAgents = await db.select().from(agentsTable)
   const allChannels = await db.select().from(channelsTable)
   const teamChannels = allChannels.filter((c) => c.teamId)
 
-  if (teamChannels.length === 0) return Response.json({ ok: true, message: "No team channels" })
+  if (teamChannels.length === 0) return Response.json({ ok: true, message: "No team channels", retryResults })
+
+  // Look up workspace BYOK key from the first channel's workspace
+  const channelWorkspaceId = teamChannels[0].workspaceId
+  let apiKey = process.env.ANTHROPIC_API_KEY
+  if (channelWorkspaceId) {
+    const [ws] = await db.select().from(workspaces).where(eq(workspaces.id, channelWorkspaceId)).limit(1)
+    if (ws?.anthropicApiKey) apiKey = ws.anthropicApiKey
+  }
+  if (!apiKey) return Response.json({ ok: true, message: "No Anthropic API key configured", retryResults })
+  const anthropic = createAnthropic({ apiKey })
 
   // Pick a random team channel
   const channel = teamChannels[Math.floor(Math.random() * teamChannels.length)]
@@ -81,7 +157,7 @@ export async function GET(req: Request) {
 
     try {
       const result = await generateText({
-        model: anthropic("claude-haiku-4.5"),
+        model: anthropic("claude-haiku-4-5"),
         system: `You are ${agent.name}, ${agent.role}. You're posting in your team's Slack channel.
 Your teammates: ${teammates.map((t) => `${t.name} (${t.role})`).join(", ")}
 ${agent.currentTask ? `Currently working on: ${agent.currentTask}` : ""}${sopContext}${myTaskContext}${taskContext}${knowledgeContext}
@@ -105,6 +181,7 @@ CRITICAL RULES:
 
       if (result.text) {
         const [saved] = await db.insert(messagesTable).values({
+          workspaceId: agent.workspaceId,
           channelId: channel.id,
           senderAgentId: agent.id,
           senderName: agent.name,
@@ -136,17 +213,12 @@ CRITICAL RULES:
 
       // Award XP for task shipped — this fires evolution detection
       const taskAgent = allAgents.find((a) => a.id === task.assignedAgentId)
-      if (taskAgent) {
-        await fetch(new URL("/api/gamification", req.url).toString(), {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ agentId: taskAgent.id, reason: "task_shipped" }),
+      if (taskAgent && taskAgent.workspaceId) {
+        await awardXp({
+          agentId: taskAgent.id,
+          workspaceId: taskAgent.workspaceId,
+          reason: "task_shipped",
         }).catch(() => {})
-
-        // Also increment tasksCompleted counter
-        await db.update(agentsTable)
-          .set({ tasksCompleted: (taskAgent.tasksCompleted ?? 0) + 1 })
-          .where(eq(agentsTable.id, taskAgent.id))
       }
     }
   }
@@ -165,7 +237,7 @@ CRITICAL RULES:
 
         try {
           const tlResult = await generateText({
-            model: anthropic("claude-haiku-4.5"),
+            model: anthropic("claude-haiku-4-5"),
             system: `You are ${lead.name}, ${lead.role}. You're posting in #team-leaders — the executive coordination channel.
 Other leads: ${otherLeads.map((l) => `${l.name} (${l.role})`).join(", ")}
 ${lead.currentTask ? `Currently working on: ${lead.currentTask}` : ""}
@@ -181,6 +253,7 @@ RULES:
 
           if (tlResult.text) {
             await db.insert(messagesTable).values({
+              workspaceId: lead.workspaceId,
               channelId: tlChannel.id,
               senderAgentId: lead.id,
               senderName: lead.name,
@@ -196,5 +269,5 @@ RULES:
     }
   }
 
-  return Response.json({ ok: true, channel: channel.name, agentCount: posting.length, results })
+  return Response.json({ ok: true, channel: channel.name, agentCount: posting.length, results, retryResults })
 }

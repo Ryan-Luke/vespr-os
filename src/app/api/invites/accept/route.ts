@@ -1,5 +1,5 @@
 import { db } from "@/lib/db"
-import { invites, users } from "@/lib/db/schema"
+import { invites, users, workspaceMembers } from "@/lib/db/schema"
 import { eq } from "drizzle-orm"
 import { hashPassword } from "@/lib/auth/password"
 
@@ -88,6 +88,15 @@ export async function POST(req: Request) {
     passwordHash,
     role: invite.role,
   }).returning()
+
+  // Link user to the workspace
+  if (invite.workspaceId) {
+    await db.insert(workspaceMembers).values({
+      userId: user.id,
+      workspaceId: invite.workspaceId,
+      role: invite.role as "owner" | "admin" | "member",
+    })
+  }
 
   // Mark invite as accepted
   await db.update(invites).set({

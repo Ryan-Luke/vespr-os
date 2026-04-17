@@ -7,7 +7,7 @@ import { PixelOfficeViewer } from "@/components/pixel-office-viewer"
 import type { Agent, AgentStatus } from "@/lib/types"
 import { levelTitle } from "@/lib/gamification"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
-import { X, MessageSquare, Pause, Play, Loader2, Crown, Sparkles } from "lucide-react"
+import { X, MessageSquare, Pause, Play, Loader2, Crown } from "lucide-react"
 import Link from "next/link"
 import { cn } from "@/lib/utils"
 
@@ -124,7 +124,7 @@ export default function OfficePage() {
                 {selectedAgent.status === "paused" ? <><Play className="h-3 w-3" />Resume</> : <><Pause className="h-3 w-3" />Pause</>}
               </button>
             </div>
-            <Link href={`/teams/${selectedAgent.teamId}/agents/${selectedAgent.id}`} className="block text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors">Full Profile</Link>
+            <Link href={selectedAgent.teamId ? `/teams/${selectedAgent.teamId}/agents/${selectedAgent.id}` : `/roster`} className="block text-center text-[11px] text-muted-foreground hover:text-foreground transition-colors">Full Profile</Link>
           </div>
         </div>
       )}

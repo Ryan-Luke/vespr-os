@@ -1,16 +1,21 @@
 import { db } from "@/lib/db"
 import { agents, channels, messages, tasks, agentFeedback, agentSops, agentMemories, activityLog, knowledgeEntries, agentSchedules, approvalRequests, approvalLog, autoApprovals, decisionLog, automations, milestones, companyMemories } from "@/lib/db/schema"
-import { eq } from "drizzle-orm"
+import { eq, and } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
 
 export async function PATCH(
   req: Request,
   { params }: { params: Promise<{ agentId: string }> }
 ) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { agentId } = await params
   const body = await req.json()
 
-  // Get current agent state before update
-  const [current] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
+  // Get current agent state before update — scoped to workspace
+  const [current] = await db.select().from(agents).where(and(eq(agents.id, agentId), eq(agents.workspaceId, auth.workspace.id))).limit(1)
   if (!current) return Response.json({ error: "Agent not found" }, { status: 404 })
 
   const updates: Record<string, unknown> = {}
@@ -56,6 +61,7 @@ export async function PATCH(
       const msg = statusMessages[body.status]
       if (msg) {
         await db.insert(messages).values({
+          workspaceId: auth.workspace.id,
           channelId: teamChannel[0].id,
           senderName: "System",
           senderAvatar: "⚙️",
@@ -73,9 +79,12 @@ export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ agentId: string }> }
 ) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
   const { agentId } = await params
 
-  const [current] = await db.select().from(agents).where(eq(agents.id, agentId)).limit(1)
+  const [current] = await db.select().from(agents).where(and(eq(agents.id, agentId), eq(agents.workspaceId, auth.workspace.id))).limit(1)
   if (!current) return Response.json({ error: "Agent not found" }, { status: 404 })
 
   // Delete related records first (FK constraints)
@@ -102,6 +111,7 @@ export async function DELETE(
     const teamChannel = await db.select().from(channels).where(eq(channels.teamId, current.teamId)).limit(1)
     if (teamChannel[0]) {
       await db.insert(messages).values({
+        workspaceId: auth.workspace.id,
         channelId: teamChannel[0].id,
         senderName: "System",
         senderAvatar: "⚙️",

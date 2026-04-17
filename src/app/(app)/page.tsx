@@ -1,7 +1,6 @@
 "use client"
 
 import React, { useState, useRef, useEffect, useMemo, useCallback } from "react"
-// useMemo already imported
 import { useChat } from "@ai-sdk/react"
 import { DefaultChatTransport } from "ai"
 import { Badge } from "@/components/ui/badge"
@@ -10,7 +9,7 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { PixelAvatar } from "@/components/pixel-avatar"
 import { AgentProfileCard } from "@/components/agent-profile-card"
 import {
-  Hash, Bot, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause,
+  Hash, FolderKanban, Radio, Send, AlertCircle, Users, Bookmark, Pause, LayoutDashboard, User,
   SmilePlus, MessageSquare, Smile, X, ChevronDown,
   Loader2, Play, Square, ThumbsUp, ThumbsDown, ClipboardList, Search, Clock, Paperclip, FileText, BarChart3, Mic, MicOff, Trophy, Coffee, Pin, Code,
   ExternalLink, Link2, Headphones, BookOpen,
@@ -79,7 +78,7 @@ function channelIcon(type: string, name?: string) {
   if (name === "watercooler") return <Coffee className="h-4 w-4" />
   switch (type) {
     case "team": return <Hash className="h-4 w-4" />
-    case "agent": return <Bot className="h-4 w-4" />
+    case "agent": return <Hash className="h-4 w-4" />
     case "project": return <FolderKanban className="h-4 w-4" />
     case "system": return <Radio className="h-4 w-4" />
     default: return <Hash className="h-4 w-4" />
@@ -384,7 +383,7 @@ function LinkPreviews({ content }: { content: string }) {
 }
 
 function MessageBubble({
-  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, onDelete,
+  message, agents, onAddReaction, onDM, onReply, threadCount, isPinned, onTogglePin, isBookmarked, onToggleBookmark, onDelete, currentUserId,
 }: {
   message: DBMessage
   agents: DBAgent[]
@@ -397,6 +396,7 @@ function MessageBubble({
   isBookmarked?: boolean
   onToggleBookmark?: (messageId: string) => void
   onDelete?: (messageId: string) => void
+  currentUserId?: string | null
 
 }) {
   const agent = message.senderAgentId ? agents.find((a) => a.id === message.senderAgentId) : null
@@ -417,7 +417,8 @@ function MessageBubble({
     ? <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={32} className="rounded-md" />
     : <div className="h-8 w-8 rounded-md bg-accent flex items-center justify-center text-[11px] font-semibold text-muted-foreground">{message.senderAvatar}</div>
 
-  const nameEl = <span className="text-[13px] font-semibold hover:underline">{message.senderName}</span>
+  const displayName = (message.senderUserId && currentUserId && message.senderUserId === currentUserId) ? "You" : message.senderName
+  const nameEl = <span className="text-[13px] font-semibold hover:underline">{displayName}</span>
 
   return (
     <div data-message-id={message.id} className={cn("group relative flex items-start gap-2.5 px-4 py-1 -mx-4 transition-colors", hovered && "bg-accent/40", isPinned && "border-l-2 border-l-primary/40")} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}>
@@ -519,12 +520,37 @@ function MessageBubble({
 }
 
 // DM Chat
-function DMChat({ agent }: { agent: DBAgent }) {
-  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat", body: { agentId: agent.id } }), [agent.id])
-  const { messages, sendMessage, status } = useChat({ transport })
+function DMChat({ agent, channelId }: { agent: DBAgent; channelId?: string }) {
+  const [threadId] = useState(() => crypto.randomUUID())
+  const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat", body: { agentId: agent.id, channelId, threadId } }), [agent.id, channelId, threadId])
+  const { messages, sendMessage, setMessages, status } = useChat({ transport })
   const [input, setInput] = useState("")
+  const [historyLoading, setHistoryLoading] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  // Load chat history on mount when a channelId is available
+  useEffect(() => {
+    if (!channelId) return
+    setHistoryLoading(true)
+    fetch(`/api/messages?channelId=${channelId}&limit=200`)
+      .then((r) => r.json())
+      .then((raw) => {
+        const dbMessages: DBMessage[] = raw.messages ?? (Array.isArray(raw) ? raw : [])
+        if (!dbMessages || dbMessages.length === 0) { setHistoryLoading(false); return }
+        // Take last 50 and convert to UIMessage format
+        const recent = dbMessages.slice(-50)
+        const uiMessages = recent.map((m) => ({
+          id: m.id,
+          role: (m.senderAgentId ? "assistant" : "user") as "assistant" | "user",
+          parts: [{ type: "text" as const, text: m.content }],
+          createdAt: new Date(m.createdAt),
+        }))
+        setMessages(uiMessages)
+        setHistoryLoading(false)
+      })
+      .catch(() => setHistoryLoading(false))
+  }, [channelId, setMessages])
 
   useEffect(() => { if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight }, [messages])
   useEffect(() => { if (inputRef.current) { inputRef.current.style.height = "auto"; inputRef.current.style.height = Math.min(inputRef.current.scrollHeight, 120) + "px" } }, [input])
@@ -549,7 +575,12 @@ function DMChat({ agent }: { agent: DBAgent }) {
 
       {/* Messages */}
       <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4">
-        {messages.length === 0 && (
+        {historyLoading && (
+          <div className="flex items-center justify-center py-8 text-xs text-muted-foreground">
+            <Loader2 className="h-4 w-4 animate-spin mr-2" />Loading chat history...
+          </div>
+        )}
+        {!historyLoading && messages.length === 0 && (
           <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
             <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={40} className="rounded-md mb-3" />
             <p className="text-[13px] font-medium text-foreground">Chat with {agent.name}</p>
@@ -614,6 +645,8 @@ function DMChat({ agent }: { agent: DBAgent }) {
 }
 
 export default function ChatPage() {
+  const [currentUserName, setCurrentUserName] = useState("You")
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null)
   const [dbAgents, setDbAgents] = useState<DBAgent[]>([])
   const [dbChannels, setDbChannels] = useState<DBChannel[]>([])
   const [channelMessages, setChannelMessages] = useState<DBMessage[]>([])
@@ -623,6 +656,7 @@ export default function ChatPage() {
   const [channelLoading, setChannelLoading] = useState(false)
   const [typingAgent, setTypingAgent] = useState<string | null>(null) // agent name currently "typing"
   const [dataLoaded, setDataLoaded] = useState(false)
+  const [dataError, setDataError] = useState(false)
   const [autonomousMode, setAutonomousMode] = useState(false)
   const autonomousRef = useRef(false)
   const [mentionQuery, setMentionQuery] = useState<string | null>(null)
@@ -653,14 +687,31 @@ export default function ChatPage() {
   const quickReplyRef = useRef<string | null>(null)
 
   // Load agents and channels from DB (filtered by active workspace)
+  // Fetch current user identity for proper message attribution
+  useEffect(() => {
+    fetch("/api/users/preferences").then(r => r.ok ? r.json() : null).then(data => {
+      if (data?.name) { setCurrentUserName(data.name); setCurrentUserId(data.id) }
+    }).catch(() => {})
+  }, [])
+
   useEffect(() => {
     function loadData() {
+      setDataError(false)
+      let resolved = false
       const wsId = typeof window !== "undefined" ? localStorage.getItem("vespr-active-workspace") : null
       const url = wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data"
+
+      // Timeout: if data hasn't loaded in 10s, show error
+      const timeout = setTimeout(() => {
+        if (!resolved) setDataError(true)
+      }, 10000)
+
       fetch(url).then((r) => {
         if (!r.ok) throw new Error(`chat-data failed: ${r.status}`)
         return r.json()
       }).then(async (data) => {
+        resolved = true
+        clearTimeout(timeout)
         if (!data.agents || !data.channels) {
           // Bad response (possibly Vercel auth HTML). Retry without workspace filter.
           const retry = await fetch("/api/chat-data")
@@ -721,11 +772,15 @@ export default function ChatPage() {
           setActiveChannel(data.channels[0].id)
         }
         setDataLoaded(true)
+      }).catch(() => {
+        resolved = true
+        clearTimeout(timeout)
+        setDataError(true)
       })
     }
     loadData()
     // Reload when workspace changes
-    const handler = () => loadData()
+    const handler = () => { setDataLoaded(false); setDataError(false); loadData() }
     window.addEventListener("workspace-changed", handler)
     return () => window.removeEventListener("workspace-changed", handler)
   }, [])
@@ -745,7 +800,7 @@ export default function ChatPage() {
     }
     window.addEventListener("keydown", handleKey)
     return () => window.removeEventListener("keydown", handleKey)
-  }, [])
+  }, [dbChannels])
 
   // Load pinned messages from localStorage
   useEffect(() => {
@@ -833,10 +888,10 @@ export default function ChatPage() {
   // Load messages when channel changes + poll every 5 seconds
   useEffect(() => {
     if (!activeChannel || dmAgent) return
-    fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then(setChannelMessages)
+    fetch(`/api/messages?channelId=${activeChannel}&limit=200`).then((r) => r.json()).then((raw) => setChannelMessages(raw.messages ?? (Array.isArray(raw) ? raw : [])))
 
     const poll = setInterval(() => {
-      fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json()).then((msgs: any[]) => {
+      fetch(`/api/messages?channelId=${activeChannel}&limit=200`).then((r) => r.json()).then((raw) => { const msgs: any[] = raw.messages ?? (Array.isArray(raw) ? raw : []); return msgs }).then((msgs: any[]) => {
         setChannelMessages((prev) => {
           // Only update if there are actually new messages.
           // Compare by last message ID to avoid flickering from
@@ -896,7 +951,7 @@ export default function ChatPage() {
     const userMsg = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channelId: activeChannel, threadId: activeThread, senderName: "You", senderAvatar: "YO", content: text, messageType: "text" }),
+      body: JSON.stringify({ channelId: activeChannel, threadId: activeThread, senderName: currentUserName, senderAvatar: currentUserName.substring(0, 2).toUpperCase(), senderUserId: currentUserId, content: text, messageType: "text" }),
     }).then((r) => r.json())
     setThreadMessages((prev) => [...prev, userMsg])
     setChannelMessages((prev) => [...prev, userMsg])
@@ -958,12 +1013,25 @@ export default function ChatPage() {
   }
 
   function handleAddReaction(messageId: string, emoji: string) {
+    let updatedReactions: { emoji: string; count: number; agentNames: string[] }[] = []
     setChannelMessages((prev) => prev.map((m) => {
       if (m.id !== messageId) return m
       const existing = m.reactions.find((r) => r.emoji === emoji)
-      if (existing) return { ...m, reactions: m.reactions.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, agentNames: [...r.agentNames, "You"] } : r) }
-      return { ...m, reactions: [...m.reactions, { emoji, count: 1, agentNames: ["You"] }] }
+      let newReactions: typeof m.reactions
+      if (existing) {
+        newReactions = m.reactions.map((r) => r.emoji === emoji ? { ...r, count: r.count + 1, agentNames: [...r.agentNames, currentUserName] } : r)
+      } else {
+        newReactions = [...m.reactions, { emoji, count: 1, agentNames: [currentUserName] }]
+      }
+      updatedReactions = newReactions
+      return { ...m, reactions: newReactions }
     }))
+    // Persist to DB
+    fetch("/api/messages", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ id: messageId, reactions: updatedReactions }),
+    }).catch(() => {})
   }
 
   async function handleDeleteMessage(messageId: string) {
@@ -1305,7 +1373,7 @@ export default function ChatPage() {
     const userMsg = await fetch("/api/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ channelId: activeChannel, senderName: "You", senderAvatar: "YO", content: text, messageType: "text" }),
+      body: JSON.stringify({ channelId: activeChannel, senderName: currentUserName, senderAvatar: currentUserName.substring(0, 2).toUpperCase(), senderUserId: currentUserId, content: text, messageType: "text" }),
     }).then((r) => r.json())
     setChannelMessages((prev) => [...prev, userMsg])
 
@@ -1365,28 +1433,54 @@ export default function ChatPage() {
           })),
         }),
       })
-      if (!res.ok) throw new Error("API error")
+      if (!res.ok) {
+        const errBody = await res.text().catch(() => "")
+        console.error("Chat API error:", res.status, errBody)
+        throw new Error(`API error ${res.status}`)
+      }
 
-      // Show typing indicator while we wait for the full response
-      const placeholder: DBMessage = { id: `temp-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "...", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
+      // Show typing indicator, then stream text in real-time
+      const tempId = `temp-${Date.now()}`
+      const placeholder: DBMessage = { id: tempId, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }
       setChannelMessages((prev) => [...prev, placeholder])
 
-      // Consume the stream to completion. The chat API saves the
-      // response to the DB via onFinish. We just need to wait for
-      // the stream to end, then fetch the latest messages.
+      // Stream the response and update the placeholder with real-time text
       const reader = res.body?.getReader()
+      const decoder = new TextDecoder()
+      let fullText = ""
+      let buffer = ""
       if (reader) {
         while (true) {
-          const { done } = await reader.read()
+          const { done, value } = await reader.read()
           if (done) break
+          buffer += decoder.decode(value, { stream: true })
+          // Process complete lines from buffer
+          const parts = buffer.split("\n")
+          buffer = parts.pop() || "" // keep incomplete last line in buffer
+          for (const line of parts) {
+            if (line.startsWith("data: ") && line.length > 6) {
+              const payload = line.slice(6).trim()
+              if (payload === "[DONE]") continue
+              try {
+                const data = JSON.parse(payload)
+                if (data.type === "text-delta" && data.delta) {
+                  fullText += data.delta
+                  setChannelMessages((prev) =>
+                    prev.map((m) => m.id === tempId ? { ...m, content: fullText } : m)
+                  )
+                }
+              } catch {}
+            }
+          }
         }
       }
 
       // Fetch fresh messages from DB (the onFinish callback saved them)
-      const freshMsgs = await fetch(`/api/messages?channelId=${activeChannel}`).then((r) => r.json())
-      setChannelMessages(freshMsgs)
-    } catch {
-      setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
+      const freshData = await fetch(`/api/messages?channelId=${activeChannel}&limit=200`).then((r) => r.json())
+      setChannelMessages(freshData.messages ?? (Array.isArray(freshData) ? freshData : []))
+    } catch (err) {
+      console.error("Channel chat error:", err)
+      setChannelMessages((prev) => [...prev, { id: `err-${Date.now()}`, channelId: activeChannel, threadId: null, senderAgentId: respondingAgent.id, senderUserId: null, senderName: respondingAgent.name, senderAvatar: respondingAgent.avatar, content: "Sorry, I couldn't process that right now. Check that your API key is configured in Settings.", messageType: "text", linkedTaskId: null, reactions: [], createdAt: new Date().toISOString() }])
     } finally {
       setChannelLoading(false)
       setTypingAgent(null)
@@ -1552,6 +1646,19 @@ export default function ChatPage() {
     return () => { clearTimeout(t); clearInterval(i) }
   }, [autonomousMode, dbChannels, dbAgents]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (dataError) return (
+    <div className="flex items-center justify-center h-full">
+      <div className="text-center space-y-3 max-w-sm">
+        <AlertCircle className="h-8 w-8 text-muted-foreground mx-auto" />
+        <h2 className="text-lg font-semibold">Something went wrong</h2>
+        <p className="text-sm text-muted-foreground">Could not load chat data. Check your connection and try again.</p>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    </div>
+  )
+
   if (!dataLoaded) return <ChatSkeleton />
 
   // No workspace — redirect to onboarding
@@ -1560,12 +1667,12 @@ export default function ChatPage() {
       <div className="flex items-center justify-center h-full">
         <div className="text-center space-y-4 max-w-sm">
           <div className="h-12 w-12 rounded-lg bg-primary flex items-center justify-center mx-auto">
-            <Bot className="h-6 w-6 text-primary-foreground" />
+            <LayoutDashboard className="h-6 w-6 text-primary-foreground" />
           </div>
-          <h2 className="text-xl font-semibold">Welcome to Business OS</h2>
-          <p className="text-sm text-muted-foreground">Set up your AI workforce to get started.</p>
-          <Link href="/onboarding">
-            <Button className="mt-2">Get Started</Button>
+          <h2 className="text-xl font-semibold">Welcome to VESPR</h2>
+          <p className="text-sm text-muted-foreground">Set up your team to get started.</p>
+          <Link href="/teams">
+            <Button className="mt-2">Set Up Team</Button>
           </Link>
         </div>
       </div>
@@ -1661,8 +1768,8 @@ export default function ChatPage() {
                     </button>
                     <span className={cn("h-1.5 w-1.5 rounded-full shrink-0 group-hover/agent:hidden", agent.status === "working" ? "status-working" : agent.status === "error" ? "status-error" : agent.status === "paused" ? "status-paused" : "status-idle")} />
                     <div className="hidden group-hover/agent:flex items-center gap-0.5 shrink-0">
-                      <Link href={`/teams/${agent.teamId}/agents/${agent.id}`} onClick={(e) => e.stopPropagation()} className="h-4 w-4 flex items-center justify-center rounded hover:bg-accent" title="Profile">
-                        <Bot className="h-2.5 w-2.5" />
+                      <Link href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`} onClick={(e) => e.stopPropagation()} className="h-4 w-4 flex items-center justify-center rounded hover:bg-accent" title="Profile">
+                        <User className="h-2.5 w-2.5" />
                       </Link>
                       <button
                         onClick={async (e) => {
@@ -1751,7 +1858,7 @@ export default function ChatPage() {
             )}
           </div>
         </div>
-      ) : dmAgent ? <DMChat agent={dmAgent} /> : (
+      ) : dmAgent ? <DMChat key={dmAgent.id} agent={dmAgent} channelId={dbChannels.find((c) => c.type === "agent" && c.name === dmAgent.name.toLowerCase())?.id} /> : (
         <div className="flex-1 flex flex-col min-w-0 min-h-0">
           {/* Channel header */}
           <div className="flex items-center h-12 px-4 border-b border-border shrink-0">
@@ -1782,7 +1889,7 @@ export default function ChatPage() {
                         {channelMessages.filter((m) => currentPinnedSet.has(m.id)).map((m) => (
                           <div key={m.id} className="px-3 py-2 hover:bg-accent/30 transition-colors">
                             <div className="flex items-center justify-between gap-2">
-                              <span className="text-xs font-semibold truncate">{m.senderName}</span>
+                              <span className="text-xs font-semibold truncate">{m.senderUserId && currentUserId && m.senderUserId === currentUserId ? "You" : m.senderName}</span>
                               <span className="text-[10px] text-muted-foreground shrink-0">{formatTime(m.createdAt)}</span>
                             </div>
                             <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{m.content}</p>
@@ -1919,7 +2026,7 @@ export default function ChatPage() {
                               <div className="flex-1 h-px bg-border" />
                             </div>
                           )}
-                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} onDelete={handleDeleteMessage} />
+                          <MessageBubble message={msg} agents={dbAgents} onAddReaction={handleAddReaction} onDM={(a) => setDmAgent(a as any)} onReply={openThread} threadCount={threadCounts[msg.id]} isPinned={currentPinnedSet.has(msg.id)} onTogglePin={togglePin} isBookmarked={bookmarkedIds.has(msg.id)} onToggleBookmark={toggleBookmark} onDelete={handleDeleteMessage} currentUserId={currentUserId} />
                         </div>
                       )
                     })
@@ -2114,7 +2221,7 @@ export default function ChatPage() {
               <div className="px-3 py-2.5 border-b border-border">
                 <div className="flex items-center gap-2">
                   {parentAgent ? <PixelAvatar characterIndex={parentAgent.pixelAvatarIndex} size={18} className="rounded-sm" /> : <div className="h-[18px] w-[18px] rounded-sm bg-accent flex items-center justify-center text-[9px] font-medium text-muted-foreground">{parent.senderAvatar}</div>}
-                  <span className="text-[13px] font-semibold">{parent.senderName}</span>
+                  <span className="text-[13px] font-semibold">{parent.senderUserId && currentUserId && parent.senderUserId === currentUserId ? "You" : parent.senderName}</span>
                   <span className="text-[11px] text-muted-foreground">{formatTime(parent.createdAt)}</span>
                 </div>
                 <p className="text-[13px] mt-1 text-foreground/80">{parent.content}</p>
@@ -2134,7 +2241,7 @@ export default function ChatPage() {
                   {msgAgent ? <PixelAvatar characterIndex={msgAgent.pixelAvatarIndex} size={18} className="rounded-sm mt-0.5" /> : <div className="h-[18px] w-[18px] rounded-sm bg-accent flex items-center justify-center text-[9px] font-medium text-muted-foreground mt-0.5">{msg.senderAvatar}</div>}
                   <div>
                     <div className="flex items-center gap-1.5">
-                      <span className="text-[11px] font-semibold">{msg.senderName}</span>
+                      <span className="text-[11px] font-semibold">{msg.senderUserId && currentUserId && msg.senderUserId === currentUserId ? "You" : msg.senderName}</span>
                       <span className="text-[11px] text-muted-foreground">{formatTime(msg.createdAt)}</span>
                     </div>
                     <p className="text-[13px] text-foreground/80">{msg.content}</p>

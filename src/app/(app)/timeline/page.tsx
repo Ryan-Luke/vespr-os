@@ -71,7 +71,8 @@ export default function TimelinePage() {
       fetch("/api/agents").then((r) => r.json()),
       fetch("/api/activity?limit=30").then((r) => r.json()),
       fetch("/api/gamification").then((r) => r.json()),
-    ]).then(([agents, activity, milestones]) => {
+    ]).then(([agents, activityRaw, milestones]) => {
+      const activity = activityRaw.entries ?? (Array.isArray(activityRaw) ? activityRaw : [])
       const totalTasks = agents.reduce((sum: number, a: any) => sum + (a.tasksCompleted ?? 0), 0)
       setStats({ agents: agents.length, tasks: totalTasks })
 
@@ -81,7 +82,7 @@ export default function TimelinePage() {
         id: "founding",
         type: "system",
         title: "Workspace created",
-        description: "Business OS initialized",
+        description: "VESPR initialized",
         timestamp: new Date(Date.now() - 30 * 24 * 3600000).toISOString(),
       })
 

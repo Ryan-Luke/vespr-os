@@ -17,7 +17,7 @@ export interface Workspace {
 interface WorkspaceContextValue {
   workspaces: Workspace[]
   activeWorkspace: Workspace | null
-  setActiveWorkspace: (ws: Workspace) => void
+  setActiveWorkspace: (ws: Workspace) => void | Promise<void>
   refreshWorkspaces: () => Promise<void>
   loading: boolean
 }
@@ -62,11 +62,23 @@ export function WorkspaceProvider({ children }: { children: ReactNode }) {
     refreshWorkspaces()
   }, [refreshWorkspaces])
 
-  const setActiveWorkspace = useCallback((ws: Workspace) => {
+  const setActiveWorkspace = useCallback(async (ws: Workspace) => {
+    // Update server-side session cookie first so subsequent API calls
+    // resolve to the correct workspace
+    try {
+      await fetch("/api/auth/switch-workspace", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ workspaceId: ws.id }),
+      })
+    } catch {
+      // Best-effort — client-side state still updates below
+    }
+
     setActiveWorkspaceState(ws)
     if (typeof window !== "undefined") {
       localStorage.setItem(STORAGE_KEY, ws.id)
-      // Also set cookie so server components can read it
+      // Also set non-httpOnly cookie for legacy reads
       document.cookie = `${STORAGE_KEY}=${ws.id}; path=/; max-age=${60 * 60 * 24 * 365}; SameSite=Lax`
       // Trigger page refresh so data re-fetches with new workspace
       window.dispatchEvent(new CustomEvent("workspace-changed", { detail: ws }))

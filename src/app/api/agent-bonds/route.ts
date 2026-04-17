@@ -1,13 +1,15 @@
 import { db } from "@/lib/db"
 import { agentBonds, agents } from "@/lib/db/schema"
 import { eq, or, desc } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const url = new URL(req.url)
   const agentId = url.searchParams.get("agentId")
 
   if (!agentId) {
-    const all = await db.select().from(agentBonds).orderBy(desc(agentBonds.outcomeLift))
+    const all = await db.select().from(agentBonds).where(eq(agentBonds.workspaceId, auth.workspace.id)).orderBy(desc(agentBonds.outcomeLift))
     return Response.json(all)
   }
 
@@ -17,7 +19,7 @@ export async function GET(req: Request) {
     .orderBy(desc(agentBonds.outcomeLift))
 
   // Enrich with the "other" agent's name
-  const allAgents = await db.select().from(agents)
+  const allAgents = await db.select().from(agents).where(eq(agents.workspaceId, auth.workspace.id))
   const enriched = bonds.map((b) => {
     const otherId = b.agentAId === agentId ? b.agentBId : b.agentAId
     const other = allAgents.find((a) => a.id === otherId)

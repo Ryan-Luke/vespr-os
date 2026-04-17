@@ -1,29 +1,31 @@
 import { cookies } from "next/headers"
 import { db } from "@/lib/db"
-import { users } from "@/lib/db/schema"
+import { users, workspaces, workspaceMembers } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
 import { hashPassword } from "@/lib/auth/password"
 import { createSessionCookie, SESSION_COOKIE_NAME, SESSION_MAX_AGE } from "@/lib/auth/session"
+import { rateLimit } from "@/lib/rate-limit"
+import { signupSchema } from "@/lib/validation"
 
 export async function POST(req: Request) {
-  const body = (await req.json().catch(() => ({}))) as {
-    email?: string
-    password?: string
-    name?: string
+  const ip = req.headers.get("x-forwarded-for") || "unknown"
+  const { allowed } = rateLimit(`signup:${ip}`, 5, 60000)
+  if (!allowed) {
+    return Response.json({ error: "Too many requests. Try again in a minute." }, { status: 429 })
   }
-  const email = body.email?.trim().toLowerCase()
-  const password = body.password
-  const name = body.name?.trim()
 
-  if (!email || !password || !name) {
-    return Response.json({ error: "Name, email, and password are required" }, { status: 400 })
+  const rawBody = await req.json().catch(() => ({}))
+  const parsed = signupSchema.safeParse(rawBody)
+  if (!parsed.success) {
+    const firstError = parsed.error.issues[0]
+    const msg = firstError?.path.includes("email") ? "Invalid email address"
+      : firstError?.path.includes("password") ? "Password must be at least 8 characters"
+      : "Name, email, and password are required"
+    return Response.json({ error: msg }, { status: 400 })
   }
-  if (password.length < 8) {
-    return Response.json({ error: "Password must be at least 8 characters" }, { status: 400 })
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return Response.json({ error: "Invalid email address" }, { status: 400 })
-  }
+  const email = parsed.data.email.trim().toLowerCase()
+  const password = parsed.data.password
+  const name = parsed.data.name.trim()
 
   const [existing] = await db.select({ id: users.id }).from(users).where(eq(users.email, email)).limit(1)
   if (existing) {
@@ -32,7 +34,6 @@ export async function POST(req: Request) {
 
   // First user on a fresh deploy becomes the owner. After that, signups are disabled
   // until an invite flow exists — the owner has to invite teammates explicitly.
-  // This keeps a fresh deploy safe from random drive-by signups.
   const [{ count }] = await db.select({ count: sql<number>`count(*)::int` }).from(users)
   if (count > 0) {
     return Response.json(
@@ -49,7 +50,27 @@ export async function POST(req: Request) {
     .values({ email, name, passwordHash, role })
     .returning()
 
-  const cookie = await createSessionCookie(user.id, user.role)
+  // Create a placeholder workspace — onboarding will update it with the real name and template
+  const wsName = parsed.data.workspaceName?.trim() || "My Workspace"
+  const slug = wsName.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "")
+
+  const [workspace] = await db
+    .insert(workspaces)
+    .values({
+      name: wsName,
+      slug,
+      ownerName: name,
+    })
+    .returning()
+
+  // Create workspace membership for the owner
+  await db.insert(workspaceMembers).values({
+    userId: user.id,
+    workspaceId: workspace.id,
+    role: "owner",
+  })
+
+  const cookie = await createSessionCookie(user.id, workspace.id, role)
   const jar = await cookies()
   jar.set(SESSION_COOKIE_NAME, cookie, {
     httpOnly: true,
@@ -61,6 +82,7 @@ export async function POST(req: Request) {
 
   return Response.json({
     ok: true,
-    user: { id: user.id, email: user.email, name: user.name, role: user.role },
+    user: { id: user.id, email: user.email, name: user.name, role },
+    workspaceId: workspace.id,
   })
 }

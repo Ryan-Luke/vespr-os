@@ -5,6 +5,9 @@ import { DEFAULT_TRAITS } from "@/lib/personality-presets"
 import { PERSONALITY_PRESETS } from "@/lib/personality-presets"
 import type { PersonalityTraits } from "@/lib/personality-presets"
 import { ARCHETYPES, inferArchetype, type ArchetypeId } from "@/lib/archetypes"
+import { withAuth } from "@/lib/auth/with-auth"
+import { guardMinRole } from "@/lib/auth/rbac"
+import { checkLimit } from "@/lib/billing/plan-limits"
 
 // ── Personality-aware intro message ───────────────────────
 function buildIntroMessage(agent: {
@@ -33,6 +36,21 @@ function buildIntroMessage(agent: {
 }
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
+  const forbidden = guardMinRole(auth, "admin")
+  if (forbidden) return forbidden
+
+  // Check plan limits before creating agent
+  const limitCheck = await checkLimit(auth.workspace.id, "create_agent")
+  if (!limitCheck.allowed) {
+    return Response.json({
+      error: limitCheck.reason,
+      upgradeRequired: limitCheck.upgradeRequired,
+      currentCount: limitCheck.currentCount,
+      limit: limitCheck.limit,
+    }, { status: 403 })
+  }
+
   const body = await req.json()
 
   // If a preset is selected, use its avatar index; otherwise random
@@ -46,10 +64,11 @@ export async function POST(req: Request) {
   const starterForm = archetypeDef.forms[0]
 
   const [newAgent] = await db.insert(agents).values({
+    workspaceId: auth.workspace.id,
     name: body.name,
     role: body.role,
     avatar: body.name.slice(0, 2).toUpperCase(),
-    pixelAvatarIndex: preset?.pixelAvatarIndex ?? Math.floor(Math.random() * 6),
+    pixelAvatarIndex: Math.min(5, Math.max(0, preset?.pixelAvatarIndex ?? Math.floor(Math.random() * 6))),
     provider: body.provider || "anthropic",
     model: body.model || "Claude Haiku",
     systemPrompt: body.systemPrompt || body.description || null,
@@ -84,6 +103,7 @@ export async function POST(req: Request) {
       // 1. Team lead welcome (if one exists)
       if (teamLead) {
         await db.insert(messages).values({
+          workspaceId: auth.workspace.id,
           channelId: teamChannel.id,
           senderAgentId: teamLead.id,
           senderName: teamLead.name,
@@ -102,6 +122,7 @@ export async function POST(req: Request) {
       })
 
       await db.insert(messages).values({
+        workspaceId: auth.workspace.id,
         channelId: teamChannel.id,
         senderAgentId: newAgent.id,
         senderName: newAgent.name,
@@ -117,6 +138,7 @@ export async function POST(req: Request) {
     if (winsChannel) {
       const teamName = team?.name || "the team"
       await db.insert(messages).values({
+        workspaceId: auth.workspace.id,
         channelId: winsChannel.id,
         senderAgentId: null,
         senderName: "System",

@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { PixelAvatar } from "@/components/pixel-avatar"
-import { Trophy, TrendingUp, Zap, Star, DollarSign, Calendar, Sparkles, Loader2, Share2 } from "lucide-react"
+import { Trophy, TrendingUp, Zap, Star, DollarSign, Calendar, Loader2, Share2 } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 interface TrophyEvent {
@@ -29,7 +29,7 @@ const TYPE_STYLES: Record<string, { icon: typeof Trophy; color: string; label: s
   deal_closed: { icon: DollarSign, color: "text-emerald-400", label: "Deal Closed" },
   meeting_booked: { icon: Calendar, color: "text-blue-400", label: "Meeting Booked" },
   milestone: { icon: Trophy, color: "text-amber-400", label: "Milestone" },
-  evolution: { icon: Sparkles, color: "text-purple-400", label: "Evolution" },
+  evolution: { icon: TrendingUp, color: "text-purple-400", label: "Evolution" },
   first: { icon: Star, color: "text-orange-400", label: "First" },
   capability_unlocked: { icon: Zap, color: "text-cyan-400", label: "New Capability" },
 }
@@ -76,7 +76,8 @@ export default function TrophyFeedPage() {
         fetch(wsId ? `/api/trophy-events?workspaceId=${wsId}` : "/api/trophy-events").then((r) => r.json()),
         fetch(wsId ? `/api/chat-data?workspaceId=${wsId}` : "/api/chat-data").then((r) => r.json()),
       ])
-      setEvents(Array.isArray(eventsRes) ? eventsRes : [])
+      const eventsList = eventsRes.events ?? (Array.isArray(eventsRes) ? eventsRes : [])
+      setEvents(eventsList)
       setAgents(chatData.agents || [])
       setLoading(false)
     }
@@ -127,7 +128,7 @@ export default function TrophyFeedPage() {
             )}
             {evolutionCount > 0 && (
               <div className="bg-card p-3">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><Sparkles className="h-3 w-3" />Evolutions</p>
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider flex items-center gap-1"><TrendingUp className="h-3 w-3" />Evolutions</p>
                 <p className="text-base font-bold tabular-nums text-purple-400 mt-0.5">{evolutionCount}</p>
               </div>
             )}

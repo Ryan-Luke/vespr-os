@@ -14,7 +14,8 @@ const MAX_AGE_SECONDS = 60 * 60 * 24 * 30 // 30 days
 
 export interface SessionPayload {
   userId: string
-  role: string
+  workspaceId: string
+  role: string // workspace-specific role from workspace_members
   exp: number // unix seconds
 }
 
@@ -62,9 +63,10 @@ async function sign(payloadB64: string): Promise<string> {
   return b64urlEncode(new Uint8Array(sig))
 }
 
-export async function createSessionCookie(userId: string, role: string): Promise<string> {
+export async function createSessionCookie(userId: string, workspaceId: string, role: string): Promise<string> {
   const payload: SessionPayload = {
     userId,
+    workspaceId,
     role,
     exp: Math.floor(Date.now() / 1000) + MAX_AGE_SECONDS,
   }
@@ -90,7 +92,7 @@ export async function verifySessionCookie(cookie: string | undefined): Promise<S
   try {
     const json = new TextDecoder().decode(b64urlDecode(payloadB64))
     const payload = JSON.parse(json) as SessionPayload
-    if (typeof payload.userId !== "string" || typeof payload.role !== "string") return null
+    if (typeof payload.userId !== "string" || typeof payload.workspaceId !== "string" || typeof payload.role !== "string") return null
     if (typeof payload.exp !== "number" || payload.exp * 1000 < Date.now()) return null
     return payload
   } catch {

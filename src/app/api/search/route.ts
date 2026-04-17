@@ -1,8 +1,10 @@
 import { db } from "@/lib/db"
 import { agents, messages, tasks, knowledgeEntries } from "@/lib/db/schema"
-import { ilike, or, and, sql } from "drizzle-orm"
+import { ilike, or, and, sql, eq } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const { searchParams } = new URL(req.url)
   const q = searchParams.get("q")
 
@@ -17,14 +19,17 @@ export async function GET(req: Request) {
       db
         .select()
         .from(agents)
-        .where(or(ilike(agents.name, pattern), ilike(agents.role, pattern))),
+        .where(and(eq(agents.workspaceId, auth.workspace.id), or(ilike(agents.name, pattern), ilike(agents.role, pattern)))),
       db
         .select()
         .from(messages)
         .where(
-          or(
-            ilike(messages.content, pattern),
-            ilike(messages.senderName, pattern)
+          and(
+            eq(messages.workspaceId, auth.workspace.id),
+            or(
+              ilike(messages.content, pattern),
+              ilike(messages.senderName, pattern)
+            )
           )
         )
         .limit(5),
@@ -32,7 +37,10 @@ export async function GET(req: Request) {
         .select()
         .from(tasks)
         .where(
-          or(ilike(tasks.title, pattern), ilike(tasks.description, pattern))
+          and(
+            eq(tasks.workspaceId, auth.workspace.id),
+            or(ilike(tasks.title, pattern), ilike(tasks.description, pattern))
+          )
         )
         .limit(5),
       // Exclude agent-only reference entries (seeded playbooks tagged `internal`)
@@ -42,6 +50,7 @@ export async function GET(req: Request) {
         .from(knowledgeEntries)
         .where(
           and(
+            eq(knowledgeEntries.workspaceId, auth.workspace.id),
             sql`NOT (${knowledgeEntries.tags} @> '["internal"]'::jsonb)`,
             or(
               ilike(knowledgeEntries.title, pattern),

@@ -1,8 +1,10 @@
 import { db } from "@/lib/db"
 import { agentFeedback } from "@/lib/db/schema"
 import { eq, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const { agentId, messageId, rating, correction } = await req.json() as {
     agentId: string
     messageId?: string
@@ -11,6 +13,7 @@ export async function POST(req: Request) {
   }
 
   const [entry] = await db.insert(agentFeedback).values({
+    workspaceId: auth.workspace.id,
     agentId,
     messageId: messageId || null,
     rating,
@@ -21,6 +24,7 @@ export async function POST(req: Request) {
 }
 
 export async function GET(req: Request) {
+  await withAuth()
   const url = new URL(req.url)
   const agentId = url.searchParams.get("agentId")
   if (!agentId) return Response.json({ error: "agentId required" }, { status: 400 })

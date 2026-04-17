@@ -16,7 +16,7 @@ import { PixelAvatar } from "@/components/pixel-avatar"
 import {
   MessageSquare, CheckSquare, BookOpen, LayoutDashboard, Users,
   ClipboardList, Zap, Plug, PlusCircle, Settings, Shield, TrendingUp, Building2,
-  Clock, Bot, CheckCircle2, Brain,
+  Clock, User, CheckCircle2, Brain,
 } from "lucide-react"
 
 const RECENT_SEARCHES_KEY = "bos-recent-searches"
@@ -253,7 +253,7 @@ export function GlobalSearch() {
           {results && results.agents.length > 0 && (
             <CommandGroup>
               <div className="text-[11px] text-muted-foreground uppercase tracking-wider px-2 py-1.5 flex items-center gap-1.5">
-                <Bot className="h-3 w-3 text-blue-500" />
+                <User className="h-3 w-3 text-blue-500" />
                 <span>Agents</span>
               </div>
               {results.agents.map((agent) => (
@@ -264,7 +264,7 @@ export function GlobalSearch() {
                     handleSelect(
                       agent.teamId
                         ? `/teams/${agent.teamId}/agents/${agent.id}`
-                        : `/teams/unassigned/agents/${agent.id}`
+                        : `/roster`
                     )
                   }
                 >
@@ -298,7 +298,7 @@ export function GlobalSearch() {
                 <CommandItem
                   key={message.id}
                   value={`message-${message.id}`}
-                  onSelect={() => handleSelect("/chat")}
+                  onSelect={() => handleSelect("/")}
                 >
                   <MessageSquare className="shrink-0 text-muted-foreground" />
                   <div className="flex flex-col min-w-0">

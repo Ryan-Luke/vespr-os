@@ -6,6 +6,7 @@
 
 import { createAnthropic } from "@ai-sdk/anthropic"
 import { generateText } from "ai"
+import { withAuth } from "@/lib/auth/with-auth"
 
 interface OnboardingContext {
   userName?: string
@@ -19,6 +20,7 @@ interface OnboardingContext {
 }
 
 export async function POST(req: Request) {
+  await withAuth()
   const { apiKey, stepJustAnswered, latestAnswer, nextQuestion, context } = await req.json() as {
     apiKey: string
     stepJustAnswered: string  // e.g. "business_name", "business_type"

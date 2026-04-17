@@ -1,31 +1,77 @@
 import { db } from "@/lib/db"
 import { tasks, agents, agentSops, trophyEvents, messages, channels } from "@/lib/db/schema"
-import { eq, and, ilike } from "drizzle-orm"
+import { eq, and, ilike, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
+import { extractSkillFromTask } from "@/lib/learning/skill-library"
+import { recordDailyEntry } from "@/lib/learning/memory-writer"
+import { checkRosterUnlocks } from "@/lib/gamification-runtime"
+import { taskSchema } from "@/lib/validation"
 
-export async function GET() {
-  const allTasks = await db.select().from(tasks).orderBy(tasks.createdAt)
-  return Response.json(allTasks)
+export async function GET(req: Request) {
+  const auth = await withAuth()
+  const url = new URL(req.url)
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
+  const offset = parseInt(url.searchParams.get("offset") || "0")
+
+  const allTasks = await db.select().from(tasks)
+    .where(eq(tasks.workspaceId, auth.workspace.id))
+    .orderBy(tasks.createdAt)
+    .limit(limit)
+    .offset(offset)
+
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(tasks)
+    .where(eq(tasks.workspaceId, auth.workspace.id))
+
+  return Response.json({ tasks: allTasks, total: count, limit, offset })
 }
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const body = await req.json()
-  const [newTask] = await db.insert(tasks).values(body).returning()
+  const parsed = taskSchema.safeParse(body)
+  if (!parsed.success) {
+    return Response.json({ error: parsed.error.issues[0]?.message || "Invalid task data" }, { status: 400 })
+  }
+  const [newTask] = await db.insert(tasks).values({ ...body, workspaceId: auth.workspace.id }).returning()
   return Response.json(newTask)
 }
 
 export async function PATCH(req: Request) {
+  const auth = await withAuth()
   const { id, ...updates } = await req.json()
   if (!id) return Response.json({ error: "id required" }, { status: 400 })
 
-  // Fetch the task BEFORE update to know prior state
-  const [prior] = await db.select().from(tasks).where(eq(tasks.id, id)).limit(1)
+  // Fetch the task BEFORE update to know prior state — scoped to workspace
+  const [prior] = await db.select().from(tasks).where(and(eq(tasks.id, id), eq(tasks.workspaceId, auth.workspace.id))).limit(1)
   if (!prior) return Response.json({ error: "Task not found" }, { status: 404 })
 
   const [updated] = await db
     .update(tasks)
     .set(updates)
-    .where(eq(tasks.id, id))
+    .where(and(eq(tasks.id, id), eq(tasks.workspaceId, auth.workspace.id)))
     .returning()
+
+  // Auto-trigger agent work when task moves to in_progress
+  const justStarted = updates.status === "in_progress" && prior.status !== "in_progress"
+  if (justStarted && updated.assignedAgentId && !updated.assignedToUser) {
+    try {
+      const origin = req.headers.get("origin") || req.headers.get("host") || "http://localhost:3001"
+      const baseUrl = origin.startsWith("http") ? origin : `http://${origin}`
+      fetch(`${baseUrl}/api/agent-tasks/run`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          cookie: req.headers.get("cookie") || "",
+        },
+        body: JSON.stringify({
+          agentId: updated.assignedAgentId,
+          prompt: `Work on this task: "${updated.title}". ${updated.description || ""}`,
+        }),
+      }).catch(() => {}) // fire and forget
+    } catch {}
+  }
 
   // SOP auto-generation: fires when a task transitions to "done" for the first time
   // and the assigned agent doesn't yet have an SOP covering this type of work
@@ -51,6 +97,7 @@ export async function PATCH(req: Request) {
           // First time this agent has done this kind of work — draft an SOP
           const sopContent = draftSopFromTask(updated, agent.name)
           await db.insert(agentSops).values({
+            workspaceId: auth.workspace.id,
             agentId: agent.id,
             title: sopTitle,
             content: sopContent,
@@ -62,6 +109,7 @@ export async function PATCH(req: Request) {
           // Add to trophy feed
           await db.insert(trophyEvents).values({
             agentId: agent.id,
+            workspaceId: auth.workspace.id,
             agentName: agent.name,
             type: "capability_unlocked",
             title: `${agent.name} authored new SOP: ${sopTitle}`,
@@ -73,6 +121,7 @@ export async function PATCH(req: Request) {
           const [tlChannel] = await db.select().from(channels).where(eq(channels.name, "team-leaders")).limit(1)
           if (tlChannel) {
             await db.insert(messages).values({
+              workspaceId: auth.workspace.id,
               channelId: tlChannel.id,
               senderName: "System",
               senderAvatar: "📋",
@@ -90,6 +139,47 @@ export async function PATCH(req: Request) {
       }
     } catch (e) {
       console.error("SOP auto-gen failed:", e)
+    }
+
+    // ── Learning Engine: extract skill + record daily memory ──
+    try {
+      const agentForSkill = await db.select().from(agents).where(eq(agents.id, updated.assignedAgentId!)).limit(1)
+      const skillAgent = agentForSkill[0]
+
+      if (skillAgent) {
+        // Extract reusable skill from successful task completion
+        await extractSkillFromTask(
+          {
+            id: updated.id,
+            title: updated.title,
+            description: updated.description,
+            instructions: updated.instructions,
+            result: updated.result as Record<string, unknown> | null,
+          },
+          updated.assignedAgentId!,
+          updated.workspaceId!,
+        )
+
+        // Record task completion as daily memory
+        await recordDailyEntry({
+          workspaceId: updated.workspaceId!,
+          agentId: updated.assignedAgentId!,
+          title: `Task completed: ${updated.title}`,
+          content: `${skillAgent.name} completed task "${updated.title}". ${updated.description || ""}`.slice(0, 500),
+          importance: 3,
+          tags: ["task-completed", skillAgent.name],
+          metadata: { taskId: updated.id },
+        })
+      }
+    } catch (e) {
+      console.error("Learning engine failed:", e)
+    }
+
+    // ── Roster unlocks — check if task completion crosses a threshold ──
+    try {
+      await checkRosterUnlocks(auth.workspace.id)
+    } catch (e) {
+      console.error("Roster unlock check failed:", e)
     }
   }
 

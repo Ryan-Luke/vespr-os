@@ -79,7 +79,9 @@ export function DataExport() {
   async function handleExport(exp: typeof EXPORTS[0]) {
     setExporting(exp.id)
     try {
-      const data = await fetch(exp.endpoint).then((r) => r.json())
+      const raw = await fetch(`${exp.endpoint}?limit=100`).then((r) => r.json())
+      // Handle paginated responses: extract the data array from wrapper objects
+      const data = Array.isArray(raw) ? raw : (raw.entries ?? raw.tasks ?? raw.events ?? raw.messages ?? raw)
       const ext = exp.format === "CSV" ? "csv" : "json"
       const date = new Date().toISOString().split("T")[0]
       downloadFile(data, `vespr-${exp.id}-${date}.${ext}`, exp.format)

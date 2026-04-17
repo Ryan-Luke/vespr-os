@@ -1,32 +1,40 @@
 "use client"
 
-import { useState, useEffect, useCallback, useRef } from "react"
+import { useState, useEffect, useCallback } from "react"
 import {
   Select, SelectContent, SelectItem, SelectTrigger, SelectValue,
 } from "@/components/ui/select"
-import { Plug, Search, Check, X, ExternalLink, Loader2, Key, Webhook, RefreshCw, Copy, Shield } from "lucide-react"
+import { Plug, Search, Check, X, ExternalLink, Loader2, Key, RefreshCw, Shield } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 // ── Types ────────────────────────────────────────────────
 
-interface Integration {
-  id: string
-  name: string
-  provider: string
-  category: string
-  status: string
-  connectedAt: string | null
+interface CredentialField {
+  key: string
+  label: string
+  type: "text" | "password" | "url" | "select"
+  placeholder?: string
+  required: boolean
+  help?: string
+  options?: { value: string; label: string }[]
 }
 
-type ConnectionType = "oauth" | "apikey" | "webhook"
-
-interface ToolDef {
-  provider: string
+interface RegistryProvider {
+  key: string
   name: string
   category: string
-  description: string
-  icon: string
-  connectionType: ConnectionType
+  authType: "api_key" | "api_key_multi" | "oauth" | "none"
+  fields: CredentialField[]
+  docsUrl?: string
+}
+
+interface StoredIntegration {
+  id: string
+  providerKey: string
+  name: string
+  category: string
+  status: "connected" | "disconnected" | "error"
+  connectedAt: string | null
 }
 
 type HealthStatus = "healthy" | "degraded" | "error"
@@ -41,53 +49,45 @@ type HealthMap = Record<string, HealthRecord>
 
 // ── Constants ────────────────────────────────────────────
 
-const AVAILABLE_TOOLS: ToolDef[] = [
-  // Communication (OAuth)
-  { provider: "gmail", name: "Gmail", category: "communication", description: "Send and read emails", icon: "📧", connectionType: "oauth" },
-  { provider: "google-calendar", name: "Google Calendar", category: "communication", description: "Manage calendar events", icon: "📅", connectionType: "oauth" },
-  { provider: "slack", name: "Slack", category: "communication", description: "External team messaging", icon: "💬", connectionType: "oauth" },
-  // CRM & Sales (OAuth)
-  { provider: "hubspot", name: "HubSpot", category: "crm", description: "CRM and sales pipeline", icon: "🔶", connectionType: "oauth" },
-  { provider: "ghl", name: "GoHighLevel", category: "crm", description: "All-in-one marketing CRM", icon: "🚀", connectionType: "apikey" },
-  { provider: "salesforce", name: "Salesforce", category: "crm", description: "Enterprise CRM", icon: "☁️", connectionType: "oauth" },
-  { provider: "pipedrive", name: "Pipedrive", category: "crm", description: "Sales pipeline management", icon: "🏁", connectionType: "apikey" },
-  // Marketing (Mixed)
-  { provider: "meta-ads", name: "Meta Ads", category: "marketing", description: "Facebook & Instagram advertising", icon: "📘", connectionType: "oauth" },
-  { provider: "google-ads", name: "Google Ads", category: "marketing", description: "Search and display advertising", icon: "🔍", connectionType: "oauth" },
-  { provider: "mailchimp", name: "Mailchimp", category: "marketing", description: "Email marketing", icon: "🐒", connectionType: "apikey" },
-  { provider: "convertkit", name: "ConvertKit", category: "marketing", description: "Creator email platform", icon: "✉️", connectionType: "apikey" },
-  { provider: "buffer", name: "Buffer", category: "marketing", description: "Social media scheduling", icon: "📱", connectionType: "apikey" },
-  { provider: "ahrefs", name: "Ahrefs", category: "marketing", description: "SEO and backlink analysis", icon: "🔗", connectionType: "apikey" },
-  // Finance (API key)
-  { provider: "quickbooks", name: "QuickBooks", category: "finance", description: "Accounting and bookkeeping", icon: "📊", connectionType: "oauth" },
-  { provider: "stripe", name: "Stripe", category: "finance", description: "Payment processing", icon: "💳", connectionType: "apikey" },
-  { provider: "xero", name: "Xero", category: "finance", description: "Cloud accounting", icon: "📒", connectionType: "oauth" },
-  { provider: "plaid", name: "Plaid", category: "finance", description: "Bank account connections", icon: "🏦", connectionType: "apikey" },
-  // Operations (Mixed)
-  { provider: "whop", name: "Whop", category: "payments", description: "Digital product sales & subscriptions", icon: "💳", connectionType: "apikey" },
-  { provider: "shopify", name: "Shopify", category: "operations", description: "E-commerce platform", icon: "🛍️", connectionType: "oauth" },
-  { provider: "make", name: "Make.com", category: "operations", description: "Visual workflow automation", icon: "🔧", connectionType: "webhook" },
-  { provider: "zapier", name: "Zapier", category: "operations", description: "Workflow automation", icon: "⚡", connectionType: "webhook" },
-  { provider: "n8n", name: "n8n", category: "operations", description: "Self-hosted automation", icon: "🔄", connectionType: "webhook" },
-  { provider: "notion", name: "Notion", category: "operations", description: "Docs and project management", icon: "📝", connectionType: "oauth" },
-  // Development (OAuth/API key)
-  { provider: "github", name: "GitHub", category: "development", description: "Code repositories", icon: "🐙", connectionType: "oauth" },
-  { provider: "vercel", name: "Vercel", category: "development", description: "Deployment platform", icon: "▲", connectionType: "apikey" },
-  { provider: "figma", name: "Figma", category: "development", description: "Design collaboration", icon: "🎨", connectionType: "oauth" },
-  // Support (API key)
-  { provider: "zendesk", name: "Zendesk", category: "support", description: "Customer support tickets", icon: "🎧", connectionType: "apikey" },
-  { provider: "intercom", name: "Intercom", category: "support", description: "Customer messaging", icon: "💁", connectionType: "apikey" },
-]
+const CATEGORY_LABELS: Record<string, string> = {
+  crm: "Sales & CRM",
+  email: "Email",
+  payments: "Payments",
+  calendar: "Calendar",
+  content: "Documents",
+  marketing: "Social & Marketing",
+  pm: "Project Management",
+  analytics: "Analytics",
+  delivery: "Delivery",
+  dashboards: "Dashboards",
+}
 
-const CATEGORIES = [
-  { id: "all", label: "All" },
-  { id: "communication", label: "Communication" },
-  { id: "crm", label: "CRM & Sales" },
-  { id: "marketing", label: "Marketing" },
-  { id: "finance", label: "Finance" },
-  { id: "operations", label: "Operations" },
-  { id: "development", label: "Development" },
-  { id: "support", label: "Support" },
+const CATEGORY_ORDER = ["crm", "email", "payments", "calendar", "content", "marketing", "pm", "analytics", "delivery", "dashboards"]
+
+/** Icons keyed by provider slug */
+const PROVIDER_ICONS: Record<string, string> = {
+  gohighlevel: "🚀",
+  hubspot: "🔶",
+  pipedrive: "🏁",
+  attio: "🎯",
+  mailchimp: "🐒",
+  activecampaign: "⚡",
+  convertkit: "✉️",
+  resend: "📨",
+  sendgrid: "📤",
+  stripe: "💳",
+  clickup: "✅",
+  linear: "🔷",
+  asana: "🟠",
+  calcom: "📅",
+  buffer: "📱",
+  notion: "📝",
+  posthog: "🦔",
+  databox: "📊",
+}
+
+const PLANNED_INTEGRATIONS = [
+  "Gmail", "Slack", "Salesforce", "Shopify", "QuickBooks", "Zapier", "GitHub",
 ]
 
 const AGENTS = [
@@ -140,11 +140,6 @@ function randomHealth(): HealthStatus {
   return "error"
 }
 
-function generateWebhookUrl(provider: string): string {
-  const id = Math.random().toString(36).slice(2, 10)
-  return `https://hooks.business-os.app/${provider}/${id}`
-}
-
 function timeAgo(date: string): string {
   const diff = Date.now() - new Date(date).getTime()
   const mins = Math.floor(diff / 60000)
@@ -173,136 +168,145 @@ function HealthDot({ status }: { status?: HealthStatus }) {
   )
 }
 
-// ── Connect Panel ────────────────────────────────────────
+// ── Connect Panel (registry-driven) ─────────────────────
 
 function ConnectPanel({
-  tool,
+  provider,
   onConnect,
   onCancel,
 }: {
-  tool: ToolDef
-  onConnect: () => void
+  provider: RegistryProvider
+  onConnect: (credentials: Record<string, string>) => void
   onCancel: () => void
 }) {
-  const [apiKey, setApiKey] = useState("")
+  const [fields, setFields] = useState<Record<string, string>>({})
   const [loading, setLoading] = useState(false)
-  const [copied, setCopied] = useState(false)
-  const [webhookUrl] = useState(() => generateWebhookUrl(tool.provider))
+  const [error, setError] = useState<string | null>(null)
 
-  function handleOAuthConnect() {
+  const allRequiredFilled = provider.fields
+    .filter((f) => f.required)
+    .every((f) => (fields[f.key] ?? "").trim() !== "")
+
+  async function handleSubmit() {
+    if (!allRequiredFilled) return
     setLoading(true)
-    setTimeout(() => {
+    setError(null)
+    try {
+      const res = await fetch("/api/integrations/credentials", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerKey: provider.key, credentials: fields }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        setError(data.error || "Failed to connect")
+        setLoading(false)
+        return
+      }
+      onConnect(fields)
+    } catch {
+      setError("Network error. Please try again.")
+    } finally {
       setLoading(false)
-      onConnect()
-    }, 2000)
+    }
   }
 
-  function handleApiKeyConnect() {
-    if (!apiKey.trim()) return
-    setLoading(true)
-    setTimeout(() => {
-      setLoading(false)
-      onConnect()
-    }, 1500)
+  if (provider.authType === "oauth") {
+    return (
+      <div className="mt-3 pt-3 border-t border-border space-y-3">
+        <div className="flex items-center gap-2 py-2">
+          <ExternalLink className="h-3.5 w-3.5 text-muted-foreground" />
+          <span className="text-xs text-muted-foreground">OAuth — Coming Soon</span>
+        </div>
+        <p className="text-xs text-muted-foreground">
+          OAuth integration with {provider.name} is not yet available. Check back soon.
+        </p>
+        <button
+          onClick={onCancel}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+        >
+          Cancel
+        </button>
+      </div>
+    )
   }
 
-  function handleCopyWebhook() {
-    navigator.clipboard.writeText(webhookUrl).then(() => {
-      setCopied(true)
-      setTimeout(() => setCopied(false), 2000)
-    })
+  if (provider.authType === "none") {
+    return (
+      <div className="mt-3 pt-3 border-t border-border space-y-3">
+        <p className="text-xs text-muted-foreground">
+          No setup required. {provider.name} is ready to use.
+        </p>
+        <button
+          onClick={() => onConnect({})}
+          className="flex items-center gap-1.5 w-full justify-center h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+        >
+          <Check className="h-3.5 w-3.5" />
+          Enable
+        </button>
+        <button
+          onClick={onCancel}
+          className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
+        >
+          Cancel
+        </button>
+      </div>
+    )
   }
 
+  // api_key or api_key_multi — render fields from registry
   return (
     <div className="mt-3 pt-3 border-t border-border space-y-3">
-      {tool.connectionType === "oauth" && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            Authorize Business OS to access your {tool.name} account.
-          </p>
-          <button
-            onClick={handleOAuthConnect}
-            disabled={loading}
-            className="flex items-center gap-2 w-full justify-center h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
-          >
-            {loading ? (
-              <>
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                Connecting...
-              </>
-            ) : (
-              <>
-                <ExternalLink className="h-3.5 w-3.5" />
-                Connect with {tool.name}
-              </>
-            )}
-          </button>
-        </>
-      )}
-
-      {tool.connectionType === "apikey" && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            Enter your {tool.name} API key to connect.
-          </p>
-          <div className="flex gap-2">
-            <div className="relative flex-1">
-              <Key className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
-              <input
-                type="password"
-                placeholder={`${tool.provider}_sk_...`}
-                value={apiKey}
-                onChange={(e) => setApiKey(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleApiKeyConnect()}
-                className="w-full h-8 rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors font-mono"
-              />
-            </div>
-            <button
-              onClick={handleApiKeyConnect}
-              disabled={loading || !apiKey.trim()}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 shrink-0"
-            >
-              {loading ? (
-                <Loader2 className="h-3.5 w-3.5 animate-spin" />
-              ) : (
-                <Check className="h-3.5 w-3.5" />
-              )}
-              {loading ? "Verifying..." : "Verify & Connect"}
-            </button>
-          </div>
-        </>
-      )}
-
-      {tool.connectionType === "webhook" && (
-        <>
-          <p className="text-xs text-muted-foreground">
-            Use this webhook URL in your {tool.name} workflows to send data to Business OS.
-          </p>
-          <div className="flex gap-2">
+      <p className="text-xs text-muted-foreground">
+        Enter your {provider.name} credentials to connect.
+      </p>
+      {provider.fields.map((field) => (
+        <div key={field.key} className="space-y-1">
+          <label className="text-xs text-muted-foreground">
+            {field.label}{field.required ? "" : " (optional)"}
+          </label>
+          <div className="relative">
+            <Key className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3 w-3 text-muted-foreground" />
             <input
-              readOnly
-              value={webhookUrl}
-              className="w-full h-8 rounded-md border border-border bg-muted/50 px-3 text-[13px] outline-none font-mono text-muted-foreground select-all"
-              onFocus={(e) => e.target.select()}
+              type={field.type === "password" ? "password" : "text"}
+              placeholder={field.placeholder ?? ""}
+              value={fields[field.key] ?? ""}
+              onChange={(e) => setFields((prev) => ({ ...prev, [field.key]: e.target.value }))}
+              onKeyDown={(e) => e.key === "Enter" && handleSubmit()}
+              className="w-full h-8 rounded-md border border-border bg-muted/50 pl-8 pr-3 text-[13px] outline-none focus:border-muted-foreground/30 transition-colors font-mono"
             />
-            <button
-              onClick={handleCopyWebhook}
-              className="flex items-center gap-1.5 h-8 px-3 rounded-md border border-border bg-card text-xs font-medium hover:bg-muted/80 transition-colors shrink-0"
-            >
-              {copied ? <Check className="h-3.5 w-3.5 text-emerald-500" /> : <Copy className="h-3.5 w-3.5" />}
-              {copied ? "Copied" : "Copy"}
-            </button>
           </div>
-          <button
-            onClick={onConnect}
-            className="flex items-center gap-2 w-full justify-center h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
-          >
-            <Webhook className="h-3.5 w-3.5" />
-            Mark as Connected
-          </button>
-        </>
+          {field.help && (
+            <p className="text-[11px] text-muted-foreground/60">{field.help}</p>
+          )}
+        </div>
+      ))}
+      {error && (
+        <p className="text-xs text-red-400">{error}</p>
       )}
-
+      <button
+        onClick={handleSubmit}
+        disabled={loading || !allRequiredFilled}
+        className="flex items-center gap-1.5 w-full justify-center h-8 rounded-md bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors disabled:opacity-50"
+      >
+        {loading ? (
+          <Loader2 className="h-3.5 w-3.5 animate-spin" />
+        ) : (
+          <Check className="h-3.5 w-3.5" />
+        )}
+        {loading ? "Verifying..." : "Verify & Connect"}
+      </button>
+      {provider.docsUrl && (
+        <a
+          href={provider.docsUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="flex items-center justify-center gap-1 text-[11px] text-muted-foreground hover:text-foreground transition-colors"
+        >
+          <ExternalLink className="h-3 w-3" />
+          API Documentation
+        </a>
+      )}
       <button
         onClick={onCancel}
         className="text-xs text-muted-foreground hover:text-foreground transition-colors w-full text-center"
@@ -316,7 +320,7 @@ function ConnectPanel({
 // ── Detail Panel ─────────────────────────────────────────
 
 function DetailPanel({
-  tool,
+  provider,
   integration,
   health,
   agentAccess,
@@ -325,8 +329,8 @@ function DetailPanel({
   onToggleAgent,
   onClose,
 }: {
-  tool: ToolDef
-  integration: Integration
+  provider: RegistryProvider
+  integration: StoredIntegration
   health: HealthRecord | undefined
   agentAccess: string[]
   onTestConnection: () => void
@@ -336,11 +340,19 @@ function DetailPanel({
 }) {
   const [testing, setTesting] = useState(false)
   const [confirmDisconnect, setConfirmDisconnect] = useState(false)
+  const [disconnecting, setDisconnecting] = useState(false)
 
   function handleTest() {
     setTesting(true)
     setTimeout(() => setTesting(false), 1500)
   }
+
+  const authLabel =
+    provider.authType === "api_key" || provider.authType === "api_key_multi"
+      ? "API Key"
+      : provider.authType === "oauth"
+        ? "OAuth"
+        : "None"
 
   return (
     <div className="mt-3 pt-3 border-t border-border space-y-3">
@@ -352,9 +364,7 @@ function DetailPanel({
             {health?.status === "healthy" ? "Connected" : health?.status === "degraded" ? "Degraded" : health?.status === "error" ? "Connection Error" : "Connected"}
           </span>
         </div>
-        <span className="text-xs text-muted-foreground">
-          {tool.connectionType === "oauth" ? "OAuth" : tool.connectionType === "apikey" ? "API Key" : "Webhook"}
-        </span>
+        <span className="text-xs text-muted-foreground">{authLabel}</span>
       </div>
 
       {/* Timestamps */}
@@ -414,13 +424,14 @@ function DetailPanel({
       {/* Disconnect */}
       {confirmDisconnect ? (
         <div className="bg-muted/50 border border-border rounded-md p-3 space-y-2">
-          <p className="text-xs text-muted-foreground">Disconnect {tool.name}? Agents will lose access.</p>
+          <p className="text-xs text-muted-foreground">Disconnect {provider.name}? Agents will lose access.</p>
           <div className="flex gap-2">
             <button
               onClick={() => { onDisconnect(); setConfirmDisconnect(false); }}
-              className="flex-1 h-7 rounded-md bg-red-500/10 text-red-500 text-xs font-medium hover:bg-red-500/20 transition-colors"
+              disabled={disconnecting}
+              className="flex-1 h-7 rounded-md bg-red-500/10 text-red-500 text-xs font-medium hover:bg-red-500/20 transition-colors disabled:opacity-50"
             >
-              Disconnect
+              {disconnecting ? "Disconnecting..." : "Disconnect"}
             </button>
             <button
               onClick={() => setConfirmDisconnect(false)}
@@ -452,7 +463,8 @@ function DetailPanel({
 // ── Main Page ────────────────────────────────────────────
 
 export default function IntegrationsPage() {
-  const [connected, setConnected] = useState<Integration[]>([])
+  const [providers, setProviders] = useState<RegistryProvider[]>([])
+  const [connected, setConnected] = useState<StoredIntegration[]>([])
   const [search, setSearch] = useState("")
   const [category, setCategory] = useState("all")
   const [loaded, setLoaded] = useState(false)
@@ -460,12 +472,16 @@ export default function IntegrationsPage() {
   const [health, setHealth] = useState<HealthMap>({})
   const [agentAccess, setAgentAccess] = useState<Record<string, string[]>>({})
 
-  // Load integrations from API
+  // Load registry + connected integrations on mount
   useEffect(() => {
-    fetch("/api/integrations").then((r) => r.json()).then((data) => {
-      setConnected(Array.isArray(data) ? data : [])
+    Promise.all([
+      fetch("/api/integrations/registry").then((r) => r.json()).catch(() => ({ providers: [] })),
+      fetch("/api/integrations/credentials").then((r) => r.json()).catch(() => ({ integrations: [] })),
+    ]).then(([registryData, credData]) => {
+      setProviders(Array.isArray(registryData.providers) ? registryData.providers : [])
+      setConnected(Array.isArray(credData.integrations) ? credData.integrations : [])
       setLoaded(true)
-    }).catch(() => setLoaded(true))
+    })
   }, [])
 
   // Load health + agent access from localStorage
@@ -477,10 +493,10 @@ export default function IntegrationsPage() {
   // Initialize health for connected integrations that don't have it yet
   useEffect(() => {
     if (!loaded) return
-    const connectedProviders = connected.filter((c) => c.status === "connected").map((c) => c.provider)
+    const connectedKeys = connected.filter((c) => c.status === "connected").map((c) => c.providerKey)
     let changed = false
     const next = { ...health }
-    for (const p of connectedProviders) {
+    for (const p of connectedKeys) {
       if (!next[p]) {
         next[p] = {
           status: randomHealth(),
@@ -497,101 +513,127 @@ export default function IntegrationsPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [loaded, connected])
 
-  const connectedProviders = new Set(connected.filter((c) => c.status === "connected").map((c) => c.provider))
+  const connectedKeys = new Set(connected.filter((c) => c.status === "connected").map((c) => c.providerKey))
 
-  const filtered = AVAILABLE_TOOLS.filter((t) => {
-    if (category !== "all" && t.category !== category) return false
+  // Build categories from providers
+  const activeCategories = Array.from(new Set(providers.map((p) => p.category)))
+    .sort((a, b) => CATEGORY_ORDER.indexOf(a) - CATEGORY_ORDER.indexOf(b))
+
+  const categories = [
+    { id: "all", label: "All" },
+    ...activeCategories.map((id) => ({ id, label: CATEGORY_LABELS[id] ?? id })),
+  ]
+
+  // Filter providers
+  const filtered = providers.filter((p) => {
+    if (category !== "all" && p.category !== category) return false
     if (search) {
       const q = search.toLowerCase()
-      return t.name.toLowerCase().includes(q) || t.description.toLowerCase().includes(q)
+      return p.name.toLowerCase().includes(q) || p.key.toLowerCase().includes(q)
     }
     return true
   })
 
-  async function connectTool(tool: ToolDef) {
-    try {
-      const result = await fetch("/api/integrations", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: tool.name, provider: tool.provider, category: tool.category }),
-      }).then((r) => r.json())
-      setConnected((prev) => [...prev, result])
+  // Group by category for display
+  const grouped = new Map<string, RegistryProvider[]>()
+  for (const p of filtered) {
+    const group = grouped.get(p.category) ?? []
+    group.push(p)
+    grouped.set(p.category, group)
+  }
+  const sortedGroups = Array.from(grouped.entries()).sort(
+    (a, b) => CATEGORY_ORDER.indexOf(a[0]) - CATEGORY_ORDER.indexOf(b[0]),
+  )
 
-      // Set initial health
-      const record: HealthRecord = {
-        status: "healthy",
-        lastCheck: new Date().toISOString(),
-        lastSync: new Date().toISOString(),
-      }
-      const nextHealth = { ...health, [tool.provider]: record }
-      setHealth(nextHealth)
-      saveHealth(nextHealth)
+  async function handleConnect(provider: RegistryProvider) {
+    // Set initial health
+    const record: HealthRecord = {
+      status: "healthy",
+      lastCheck: new Date().toISOString(),
+      lastSync: new Date().toISOString(),
+    }
+    const nextHealth = { ...health, [provider.key]: record }
+    setHealth(nextHealth)
+    saveHealth(nextHealth)
 
-      // Give all agents access by default
-      const nextAccess = { ...agentAccess, [tool.provider]: AGENTS.map((a) => a.id) }
-      setAgentAccess(nextAccess)
-      saveAgentAccess(nextAccess)
+    // Give all agents access by default
+    const nextAccess = { ...agentAccess, [provider.key]: AGENTS.map((a) => a.id) }
+    setAgentAccess(nextAccess)
+    saveAgentAccess(nextAccess)
 
-      setExpandedCard(null)
-    } catch { /* noop */ }
+    // Add to connected list
+    setConnected((prev) => [
+      ...prev.filter((c) => c.providerKey !== provider.key),
+      {
+        id: provider.key,
+        providerKey: provider.key,
+        name: provider.name,
+        category: provider.category,
+        status: "connected",
+        connectedAt: new Date().toISOString(),
+      },
+    ])
+
+    setExpandedCard(null)
   }
 
-  async function disconnectTool(provider: string) {
-    const integration = connected.find((c) => c.provider === provider)
-    if (!integration) return
-    await fetch("/api/integrations", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id: integration.id, status: "disconnected" }),
-    })
-    setConnected((prev) => prev.map((c) => c.provider === provider ? { ...c, status: "disconnected" } : c))
+  async function handleDisconnect(providerKey: string) {
+    try {
+      await fetch("/api/integrations/credentials", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ providerKey }),
+      })
+    } catch { /* continue with local state update */ }
+
+    setConnected((prev) => prev.filter((c) => c.providerKey !== providerKey))
 
     // Clear health
     const nextHealth = { ...health }
-    delete nextHealth[provider]
+    delete nextHealth[providerKey]
     setHealth(nextHealth)
     saveHealth(nextHealth)
 
     // Clear agent access
     const nextAccess = { ...agentAccess }
-    delete nextAccess[provider]
+    delete nextAccess[providerKey]
     setAgentAccess(nextAccess)
     saveAgentAccess(nextAccess)
 
     setExpandedCard(null)
   }
 
-  function testConnection(provider: string) {
+  function testConnection(providerKey: string) {
     const newStatus = randomHealth()
     const record: HealthRecord = {
       status: newStatus,
       lastCheck: new Date().toISOString(),
-      lastSync: newStatus === "error" ? (health[provider]?.lastSync || new Date().toISOString()) : new Date().toISOString(),
+      lastSync: newStatus === "error" ? (health[providerKey]?.lastSync || new Date().toISOString()) : new Date().toISOString(),
     }
-    const nextHealth = { ...health, [provider]: record }
+    const nextHealth = { ...health, [providerKey]: record }
     setHealth(nextHealth)
     saveHealth(nextHealth)
   }
 
-  function toggleAgentAccess(provider: string, agentId: string) {
-    const current = agentAccess[provider] || []
+  function toggleAgentAccess(providerKey: string, agentId: string) {
+    const current = agentAccess[providerKey] || []
     const next = current.includes(agentId)
       ? current.filter((id) => id !== agentId)
       : [...current, agentId]
-    const nextAccess = { ...agentAccess, [provider]: next }
+    const nextAccess = { ...agentAccess, [providerKey]: next }
     setAgentAccess(nextAccess)
     saveAgentAccess(nextAccess)
   }
 
-  function handleCardClick(provider: string) {
-    setExpandedCard(expandedCard === provider ? null : provider)
+  function handleCardClick(providerKey: string) {
+    setExpandedCard(expandedCard === providerKey ? null : providerKey)
   }
 
   return (
     <div className="p-6 space-y-5 h-full overflow-y-auto">
       <div className="flex items-center justify-between">
         <h1 className="text-lg font-semibold tracking-tight">Integrations</h1>
-        <span className="text-xs text-muted-foreground">{connectedProviders.size} connected</span>
+        <span className="text-xs text-muted-foreground">{connectedKeys.size} connected</span>
       </div>
 
       {/* Filters */}
@@ -606,84 +648,130 @@ export default function IntegrationsPage() {
           />
         </div>
         <Select value={category} onValueChange={(v) => setCategory(v ?? "all")}>
-          <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+          <SelectTrigger className="w-40 h-8 text-xs"><SelectValue /></SelectTrigger>
           <SelectContent>
-            {CATEGORIES.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
+            {categories.map((c) => <SelectItem key={c.id} value={c.id}>{c.label}</SelectItem>)}
           </SelectContent>
         </Select>
       </div>
 
-      {/* Tool grid */}
-      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-        {filtered.map((tool) => {
-          const isConnected = connectedProviders.has(tool.provider)
-          const isExpanded = expandedCard === tool.provider
-          const integration = connected.find((c) => c.provider === tool.provider && c.status === "connected")
-          const toolHealth = health[tool.provider]
+      {/* Loading state */}
+      {!loaded && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        </div>
+      )}
 
-          return (
-            <div
-              key={tool.provider}
-              className={cn(
-                "bg-card border border-border rounded-md p-4 transition-colors",
-                isConnected && "border-emerald-500/20",
-                isExpanded && "ring-1 ring-muted-foreground/10",
-              )}
-            >
-              <div className="flex items-start gap-3">
-                <span className="text-lg">{tool.icon}</span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-[13px] font-medium">{tool.name}</span>
-                    {isConnected && <HealthDot status={toolHealth?.status} />}
+      {/* Provider grid grouped by category */}
+      {loaded && sortedGroups.map(([cat, groupProviders]) => (
+        <div key={cat} className="space-y-3">
+          <h2 className="text-sm font-medium text-muted-foreground">
+            {CATEGORY_LABELS[cat] ?? cat}
+          </h2>
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+            {groupProviders.map((provider) => {
+              const isConnected = connectedKeys.has(provider.key)
+              const isExpanded = expandedCard === provider.key
+              const integration = connected.find((c) => c.providerKey === provider.key && c.status === "connected")
+              const providerHealth = health[provider.key]
+              const icon = PROVIDER_ICONS[provider.key] ?? "🔌"
+
+              return (
+                <div
+                  key={provider.key}
+                  className={cn(
+                    "bg-card border border-border rounded-md p-4 transition-colors",
+                    isConnected && "border-emerald-500/20",
+                    isExpanded && "ring-1 ring-muted-foreground/10",
+                  )}
+                >
+                  <div className="flex items-start gap-3">
+                    <span className="text-lg">{icon}</span>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[13px] font-medium">{provider.name}</span>
+                        {isConnected && <HealthDot status={providerHealth?.status} />}
+                        {isConnected && (
+                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-emerald-500/10 text-emerald-500 font-medium">
+                            Connected
+                          </span>
+                        )}
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {provider.authType === "api_key" || provider.authType === "api_key_multi"
+                          ? "API Key"
+                          : provider.authType === "oauth"
+                            ? "OAuth"
+                            : "No setup required"}
+                      </p>
+                    </div>
+                    <div className="shrink-0">
+                      {isConnected ? (
+                        <button
+                          onClick={() => handleCardClick(provider.key)}
+                          className="text-xs text-muted-foreground hover:text-foreground transition-colors"
+                        >
+                          {isExpanded ? "Close" : "Manage"}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handleCardClick(provider.key)}
+                          className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
+                        >
+                          {isExpanded ? "Cancel" : "Connect"}
+                        </button>
+                      )}
+                    </div>
                   </div>
-                  <p className="text-xs text-muted-foreground mt-0.5">{tool.description}</p>
-                </div>
-                <div className="shrink-0">
-                  {isConnected ? (
-                    <button
-                      onClick={() => handleCardClick(tool.provider)}
-                      className="text-xs text-muted-foreground hover:text-foreground transition-colors"
-                    >
-                      {isExpanded ? "Close" : "Manage"}
-                    </button>
-                  ) : (
-                    <button
-                      onClick={() => handleCardClick(tool.provider)}
-                      className="text-xs text-primary hover:text-primary/80 font-medium transition-colors"
-                    >
-                      {isExpanded ? "Cancel" : "Connect"}
-                    </button>
+
+                  {/* Expanded: Connect flow */}
+                  {isExpanded && !isConnected && (
+                    <ConnectPanel
+                      provider={provider}
+                      onConnect={() => handleConnect(provider)}
+                      onCancel={() => setExpandedCard(null)}
+                    />
+                  )}
+
+                  {/* Expanded: Detail panel */}
+                  {isExpanded && isConnected && integration && (
+                    <DetailPanel
+                      provider={provider}
+                      integration={integration}
+                      health={providerHealth}
+                      agentAccess={agentAccess[provider.key] || []}
+                      onTestConnection={() => testConnection(provider.key)}
+                      onDisconnect={() => handleDisconnect(provider.key)}
+                      onToggleAgent={(agentId) => toggleAgentAccess(provider.key, agentId)}
+                      onClose={() => setExpandedCard(null)}
+                    />
                   )}
                 </div>
-              </div>
+              )
+            })}
+          </div>
+        </div>
+      ))}
 
-              {/* Expanded: Connect flow */}
-              {isExpanded && !isConnected && (
-                <ConnectPanel
-                  tool={tool}
-                  onConnect={() => connectTool(tool)}
-                  onCancel={() => setExpandedCard(null)}
-                />
-              )}
+      {/* Empty state */}
+      {loaded && filtered.length === 0 && (
+        <div className="flex flex-col items-center justify-center py-12 text-muted-foreground">
+          <Plug className="h-8 w-8 mb-3" />
+          <p className="text-sm">No integrations found.</p>
+        </div>
+      )}
 
-              {/* Expanded: Detail panel */}
-              {isExpanded && isConnected && integration && (
-                <DetailPanel
-                  tool={tool}
-                  integration={integration}
-                  health={toolHealth}
-                  agentAccess={agentAccess[tool.provider] || []}
-                  onTestConnection={() => testConnection(tool.provider)}
-                  onDisconnect={() => disconnectTool(tool.provider)}
-                  onToggleAgent={(agentId) => toggleAgentAccess(tool.provider, agentId)}
-                  onClose={() => setExpandedCard(null)}
-                />
-              )}
-            </div>
-          )
-        })}
-      </div>
+      {/* Coming Soon section */}
+      {loaded && category === "all" && !search && (
+        <div className="mt-8 border-t border-border pt-6">
+          <h3 className="text-sm font-medium text-muted-foreground mb-3">Coming Soon</h3>
+          <div className="flex flex-wrap gap-2">
+            {PLANNED_INTEGRATIONS.map((name) => (
+              <span key={name} className="px-3 py-1.5 rounded-md bg-muted text-xs text-muted-foreground">{name}</span>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

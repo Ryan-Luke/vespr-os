@@ -1,23 +1,33 @@
 import { db } from "@/lib/db"
 import { trophyEvents } from "@/lib/db/schema"
-import { eq, desc } from "drizzle-orm"
+import { eq, desc, sql } from "drizzle-orm"
+import { withAuth } from "@/lib/auth/with-auth"
 
 export async function GET(req: Request) {
+  const auth = await withAuth()
   const url = new URL(req.url)
-  const workspaceId = url.searchParams.get("workspaceId")
+  const limit = Math.min(parseInt(url.searchParams.get("limit") || "50"), 100)
+  const offset = parseInt(url.searchParams.get("offset") || "0")
 
-  const query = workspaceId
-    ? db.select().from(trophyEvents).where(eq(trophyEvents.workspaceId, workspaceId)).orderBy(desc(trophyEvents.createdAt))
-    : db.select().from(trophyEvents).orderBy(desc(trophyEvents.createdAt))
+  const events = await db.select().from(trophyEvents)
+    .where(eq(trophyEvents.workspaceId, auth.workspace.id))
+    .orderBy(desc(trophyEvents.createdAt))
+    .limit(limit)
+    .offset(offset)
 
-  const events = await query
-  return Response.json(events)
+  const [{ count }] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(trophyEvents)
+    .where(eq(trophyEvents.workspaceId, auth.workspace.id))
+
+  return Response.json({ events, total: count, limit, offset })
 }
 
 export async function POST(req: Request) {
+  const auth = await withAuth()
   const body = await req.json()
   const [created] = await db.insert(trophyEvents).values({
-    workspaceId: body.workspaceId || null,
+    workspaceId: auth.workspace.id,
     agentId: body.agentId || null,
     agentName: body.agentName || null,
     type: body.type,

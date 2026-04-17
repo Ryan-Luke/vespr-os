@@ -27,7 +27,7 @@ export default function ResetPage() {
       // Clear any local state so the next onboarding launches truly fresh
       try {
         localStorage.removeItem("vespr-active-workspace")
-        localStorage.removeItem("bos-tutorial-completed")
+        localStorage.removeItem("vespr-tutorial-completed")
       } catch {}
       router.push("/onboarding")
     } catch (e) {

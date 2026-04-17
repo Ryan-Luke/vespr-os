@@ -41,7 +41,7 @@ export function AgentLeaderboard() {
 
       {/* Top agent highlight */}
       {topAgent && (
-        <Link href={`/teams/${topAgent.teamId}/agents/${topAgent.id}`} className="block mb-3 rounded-md bg-accent/40 border border-border p-3 hover:bg-accent/60 transition-colors">
+        <Link href={topAgent.teamId ? `/teams/${topAgent.teamId}/agents/${topAgent.id}` : `/roster`} className="block mb-3 rounded-md bg-accent/40 border border-border p-3 hover:bg-accent/60 transition-colors">
           <div className="flex items-center gap-2.5">
             <PixelAvatar characterIndex={topAgent.pixelAvatarIndex} size={28} className="rounded-sm" />
             <div className="flex-1 min-w-0">
@@ -64,7 +64,7 @@ export function AgentLeaderboard() {
         {agents.slice(1, 8).map((agent, i) => {
           const progress = levelProgress(agent.xp ?? 0)
           return (
-            <Link key={agent.id} href={`/teams/${agent.teamId}/agents/${agent.id}`} className="flex items-center gap-2.5 py-1.5 rounded-md px-1 -mx-1 hover:bg-accent/40 transition-colors">
+            <Link key={agent.id} href={agent.teamId ? `/teams/${agent.teamId}/agents/${agent.id}` : `/roster`} className="flex items-center gap-2.5 py-1.5 rounded-md px-1 -mx-1 hover:bg-accent/40 transition-colors">
               <span className="text-xs font-mono w-4 text-center text-muted-foreground">{i + 2}</span>
               <PixelAvatar characterIndex={agent.pixelAvatarIndex} size={20} className="rounded-sm" />
               <div className="flex-1 min-w-0">
