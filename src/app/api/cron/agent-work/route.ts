@@ -89,6 +89,62 @@ export async function GET(req: Request) {
     }
   }
 
+  // ── Auto-trigger in_progress kanban tasks ──────────────────────
+  // Find tasks with status "in_progress" that have an assigned agent
+  // but no corresponding running/queued agent_task. These are stalled
+  // kanban tasks that need an agent to pick them up.
+  const inProgressKanban = await db.select().from(tasksTable)
+    .where(eq(tasksTable.status, "in_progress"))
+    .limit(20)
+
+  const triggeredTasks: string[] = []
+  for (const task of inProgressKanban) {
+    if (!task.assignedAgentId || !task.workspaceId) continue
+
+    // Check if there's already a running/queued agent task for this
+    const existing = await db.select({ id: agentTasks.id }).from(agentTasks)
+      .where(and(
+        eq(agentTasks.agentId, task.assignedAgentId),
+        eq(agentTasks.workspaceId, task.workspaceId),
+      ))
+      .limit(5)
+
+    // Check if any recent agent task already covers this task
+    const hasActive = existing.length > 0 && await db.select({ id: agentTasks.id }).from(agentTasks)
+      .where(and(
+        eq(agentTasks.agentId, task.assignedAgentId),
+        eq(agentTasks.workspaceId, task.workspaceId),
+        eq(agentTasks.status, "running"),
+      ))
+      .limit(1)
+      .then(r => r.length > 0)
+
+    if (hasActive) continue // agent is already working
+
+    // Find a channel for this agent
+    const agentTeamId = inProgressKanban.find(t => t.assignedAgentId === task.assignedAgentId)?.teamId
+    const ch = agentTeamId
+      ? await db.select().from(channelsTable).where(and(eq(channelsTable.teamId, agentTeamId), eq(channelsTable.workspaceId, task.workspaceId!))).limit(1).then(r => r[0])
+      : await db.select().from(channelsTable).where(and(eq(channelsTable.name, "general"), eq(channelsTable.workspaceId, task.workspaceId!))).limit(1).then(r => r[0])
+
+    if (ch) {
+      const { runAgentTask } = await import("@/lib/agents/autonomous")
+      runAgentTask({
+        agentId: task.assignedAgentId,
+        channelId: ch.id,
+        workspaceId: task.workspaceId!,
+        prompt: `Work on this task: "${task.title}". ${task.description || ""}`,
+      }).catch(() => {}) // fire and forget
+      triggeredTasks.push(task.title)
+
+      // Space out triggers to avoid rate limits
+      await new Promise(r => setTimeout(r, 3000))
+
+      // Only trigger 3 per cron cycle to avoid overloading
+      if (triggeredTasks.length >= 3) break
+    }
+  }
+
   const allAgents = await db.select().from(agentsTable)
   const allChannels = await db.select().from(channelsTable)
   const teamChannels = allChannels.filter((c) => c.teamId)
