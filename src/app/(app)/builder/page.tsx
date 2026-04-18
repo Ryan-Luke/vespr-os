@@ -148,8 +148,8 @@ function BuilderPageInner() {
   const clonePersonality = searchParams.get("personality")
   const cloneAutonomy = searchParams.get("autonomy")
   const prefillArchetype = searchParams.get("archetype")
-  const [step, setStep] = useState(prefillTeam || isClone ? 1 : 0) // skip template if coming from team page or cloning
-  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(isClone ? "custom" : null)
+  const [step, setStep] = useState(prefillTeam || isClone || prefillArchetype ? 1 : 0) // skip template if coming from team page, cloning, or roster
+  const [selectedTemplate, setSelectedTemplate] = useState<string | null>(isClone || prefillArchetype ? "custom" : null)
   const [selectedSkills, setSelectedSkills] = useState<Set<string>>(() => {
     if (isClone && cloneSkills) {
       const names = cloneSkills.split(",")
@@ -162,7 +162,15 @@ function BuilderPageInner() {
     return new Set()
   })
   const [agentName, setAgentName] = useState(isClone && cloneName ? cloneName : "")
-  const [agentRole, setAgentRole] = useState(isClone && cloneRole ? cloneRole : "")
+  const archetypeRoleMap: Record<string, string> = {
+    scout: "Lead Researcher", closer: "Sales Lead", researcher: "Research Analyst",
+    writer: "Content Strategist", strategist: "Business Strategist", analyst: "Data Analyst",
+    operator: "Operations Manager", communicator: "Communications Lead", builder: "Dev Coordinator",
+  }
+  const [agentRole, setAgentRole] = useState(
+    isClone && cloneRole ? cloneRole :
+    prefillArchetype ? (archetypeRoleMap[prefillArchetype] || "") : ""
+  )
   const [agentTeam, setAgentTeam] = useState(prefillTeam || "")
   const [agentProvider, setAgentProvider] = useState("")
   const [agentDescription, setAgentDescription] = useState("")
